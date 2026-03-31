@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -1 *.cpp)",
+      "Bash(ls -1 *.h)"
+    ]
+  }
+}
