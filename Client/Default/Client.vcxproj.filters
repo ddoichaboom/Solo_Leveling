@@ -31,6 +31,12 @@
     <Filter Include="01. Levels\Loading\Loader">
       <UniqueIdentifier>{a07f48c9-618e-4d20-934b-2c6a467baa4b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\Camera">
+      <UniqueIdentifier>{acecfd5f-687b-422a-a312-9c8bb9a79033}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Camera\Free">
+      <UniqueIdentifier>{9038ecc3-0010-4cac-93b3-36d64281bf1f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -54,6 +60,9 @@
     <ClInclude Include="..\Public\Level_Logo.h">
       <Filter>01. Levels\Logo</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Camera_Free.h">
+      <Filter>02. GameObject\Camera\Free</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -73,6 +82,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\MainApp.cpp">
       <Filter>00. MainApp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Camera_Free.cpp">
+      <Filter>02. GameObject\Camera\Free</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

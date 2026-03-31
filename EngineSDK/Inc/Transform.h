@@ -7,7 +7,7 @@
 
 NS_BEGIN(Engine)
 
-class ENGINE_DLL CTransform final : public CComponent
+class ENGINE_DLL CTransform abstract : public CComponent
 {
 public:
 	typedef struct tagTransformDesc
@@ -23,12 +23,12 @@ protected:
 	virtual ~CTransform() = default;
 
 public:
-	_vector Get_State(STATE eState)
+	_vector					Get_State(STATE eState)
 	{
 		return XMLoadFloat4(reinterpret_cast<_float4*>(&m_WorldMatrix.m[ETOUI(eState)]));
 	}
 
-	_float3 Get_Scale()
+	_float3					Get_Scale() 
 	{
 		return _float3{
 			XMVectorGetX(XMVector3Length(Get_State(STATE::RIGHT))),
@@ -37,9 +37,13 @@ public:
 		};
 	}
 
-	void Set_State(STATE eState, _fvector vState)
+	void					Set_State(STATE eState, _fvector vState)
 	{
 		XMStoreFloat4(reinterpret_cast<_float4*>(&m_WorldMatrix.m[ETOUI(eState)]), vState);
+	}
+
+	const _float4x4*		Get_WorldMatrixPtr() const {
+		return &m_WorldMatrix;
 	}
 
 public:
@@ -49,29 +53,17 @@ public:
 public:
 	HRESULT					Bind_ShaderResource(class CShader* pShader, const _char* pConstantName);
 
-
 public:
 	void					Set_Scale(_float fScaleX = 1.f, _float fScaleY = 1.f, _float fScaleZ = 1.f);
 	void					Scaling(_float fScaleX = 1.f, _float fScaleY = 1.f, _float fScaleZ = 1.f);
 
-	void					Go_Straight(_float fTimeDelta);
-	void					Go_Backward(_float fTimeDelta);
-	void					Go_Left(_float fTimeDelta);
-	void					Go_Right(_float fTimeDelta);
-
-	void					Rotation(_fvector vAxis, _float fRadian);
-	void					Turn(_fvector vAxis, _float fTimeDelta);
-
-	void					LookAt(_fvector vAt);
-
-private:
+protected:
 	_float4x4				m_WorldMatrix = {};
 	_float					m_fSpeedPerSec = {};
 	_float					m_fRotationPerSec = {};
 
 public:
-	static	CTransform*		Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
-	virtual CComponent*		Clone(void* pArg) override;
+	virtual CComponent*		Clone(void* pArg) PURE;
 	virtual void			Free() override;
 };
 

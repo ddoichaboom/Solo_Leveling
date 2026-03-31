@@ -1,7 +1,7 @@
 #include "Shader.h"
 
 CShader::CShader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
-	: CComponent{ pDevice, pContext }
+	: CComponent { pDevice, pContext }
 {
 
 }
@@ -9,7 +9,7 @@ CShader::CShader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 CShader::CShader(const CShader& Prototype)
 	: CComponent{ Prototype }
 	, m_pEffect{ Prototype.m_pEffect }
-	, m_iNumPasses{ Prototype.m_iNumPasses }
+	, m_iNumPasses { Prototype.m_iNumPasses }
 	, m_vInputLayouts{ Prototype.m_vInputLayouts }
 {
 	for (auto& pInputLayout : m_vInputLayouts)
@@ -28,7 +28,7 @@ HRESULT CShader::Initialize_Prototype(const _tchar* pShaderFilePath, const D3D11
 #else
 	iHlslFlag = D3DCOMPILE_OPTIMIZATION_LEVEL1;
 #endif
-
+	
 	// (2) HLSL 파일을 컴파일하여 Effect 객체 생성
 	if (FAILED(D3DX11CompileEffectFromFile(
 		pShaderFilePath,							// HLSL 파일 경로
@@ -64,7 +64,7 @@ HRESULT CShader::Initialize_Prototype(const _tchar* pShaderFilePath, const D3D11
 		ID3D11InputLayout* pInputLayout = { nullptr };
 
 		// PassDesc에서 셰이더 바이트 코드 시그니처를 가져와 InputLayout 생성
-		if (FAILED(m_pDevice->CreateInputLayout(
+		if(FAILED(m_pDevice->CreateInputLayout(
 			pElements,										// 입력 요소 배열
 			iNumElements,									// 요소 개수
 			PassDesc.pIAInputSignature,						// 셰이더 입력 시그니처
@@ -77,7 +77,6 @@ HRESULT CShader::Initialize_Prototype(const _tchar* pShaderFilePath, const D3D11
 
 	return S_OK;
 }
-
 
 HRESULT CShader::Initialize(void* pArg)
 {
@@ -128,6 +127,17 @@ HRESULT CShader::Bind_SRV(const _char* pConstantName, ID3D11ShaderResourceView* 
 
 	// (3) HLSL 전역 변수에 SRV 바인딩
 	return pSRVariable->SetResource(pSRV);
+}
+
+HRESULT CShader::Bind_RawValue(const _char* pConstantName, const void* pValue, _uint iLength)
+{
+	// (1) Effect에서 이름으로 검색
+	ID3DX11EffectVariable* pVariable = m_pEffect->GetVariableByName(pConstantName);
+	if (!pVariable->IsValid())
+		return E_FAIL;
+
+	// (2) SetRawValue로 바이트 단위 데이터 전송
+	return pVariable->SetRawValue(pValue, 0, iLength);
 }
 
 CShader* CShader::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, const _tchar* pShaderFilePath, const D3D11_INPUT_ELEMENT_DESC* pElements, _uint iNumElements)

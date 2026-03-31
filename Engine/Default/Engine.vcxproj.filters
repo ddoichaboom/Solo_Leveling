@@ -70,6 +70,33 @@
     <Filter Include="05. GameObject\Manager\Layer">
       <UniqueIdentifier>{92c6275c-ca12-4607-af5d-50e1a23800df}</UniqueIdentifier>
     </Filter>
+    <Filter Include="08. PipeLine">
+      <UniqueIdentifier>{39d66744-73eb-4ad6-9d2f-b0573140a984}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. GameObject\Camera">
+      <UniqueIdentifier>{641c0742-6794-4c2b-8acc-8b755834164f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Device\Input">
+      <UniqueIdentifier>{90b42458-1ce7-433f-be3e-105eb01d4d00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Device\Graphic">
+      <UniqueIdentifier>{cbc6f682-5e3b-443f-829f-a8b359346556}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. GameObject\UIObject">
+      <UniqueIdentifier>{a47367d8-7436-4c03-aa67-0ccf5929bbba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. Lights">
+      <UniqueIdentifier>{76bb147b-08da-4585-a476-ed0ad2b9c541}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. Lights\Manager">
+      <UniqueIdentifier>{bfa483e5-67b4-48d8-a57b-dcd070349980}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Transform\2D">
+      <UniqueIdentifier>{20ba477f-e892-4e93-b3d6-48f20f2a9126}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Transform\3D">
+      <UniqueIdentifier>{ceb8315c-4251-46e7-a0cc-6d55b6eb37c8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -123,34 +150,37 @@
     <ClCompile Include="..\Private\Object_Manager.cpp">
       <Filter>05. GameObject\Manager</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Camera.cpp">
+      <Filter>05. GameObject\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\PipeLine.cpp">
+      <Filter>08. PipeLine</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Graphic_Device.cpp">
-      <Filter>01. Device</Filter>
+      <Filter>01. Device\Graphic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Input_Device.cpp">
+      <Filter>01. Device\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UIObject.cpp">
+      <Filter>05. GameObject\UIObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Light_Manager.cpp">
+      <Filter>09. Lights\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Light.cpp">
+      <Filter>09. Lights</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Transform_3D.cpp">
+      <Filter>07. Component\Transform\3D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Transform_2D.cpp">
+      <Filter>07. Component\Transform\2D</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Public\Engine_Defines.h">
-      <Filter>99. Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Engine_Enum.h">
-      <Filter>99. Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Engine_Function.h">
-      <Filter>99. Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Engine_Macro.h">
-      <Filter>99. Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Engine_Struct.h">
-      <Filter>99. Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Engine_Typedef.h">
-      <Filter>99. Defines</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\GameInstance.h">
       <Filter>00. GameInstance</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Graphic_Device.h">
-      <Filter>01. Device</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Timer.h">
       <Filter>02. Timers</Filter>
@@ -199,6 +229,51 @@
     </ClInclude>
     <ClInclude Include="..\Public\Level.h">
       <Filter>03. Levels</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\PipeLine.h">
+      <Filter>08. PipeLine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Defines.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Enum.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Function.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Macro.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Struct.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Typedef.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Camera.h">
+      <Filter>05. GameObject\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Graphic_Device.h">
+      <Filter>01. Device\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Input_Device.h">
+      <Filter>01. Device\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UIObject.h">
+      <Filter>05. GameObject\UIObject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Light_Manager.h">
+      <Filter>09. Lights\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Light.h">
+      <Filter>09. Lights</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Transform_2D.h">
+      <Filter>07. Component\Transform\2D</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Transform_3D.h">
+      <Filter>07. Component\Transform\3D</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,8 +1,10 @@
 #pragma once
 
+
 #include "Shader.h"
 #include "Texture.h"
 #include "VIBuffer_Rect.h"
+#include "VIBuffer_Terrain.h"
 
 // 1. 원형 객체(CGameObject, CComponent)를 보관한다.
 // 2. 선택된 원형 객체를 복제하여 반환해준다.
