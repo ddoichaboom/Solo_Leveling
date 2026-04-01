@@ -15,7 +15,7 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(
 #define MAX_LOADSTRING 100
 
 // 전역 변수:
-HINSTANCE           hInst;                                      // 현재 인스턴스입니다.
+HINSTANCE           g_hInstance;                                      // 현재 인스턴스입니다.
 HWND                g_hWnd;
 WCHAR               szTitle[MAX_LOADSTRING];                    // 제목 표시줄 텍스트입니다.
 WCHAR               szWindowClass[MAX_LOADSTRING];              // 기본 창 클래스 이름입니다.
@@ -59,7 +59,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     RECT rcClient{};
     GetClientRect(g_hWnd, &rcClient);
 
-    pEditorApp = CEditorApp::Create(g_hWnd,
+    pEditorApp = CEditorApp::Create(g_hWnd, g_hInstance,
         rcClient.right - rcClient.left,
         rcClient.bottom - rcClient.top);
 
@@ -155,7 +155,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
+    g_hInstance = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
     // DXGI로 모니터 해상도 가져오기
 
@@ -230,6 +230,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             pGameInstance->OnResize(iWidth, iHeight);
     }
     return 0;
+    case WM_INPUT:
+        CGameInstance::GetInstance()->Process_RawInput(lParam);
+        break;
     case WM_SIZE:
     {
 

@@ -16,7 +16,7 @@ private:
 	virtual ~CMainApp() = default;
 
 public:
-	HRESULT					Initialize(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY);
+	HRESULT					Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY);
 	void					Update(_float fTimeDelta);
 	HRESULT					Render();
 
@@ -31,7 +31,7 @@ private:
 
 
 public:
-	static CMainApp*		Create(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY);
+	static CMainApp*		Create(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY);
 	virtual void			Free() override;
 };
 

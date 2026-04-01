@@ -112,6 +112,21 @@ void CGameInstance::Clear_Resources(_int iLevelIndex)
 	m_pPrototype_Manager->Clear(iLevelIndex);
 }
 
+HRESULT CGameInstance::OnResize(_uint iWinSizeX, _uint iWinSizeY)
+{
+	if (nullptr == m_pGraphic_Device)
+		return S_OK;
+
+	// 동일 크기면 스킵
+	if (m_iWinSizeX == iWinSizeX && m_iWinSizeY == iWinSizeY)
+		return S_OK;
+
+	m_iWinSizeX = iWinSizeX;
+	m_iWinSizeY = iWinSizeY;
+
+	return m_pGraphic_Device->OnResize(iWinSizeX, iWinSizeY);
+}
+
 _float CGameInstance::Random(_float fMin, _float fMax)
 {
 	return fMin + static_cast<_float>(rand()) / RAND_MAX * (fMax - fMin);

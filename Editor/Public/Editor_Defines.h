@@ -6,7 +6,8 @@
 
 #pragma comment(lib, "dxgi.lib")
 
-extern HWND   g_hWnd;
+extern HWND         g_hWnd;
+extern HINSTANCE    g_hInstance;
 
 inline bool Get_MonitorResolution(_Out_ unsigned int* pWidth, _Out_ unsigned int* pHeight)
 {

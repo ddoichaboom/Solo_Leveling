@@ -9,9 +9,10 @@ CMainApp::CMainApp()
 	Safe_AddRef(m_pGameInstance);
 }
 
-HRESULT CMainApp::Initialize(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY)
+HRESULT CMainApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY)
 {
 	ENGINE_DESC		EngineDesc{};
+	EngineDesc.hInstance = hInstance;
 	EngineDesc.hWnd = hWnd;
 	EngineDesc.eWinMode = WINMODE::WIN;
 	EngineDesc.iViewportWidth = iWinSizeX;
@@ -63,17 +64,12 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 		return E_FAIL;
 
 	// (2) Shader 프로토타입 등록 (STATIC 레벨)
-	D3D11_INPUT_ELEMENT_DESC Elements[] = {
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
-	};
-
 	if (FAILED(m_pGameInstance->Add_Prototype(
 		ETOUI(LEVEL::STATIC),
 		TEXT("Prototype_Component_Shader_VtxTex"),
 		CShader::Create(m_pDevice, m_pContext,
 			TEXT("../../Resources/ShaderFiles/Shader_VtxTex.hlsl"),
-			Elements, 2))))
+			VTXTEX::Elements, VTXTEX::iNumElements))))
 		return E_FAIL;
 
 	return S_OK;
@@ -91,11 +87,11 @@ HRESULT CMainApp::Start_Level(LEVEL eStartLevelID)
 	return S_OK;
 }
 
-CMainApp* CMainApp::Create(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY)
+CMainApp* CMainApp::Create(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY)
 {
 	CMainApp* pInstance = new CMainApp();
 
-	if (FAILED(pInstance->Initialize(hWnd, iWinSizeX, iWinSizeY)))
+	if (FAILED(pInstance->Initialize(hWnd, hInstance, iWinSizeX, iWinSizeY)))
 	{
 		MSG_BOX("Failed to Created : CMainApp");
 		Safe_Release(pInstance);

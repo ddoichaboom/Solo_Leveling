@@ -15,7 +15,7 @@ CEditorApp::CEditorApp()
 	Safe_AddRef(m_pGameInstance);
 }
 
-HRESULT	CEditorApp::Initialize(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY)
+HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY)
 {
 	// 엔진 초기화
 	ENGINE_DESC		EngineDesc{};
@@ -147,11 +147,11 @@ void CEditorApp::Render_ImGui()
 
 #pragma endregion
 
-CEditorApp* CEditorApp::Create(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY)
+CEditorApp* CEditorApp::Create(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY)
 {
 	CEditorApp* pInstance = new CEditorApp();
 
-	if (FAILED(pInstance->Initialize(hWnd, iWinSizeX, iWinSizeY)))
+	if (FAILED(pInstance->Initialize(hWnd, hInstance, iWinSizeX, iWinSizeY)))
 	{
 		MSG_BOX("Failed to Created : CEditorApp");
 		Safe_Release(pInstance);

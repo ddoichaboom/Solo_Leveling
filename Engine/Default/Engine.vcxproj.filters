@@ -177,6 +177,9 @@
     <ClCompile Include="..\Private\Transform_2D.cpp">
       <Filter>07. Component\Transform\2D</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\VIBuffer_Terrain.cpp">
+      <Filter>07. Component\VIBuffer\Terrain</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\GameInstance.h">
@@ -274,6 +277,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\Transform_3D.h">
       <Filter>07. Component\Transform\3D</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\VIBuffer_Terrain.h">
+      <Filter>07. Component\VIBuffer\Terrain</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

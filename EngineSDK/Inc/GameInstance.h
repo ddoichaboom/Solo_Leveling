@@ -23,6 +23,14 @@ public:
 	HRESULT						End_Draw();
 	void 						Clear_Resources(_int iLevelIndex);
 
+	HWND						Get_hWnd() const { return m_hWnd; }
+	_uint						Get_WinSizeX() const { return m_iWinSizeX; }
+	_uint						Get_WinSizeY() const { return m_iWinSizeY; }
+
+	HRESULT						OnResize(_uint iWinSizeX, _uint iWinSizeY);
+	WINMODE						Get_WinMode() const { return m_eWinMode; }
+	void						Set_WinMode(WINMODE eMode) { m_eWinMode = eMode; }
+
 	_float						Random(_float fMin, _float fMax);
 #pragma endregion
 
@@ -81,6 +89,12 @@ private:
 	class CInput_Device*		m_pInput_Device = { nullptr };
 	class CLight_Manager*		m_pLight_Manager = { nullptr };
 	
+private:
+	HWND						m_hWnd;
+	_uint						m_iWinSizeX;
+	_uint						m_iWinSizeY;
+	WINMODE						m_eWinMode = { WINMODE::WIN };
+
 public:
 	void						Release_Engine();
 	virtual void				Free() override;

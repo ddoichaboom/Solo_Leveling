@@ -16,7 +16,7 @@ private:
 	virtual ~CEditorApp() = default;
 
 public:
-	HRESULT					Initialize(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY);
+	HRESULT					Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY);
 	void					Update(_float fTimeDelta);
 	HRESULT					Render();
 
@@ -37,7 +37,7 @@ private:
 #pragma endregion
 
 public:
-	static CEditorApp*		Create(HWND hWnd, _uint iWinSizeX, _uint iWinSizeY);
+	static CEditorApp*		Create(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY);
 	virtual void			Free() override;
 };
 
