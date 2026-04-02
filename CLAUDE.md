@@ -55,7 +55,14 @@ CBase (ref counting)
 │   └── CLevel_GamePlay: Initialize() 비어있음 (오브젝트 미생성 상태)
 │
 ├── [Editor.exe]
-└── CEditorApp — ImGui DockSpace 기반 (기본 셸 구현 완료)
+├── CEditorApp (final) — ImGui DockSpace + MenuBar + DockBuilder 레이아웃, Ready_Panels/ToggleMenuItem
+├── CPanel (abstract) — Initialize/Update/Render, Is_Open/Set_Open/Get_Name
+│   ├── CPanel_Viewport (final) — "Viewport" (셸)
+│   ├── CPanel_Hierarchy (final) — "Hierarchy" (셸)
+│   ├── CPanel_Inspector (final) — "Inspector" (셸)
+│   ├── CPanel_ContentBrowser (final) — "Content Browser" (셸)
+│   └── CPanel_Log (final) — "Log" (셸)
+└── CPanel_Manager (final, singleton) — map<wstring, CPanel*>, Update/Render_Panels
 ```
 
 **Key patterns:**
@@ -76,7 +83,7 @@ CBase (ref counting)
 ## Coding Conventions
 
 - Class: `C` prefix, Member: `m_` prefix, Method: PascalCase
-- Namespace: `Engine`, `Client` via `NS_BEGIN` / `NS_END`
+- Namespace: `Engine`, `Client`, `Editor` via `NS_BEGIN` / `NS_END`
 - Singleton classes use `final`, Return `HRESULT` from init functions
 - `Safe_Delete`, `Safe_Release`, `Safe_AddRef` — never raw `delete`
 - `ETOI` (to int) / `ETOUI` (to unsigned int) for enum casting
@@ -108,8 +115,13 @@ Framework/
 ├── GameApp/Default/                — GameApp.cpp (wWinMain, 60FPS loop), GameApp_Defines.h
 ├── Editor/
 │   ├── Default/Editor.cpp          — wWinMain + ImGui WndProc, WS_OVERLAPPEDWINDOW + SW_MAXIMIZE
-│   ├── Public/                     — EditorApp.h, Editor_Defines.h
-│   ├── Private/EditorApp.cpp
+│   ├── Public/                     — EditorApp.h, Editor_Defines.h, Editor_Enum.h
+│   │                                 Panel.h, Panel_Manager.h
+│   │                                 Panel_Viewport.h, Panel_Hierarchy.h, Panel_Inspector.h
+│   │                                 Panel_ContentBrowser.h, Panel_Log.h
+│   ├── Private/                    — EditorApp.cpp, Panel.cpp, Panel_Manager.cpp
+│   │                                 Panel_Viewport.cpp, Panel_Hierarchy.cpp, Panel_Inspector.cpp
+│   │                                 Panel_ContentBrowser.cpp, Panel_Log.cpp
 │   ├── ImGui/                      — docking 브랜치 + backends/ (DX11, Win32)
 │   └── ImGuizmo/
 │
@@ -146,14 +158,19 @@ Framework/
 
 ### Editor Implementation
 - **구현 계획**: `명세서/Editor_ImGui_구현계획.md`
-- **현재 상태**: 기본 DockSpace 셸만 구현. Viewport 분리 + 패널 구조 작업 예정
-- **패널 시스템**: CPanel (abstract) → 파생 클래스 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
+- **현재 상태**: Phase 2 완료. DockSpace + 패널 5개 + MenuBar + DockBuilder 레이아웃 동작 확인
+- **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
   - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update_Panels + Render_Panels
-  - 자주 접근하는 패널은 멤버 포인터로 캐싱
-- **렌더 파이프라인**: 별도 RenderTarget에 3D 렌더 → SRV → ImGui::Image()로 Viewport 패널에 표시. BackBuffer는 ImGui 전용
+  - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
+  - 패널 소유권: Manager가 유일 소유자 (Add_Panel 시 AddRef 안함, Free에서 Release)
+  - 캐싱 포인터는 Safe_AddRef 필요
+- **Editor_Enum.h**: `MENUTYPE { PANEL, TOOL, END }` — ToggleMenuItem에서 메뉴 타입 분기용
+- **DockBuilder 레이아웃**: 최초 1회 자동 배치 (imgui.ini 없을 때), 이후 imgui.ini로 저장/복원
+- **MenuBar**: Window 메뉴에서 패널 표시/숨기기 토글 (ToggleMenuItem 헬퍼 메서드)
+- **렌더 파이프라인**: 별도 RenderTarget에 3D 렌더 → SRV → ImGui::Image()로 Viewport 패널에 표시. BackBuffer는 ImGui 전용 (Phase 1 작업 예정)
 - **ImGui 충돌**: `#define new DBG_NEW`가 ImGui와 충돌 → `#undef new` / `#define new` 복구 필요
 - **외부 라이브러리 격리**: Assimp(FBX→바이너리), RTTR(Inspector 리플렉션) 모두 Editor에만. Engine/Client 무의존
-- **Phase**: 1.Viewport 분리 → 2.패널 구조 → 3.Content Browser → 4.Inspector+RTTR → 5.Model Converter+Assimp
+- **Phase**: 1.Viewport 분리 → ~~2.패널 구조~~ → 3.Content Browser → 4.Inspector+RTTR → 5.Model Converter+Assimp
 
 ## Working with Claude Code in This Repository
 

@@ -1,0 +1,58 @@
+#include "Panel_Manager.h"
+#include "Panel.h"
+
+IMPLEMENT_SINGLETON(CPanel_Manager)
+
+CPanel_Manager::CPanel_Manager()
+{
+
+}
+
+HRESULT CPanel_Manager::Add_Panel(const _wstring& strPanelTag, CPanel* pPanel)
+{
+	if (nullptr == pPanel)
+		return E_FAIL;
+
+	m_Panels.emplace(strPanelTag, pPanel);
+
+	return S_OK;
+}
+
+CPanel* CPanel_Manager::Get_Panel(const _wstring& strPanelTag)
+{
+	auto iter = m_Panels.find(strPanelTag);
+
+	if (iter == m_Panels.end())
+		return nullptr;
+
+	return iter->second;
+
+}
+
+void CPanel_Manager::Update_Panels(_float fTimeDelta)
+{
+	for (auto& Pair : m_Panels)
+	{
+		if (Pair.second->Is_Open())
+			Pair.second->Update(fTimeDelta);
+	}
+}
+
+void CPanel_Manager::Render_Panels()
+{
+	for (auto& Pair : m_Panels)
+	{
+		if (Pair.second->Is_Open())
+			Pair.second->Render();
+	}
+}
+
+void CPanel_Manager::Free()
+{
+	__super::Free();
+
+	for (auto& Pair : m_Panels)
+		Safe_Release(Pair.second);
+
+	m_Panels.clear();
+}

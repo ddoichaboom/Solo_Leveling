@@ -22,6 +22,27 @@
     <Filter Include="97. ImGui\ImGui\Backends">
       <UniqueIdentifier>{481e5876-d49b-4a31-b734-7ec7a2d917d5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="01. Panel">
+      <UniqueIdentifier>{9bb6726c-b9af-4fdd-9f28-d863e503c9fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Panel\Manager">
+      <UniqueIdentifier>{e1885de8-794e-4e04-98d3-1ae39953c0ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Panel\Content Browser">
+      <UniqueIdentifier>{07795c09-3b66-4a3f-aafe-a058833ffb94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Panel\Viewport">
+      <UniqueIdentifier>{61640dd1-2763-46c8-8bf1-e43f38e31197}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Panel\Hierarchy">
+      <UniqueIdentifier>{6cf0bc55-a996-4071-9445-86c8905ff4d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Panel\Inspector">
+      <UniqueIdentifier>{e4000b3a-281c-46ca-a0fe-69553395084e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Panel\Log">
+      <UniqueIdentifier>{35344b91-b6cc-4478-88e5-d2cb756f62e9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp">
@@ -53,6 +74,27 @@
     </ClCompile>
     <ClCompile Include="..\ImGuizmo\ImGuizmo.cpp">
       <Filter>97. ImGui\ImGuizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel.cpp">
+      <Filter>01. Panel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_Manager.cpp">
+      <Filter>01. Panel\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_Viewport.cpp">
+      <Filter>01. Panel\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_Log.cpp">
+      <Filter>01. Panel\Log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_ContentBrowser.cpp">
+      <Filter>01. Panel\Content Browser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_Inspector.cpp">
+      <Filter>01. Panel\Inspector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_Hierarchy.cpp">
+      <Filter>01. Panel\Hierarchy</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -100,6 +142,30 @@
     </ClInclude>
     <ClInclude Include="..\ImGuizmo\ImGuizmo.h">
       <Filter>97. ImGui\ImGuizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel.h">
+      <Filter>01. Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_Manager.h">
+      <Filter>01. Panel\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_Viewport.h">
+      <Filter>01. Panel\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_ContentBrowser.h">
+      <Filter>01. Panel\Content Browser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_Log.h">
+      <Filter>01. Panel\Log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_Inspector.h">
+      <Filter>01. Panel\Inspector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_Hierarchy.h">
+      <Filter>01. Panel\Hierarchy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Editor_Enum.h">
+      <Filter>99. Defines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

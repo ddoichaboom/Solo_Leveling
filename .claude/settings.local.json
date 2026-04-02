@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(ls -1 *.cpp)",
-      "Bash(ls -1 *.h)"
+      "Bash(ls -1 *.h)",
+      "Bash(git check-ignore:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(git config:*)"
     ]
   }
 }

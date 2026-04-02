@@ -28,6 +28,13 @@
     <ClCompile Include="..\ImGui\imgui_tables.cpp" />
     <ClCompile Include="..\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="..\Private\EditorApp.cpp" />
+    <ClCompile Include="..\Private\Panel.cpp" />
+    <ClCompile Include="..\Private\Panel_ContentBrowser.cpp" />
+    <ClCompile Include="..\Private\Panel_Hierarchy.cpp" />
+    <ClCompile Include="..\Private\Panel_Inspector.cpp" />
+    <ClCompile Include="..\Private\Panel_Log.cpp" />
+    <ClCompile Include="..\Private\Panel_Manager.cpp" />
+    <ClCompile Include="..\Private\Panel_Viewport.cpp" />
     <ClCompile Include="Editor.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +49,14 @@
     <ClInclude Include="..\ImGui\imstb_truetype.h" />
     <ClInclude Include="..\Public\EditorApp.h" />
     <ClInclude Include="..\Public\Editor_Defines.h" />
+    <ClInclude Include="..\Public\Editor_Enum.h" />
+    <ClInclude Include="..\Public\Panel.h" />
+    <ClInclude Include="..\Public\Panel_ContentBrowser.h" />
+    <ClInclude Include="..\Public\Panel_Hierarchy.h" />
+    <ClInclude Include="..\Public\Panel_Inspector.h" />
+    <ClInclude Include="..\Public\Panel_Log.h" />
+    <ClInclude Include="..\Public\Panel_Manager.h" />
+    <ClInclude Include="..\Public\Panel_Viewport.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />

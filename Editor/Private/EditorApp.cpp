@@ -1,6 +1,6 @@
 #include "EditorApp.h"
-#include "Editor_Defines.h"
 #include "GameInstance.h"
+#include "Panel_Manager.h"
 
 #ifdef _DEBUG
 #undef new
@@ -12,16 +12,18 @@ CEditorApp::CEditorApp()
 {
 	Safe_AddRef(m_pGameInstance);
 }
+#pragma region EDITOR
 
 HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY)
 {
 	// 엔진 초기화
 	ENGINE_DESC		EngineDesc{};
-	EngineDesc.hWnd = hWnd;
-	EngineDesc.eWinMode = WINMODE::WIN;
-	EngineDesc.iViewportWidth = iWinSizeX;
-	EngineDesc.iViewportHeight = iWinSizeY;
-	EngineDesc.iNumLevels = 1; 
+	EngineDesc.hWnd				= hWnd;
+	EngineDesc.hInstance		= hInstance;
+	EngineDesc.eWinMode			= WINMODE::WIN;
+	EngineDesc.iViewportWidth	= iWinSizeX;
+	EngineDesc.iViewportHeight	= iWinSizeY;
+	EngineDesc.iNumLevels		= 1; 
 
 	if (FAILED(m_pGameInstance->Initialize_Engine(EngineDesc, &m_pDevice, &m_pContext)))
 	{
@@ -36,12 +38,21 @@ HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, 
 		return E_FAIL;
 	}
 
+	if (FAILED(Ready_Panels()))
+	{
+		MSG_BOX("Failed to Initialize : Panels");
+		return E_FAIL;
+	}
+
+
+
 	return S_OK;
 }
 
 void	CEditorApp::Update(_float fTimeDelta)
 {
 	m_pGameInstance->Update_Engine(fTimeDelta);
+	m_pPanel_Manager->Update_Panels(fTimeDelta);
 }
 
 HRESULT	CEditorApp::Render()
@@ -53,10 +64,11 @@ HRESULT	CEditorApp::Render()
 	Render_DockSpace();
 
 	// 3. 에디터 UI 패널 
-	// TODO : 메뉴바, 하이어라키(계층 구조), 인스펙터 등 
-#ifdef _DEBUG
-	ImGui::ShowDemoWindow();		// 개발 중 참고용
-#endif
+	m_pPanel_Manager->Render_Panels();
+
+//#ifdef _DEBUG
+//	ImGui::ShowDemoWindow();		// 개발 중 참고용
+//#endif
 
 	// 4. Scene 렌더링
 	if(FAILED(m_pGameInstance->Begin_Draw()))
@@ -74,6 +86,8 @@ HRESULT	CEditorApp::Render()
 
 	return S_OK;
 }
+
+#pragma endregion
 
 #pragma region IMGUI
 
@@ -118,7 +132,7 @@ void CEditorApp::Render_DockSpace()
 	ImGui::SetNextWindowSize(viewport->WorkSize);
 	ImGui::SetNextWindowViewport(viewport->ID);
 
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar;
 	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
 	window_flags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
@@ -132,7 +146,46 @@ void CEditorApp::Render_DockSpace()
 	ImGui::PopStyleVar(3);
 
 	ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
+
+	// 최초 1회만 레이아웃 설정 (imgui.ini가 없을 때)
+	if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr)
+	{
+		ImGui::DockBuilderRemoveNode(dockspace_id);
+		ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+		ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+
+		ImGuiID left, center, right, bottom;
+		ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.15f, &left, &center);
+		ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.2f, &right, &center);
+		ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25f, &bottom, &center);
+
+		ImGui::DockBuilderDockWindow("Hierarchy", left);
+		ImGui::DockBuilderDockWindow("Viewport", center);
+		ImGui::DockBuilderDockWindow("Inspector", right);
+		ImGui::DockBuilderDockWindow("Content Browser", bottom);
+		ImGui::DockBuilderDockWindow("Log", bottom);  // Content Browser와 탭으로 공유
+
+		ImGui::DockBuilderFinish(dockspace_id);
+	}
+
 	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+	// Menu Bar (2-4)
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("Window"))
+		{
+			ToggleMenuItem(TEXT("Panel_Viewport"), MENUTYPE::PANEL);
+			ToggleMenuItem(TEXT("Panel_Hierarchy"), MENUTYPE::PANEL);
+			ToggleMenuItem(TEXT("Panel_Inspector"), MENUTYPE::PANEL);
+			ToggleMenuItem(TEXT("Panel_ContentBrowser"), MENUTYPE::PANEL);
+			ToggleMenuItem(TEXT("Panel_Log"), MENUTYPE::PANEL);
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMenuBar();
+	}
 
 	ImGui::End();
 }
@@ -141,6 +194,57 @@ void CEditorApp::Render_ImGui()
 {
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+void CEditorApp::ToggleMenuItem(const _wstring& strMenuTag, MENUTYPE eType)
+{
+	
+	if (MENUTYPE::PANEL == eType)
+	{
+		CPanel* pPanel = m_pPanel_Manager->Get_Panel(strMenuTag);
+		if (ImGui::MenuItem(pPanel->Get_Name(), nullptr, pPanel->Is_Open()))
+			pPanel->Set_Open(!pPanel->Is_Open());
+	}
+	//else if (MENUTYPE::TOOL == eType)
+	//{
+	//	// 
+	//}
+		
+}
+#pragma endregion
+
+#pragma region PANEL_MANAGER
+
+HRESULT CEditorApp::Ready_Panels()
+{
+	m_pPanel_Manager = CPanel_Manager::GetInstance();
+	Safe_AddRef(m_pPanel_Manager);
+
+	m_pViewport = CPanel_Viewport::Create(m_pDevice, m_pContext);
+
+	// Panel_Viewport
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Viewport"), m_pViewport)))
+		return E_FAIL;
+
+	Safe_AddRef(m_pViewport);
+
+	// Panel_Hierarchy
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Hierarchy"), CPanel_Hierarchy::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Panel_Inspector
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Inspector"), CPanel_Inspector::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Panel_ContentBrowser
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_ContentBrowser"), CPanel_ContentBrowser::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Panel_Log
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Log"), CPanel_Log::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	return S_OK;
 }
 
 #pragma endregion
@@ -163,6 +267,11 @@ void CEditorApp::Free()
 	__super::Free();
 
 	ShutDown_ImGui();
+
+	Safe_Release(m_pViewport);
+
+	CPanel_Manager::DestroyInstance();
+	Safe_Release(m_pPanel_Manager);
 
 	Safe_Release(m_pDevice);
 	Safe_Release(m_pContext);

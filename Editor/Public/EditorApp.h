@@ -9,21 +9,21 @@ NS_END
 
 NS_BEGIN(Editor)
 
+class CPanel_Manager;
+class CPanel_Viewport;
+
 class CEditorApp final : public CBase
 {
 private:
 	CEditorApp();
 	virtual ~CEditorApp() = default;
 
+#pragma region EDITOR
 public:
 	HRESULT					Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY);
 	void					Update(_float fTimeDelta);
 	HRESULT					Render();
-
-private:
-	ID3D11Device*			m_pDevice = { nullptr };
-	ID3D11DeviceContext*	m_pContext = { nullptr };
-	CGameInstance*			m_pGameInstance = { nullptr };
+#pragma endregion 
 
 #pragma region IMGUI
 private:
@@ -34,7 +34,21 @@ private:
 	void					Begin_ImGuiFrame();
 	void					Render_DockSpace();
 	void					Render_ImGui();
+	void					ToggleMenuItem(const _wstring& strMenuTag, MENUTYPE eType);
+
 #pragma endregion
+
+#pragma region PANEL_MANAGER
+private:
+	HRESULT					Ready_Panels();
+#pragma endregion
+private:
+	ID3D11Device*			m_pDevice			= { nullptr };
+	ID3D11DeviceContext*	m_pContext			= { nullptr };
+	CGameInstance*			m_pGameInstance		= { nullptr };
+
+	CPanel_Manager*			m_pPanel_Manager	= { nullptr };
+	CPanel_Viewport*		m_pViewport			= { nullptr };
 
 public:
 	static CEditorApp*		Create(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY);
