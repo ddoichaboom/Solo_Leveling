@@ -58,18 +58,15 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 {
 	// (1) VIBuffer_Rect 프로토타입 등록 (STATIC 레벨)
 	if (FAILED(m_pGameInstance->Add_Prototype(
-		ETOUI(LEVEL::STATIC),
-		TEXT("Prototype_Component_VIBuffer_Rect"),
-		CVIBuffer_Rect::Create(m_pDevice, m_pContext))))
+				ETOUI(LEVEL::STATIC),
+				TEXT("Prototype_Component_VIBuffer_Rect"),
+				CVIBuffer_Rect::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	// (2) Shader 프로토타입 등록 (STATIC 레벨)
-	if (FAILED(m_pGameInstance->Add_Prototype(
-		ETOUI(LEVEL::STATIC),
-		TEXT("Prototype_Component_Shader_VtxTex"),
-		CShader::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/ShaderFiles/Shader_VtxTex.hlsl"),
-			VTXTEX::Elements, VTXTEX::iNumElements))))
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC), TEXT("Prototype_Component_Shader_VtxTex"),
+					CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxTex.hlsl"),
+					VTXTEX::Elements, VTXTEX::iNumElements))))
 		return E_FAIL;
 
 	return S_OK;

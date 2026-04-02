@@ -18,6 +18,12 @@ CGameInstance::CGameInstance()
 
 HRESULT CGameInstance::Initialize_Engine(const ENGINE_DESC& EngineDesc, ID3D11Device** ppDevice, ID3D11DeviceContext** ppContext)
 {
+	// Client 내부적으로 전역 변수를 제거했으므로 GameInstance에서 접근하도록 변경
+	m_hWnd = EngineDesc.hWnd;
+	m_iWinSizeX = EngineDesc.iViewportWidth;
+	m_iWinSizeY = EngineDesc.iViewportHeight;
+	m_eWinMode = EngineDesc.eWinMode;
+
 	m_pGraphic_Device = CGraphic_Device::Create(EngineDesc.hWnd, EngineDesc.eWinMode, EngineDesc.iViewportWidth, EngineDesc.iViewportHeight, ppDevice, ppContext);
 	if (nullptr == m_pGraphic_Device)
 		return E_FAIL;

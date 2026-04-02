@@ -1,6 +1,17 @@
 #include "Loader.h"
+
+// ENGINE
 #include "GameInstance.h"
+
+// LOGO
 #include "BackGround.h"
+
+// GAMEOBJECT
+#include "Terrain.h"
+#include "Camera_Free.h"
+// #include "Monster.h"
+// #include "ForkLift.h"
+
 
 CLoader::CLoader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: m_pDevice{ pDevice }
@@ -114,9 +125,29 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 		CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxNorTex.hlsl"), VTXNORTEX::Elements, VTXNORTEX::iNumElements))))
 		return E_FAIL;
 
+	// Prototype_Component_Shader_VtxMesh
+	//if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_Component_Shader_VtxMesh"),
+	//	CShader::Create(m_pDevice, m_pContext, TEXT("../Bin/ShaderFiles/Shader_VtxMesh.hlsl"), VTXMESH::Elements, VTXMESH::iNumElements))))
+	//	return E_FAIL;
+
 	lstrcpy(m_szLoadingText, TEXT("정점, 인덱스 버퍼 로딩 중"));
 
+	// Prototype_Component_VIBuffer_Terrain
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_Component_VIBuffer_Terrain"),
+		CVIBuffer_Terrain::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Height.bmp")))))
+		return E_FAIL;
+
 	lstrcpy(m_szLoadingText, TEXT("객체원형 로딩 중"));
+
+	// Prototype_GameObject_Terrain
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Terrain"),
+		CTerrain::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_Camera_Free
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Camera_Free"),
+		CCamera_Free::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
 
 	lstrcpy(m_szLoadingText, TEXT("로딩이 완료되었습니다."));
 

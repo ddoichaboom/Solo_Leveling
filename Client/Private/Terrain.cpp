@@ -101,12 +101,6 @@ HRESULT CTerrain::Bind_ShaderResources()
     const LIGHT_DESC* pLightDesc = m_pGameInstance->Get_LightDesc(0);
     if (nullptr == pLightDesc)
         return E_FAIL;
-    /*
-    vector g_vLightDir;                 // 빛이 표면으로 들어오는 방향 (방향광)
-    vector g_vLightDiffuse;             // 빛의 난반사 색상
-    vector g_vLightAmbient;             // 빛의 환경광 색상
-    vector g_vLightSpecular;            // 빛의 정반사 색상
-    */
 
     if (FAILED(m_pShaderCom->Bind_RawValue("g_vLightDir", &pLightDesc->vDirection, sizeof(_float4))))
         return E_FAIL;

@@ -48,7 +48,6 @@ void CLevel_Loading::Update(_float fTimeDelta)
 		if (SUCCEEDED(m_pGameInstance->Change_Level(ETOI(m_eNextLevelID), pNextLevel)))
 			return;
 	}
-
 }
 
 HRESULT CLevel_Loading::Render()

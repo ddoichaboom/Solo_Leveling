@@ -44,8 +44,8 @@ private:
 	HRESULT					Ready_Resources_For_GamePlay();
 
 public:
-	static CLoader* Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, LEVEL eNextLevelID);
-	virtual void Free() override;
+	static CLoader*			Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, LEVEL eNextLevelID);
+	virtual void			Free() override;
 };
 
 NS_END

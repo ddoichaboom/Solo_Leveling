@@ -14,22 +14,22 @@ private:
 	virtual ~CRenderer() = default;
 
 public:
-	HRESULT Initialize();
-	void Add_RenderGroup(RENDERID eGroupID, class CGameObject* pGameObject);
-	HRESULT Draw();
+	HRESULT						Initialize();
+	void						Add_RenderGroup(RENDERID eGroupID, class CGameObject* pGameObject);
+	HRESULT						Draw();
 
 private:
-	ID3D11Device*						m_pDevice = { nullptr };
-	ID3D11DeviceContext*				m_pContext = { nullptr };
+	ID3D11Device*				m_pDevice = { nullptr };
+	ID3D11DeviceContext*		m_pContext = { nullptr };
 
 private:
-	list<class CGameObject*> m_RenderObjects[ETOUI(RENDERID::END)];				// Render 그룹의 크기는 정해져있으므로 할당
+	list<class CGameObject*>	m_RenderObjects[ETOUI(RENDERID::END)];				// Render 그룹의 크기는 정해져있으므로 할당
 
 private:
-	HRESULT Render_Priority();
-	HRESULT Render_NonBlend();
-	HRESULT Render_Blend();
-	HRESULT Render_UI();
+	HRESULT						Render_Priority();
+	HRESULT						Render_NonBlend();
+	HRESULT						Render_Blend();
+	HRESULT						Render_UI();
 
 public:
 	static CRenderer* Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
