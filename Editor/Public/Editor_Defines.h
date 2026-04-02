@@ -6,6 +6,10 @@
 
 #pragma comment(lib, "dxgi.lib")
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
+
 extern HWND         g_hWnd;
 extern HINSTANCE    g_hInstance;
 

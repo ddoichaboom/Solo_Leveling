@@ -1,13 +1,11 @@
 #include "EditorApp.h"
+#include "Editor_Defines.h"
 #include "GameInstance.h"
 
 #ifdef _DEBUG
 #undef new
 #endif
 
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx11.h"
 
 CEditorApp::CEditorApp()
 	: m_pGameInstance { CGameInstance::GetInstance() }
