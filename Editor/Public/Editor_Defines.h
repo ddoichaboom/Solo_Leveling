@@ -5,6 +5,8 @@
 #include <dxgi.h>
 #include <filesystem>
 
+#include <rttr/type.h>
+
 #pragma comment(lib, "dxgi.lib")
 
 #include "imgui.h"

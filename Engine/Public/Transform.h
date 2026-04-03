@@ -28,7 +28,12 @@ public:
 		return XMLoadFloat4(reinterpret_cast<_float4*>(&m_WorldMatrix.m[ETOUI(eState)]));
 	}
 
-	_float3					Get_Scale() 
+	void					Set_State(STATE eState, _fvector vState)
+	{
+		XMStoreFloat4(reinterpret_cast<_float4*>(&m_WorldMatrix.m[ETOUI(eState)]), vState);
+	}
+
+	_float3					Get_Scale()
 	{
 		return _float3{
 			XMVectorGetX(XMVector3Length(Get_State(STATE::RIGHT))),
@@ -36,15 +41,26 @@ public:
 			XMVectorGetX(XMVector3Length(Get_State(STATE::LOOK)))
 		};
 	}
+	void					Set_Scale(_float3 vScale);
+	void					Set_Scale(_float fScaleX = 1.f, _float fScaleY = 1.f, _float fScaleZ = 1.f);
 
-	void					Set_State(STATE eState, _fvector vState)
+
+	_float3					Get_Position()
 	{
-		XMStoreFloat4(reinterpret_cast<_float4*>(&m_WorldMatrix.m[ETOUI(eState)]), vState);
+		_float3 vPos{};
+		XMStoreFloat3(&vPos, Get_State(STATE::POSITION));
+		return vPos;
 	}
+	void					Set_Position(_float3 vPos);
+
+	_float3					Get_Rotation();
+	void					Set_Rotation(_float3 vDegrees);
+
 
 	const _float4x4*		Get_WorldMatrixPtr() const {
 		return &m_WorldMatrix;
 	}
+
 
 public:
 	virtual HRESULT			Initialize_Prototype();
@@ -54,7 +70,6 @@ public:
 	HRESULT					Bind_ShaderResource(class CShader* pShader, const _char* pConstantName);
 
 public:
-	void					Set_Scale(_float fScaleX = 1.f, _float fScaleY = 1.f, _float fScaleZ = 1.f);
 	void					Scaling(_float fScaleX = 1.f, _float fScaleY = 1.f, _float fScaleZ = 1.f);
 
 protected:

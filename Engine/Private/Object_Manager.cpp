@@ -9,6 +9,14 @@ CObject_Manager::CObject_Manager()
 	Safe_AddRef(m_pGameInstance);
 }
 
+const map<const _wstring, CLayer*>* CObject_Manager::Get_Layers(_uint iLevelIndex) const
+{
+	if (iLevelIndex >= m_iNumLevels)
+		return nullptr;
+
+	return &m_pLayers[iLevelIndex];
+}
+
 HRESULT CObject_Manager::Initialize(_uint iNumLevels)
 {
 	if (nullptr != m_pLayers)

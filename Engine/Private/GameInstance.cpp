@@ -166,6 +166,11 @@ HRESULT CGameInstance::Change_Level(_int iNewLevelIndex, CLevel* pNewLevel)
 	return m_pLevel_Manager->Change_Level(iNewLevelIndex, pNewLevel);
 }
 
+_int CGameInstance::Get_CurrentLevelIndex() const
+{
+	return m_pLevel_Manager->Get_CurrentLevelIndex();
+}
+
 #pragma endregion
 
 #pragma region PROTOTYPE_MANAGER
@@ -188,6 +193,11 @@ HRESULT	CGameInstance::Add_GameObject(_uint iPrototypeLevelIndex, const _wstring
 	_uint iLayerLevelIndex, const _wstring& strLayerTag, void* pArg)
 {
 	return m_pObject_Manager->Add_GameObject(iPrototypeLevelIndex, strPrototypeTag, iLayerLevelIndex, strLayerTag, pArg);
+}
+
+const map<const _wstring, CLayer*>* CGameInstance::Get_Layers(_uint iLevelIndex) const
+{
+	return m_pObject_Manager->Get_Layers(iLevelIndex);
 }
 
 #pragma endregion

@@ -4,6 +4,8 @@
 
 NS_BEGIN(Engine)
 
+class CGameObject;
+
 class CLayer final : public CBase
 {
 private:
@@ -11,13 +13,19 @@ private:
 	virtual ~CLayer() = default;
 
 public:
-	HRESULT						Add_GameObject(class CGameObject* pGameObject);
+	const list<CGameObject*>&	Get_GameObjects() const 
+	{ 
+		return m_GameObjects; 
+	}
+
+public:
+	HRESULT						Add_GameObject(CGameObject* pGameObject);
 	void						Priority_Update(_float fTimeDelta);
 	void						Update(_float fTimeDelta);
 	void						Late_Update(_float fTimeDelta);
 
 private:
-	list<class CGameObject*>	m_GameObjects;
+	list<CGameObject*>	m_GameObjects;
 
 public:
 	static CLayer*				Create();

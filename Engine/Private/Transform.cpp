@@ -42,6 +42,68 @@ HRESULT CTransform::Bind_ShaderResource(CShader* pShader, const _char* pConstant
 	return pShader->Bind_Matrix(pConstantName, &m_WorldMatrix);
 }
 
+void CTransform::Set_Position(_float3 vPos)
+{
+	Set_State(STATE::POSITION, XMVectorSetW(XMLoadFloat3(&vPos), 1.f));
+}
+
+_float3 CTransform::Get_Rotation()
+{
+	_float3 vScale = Get_Scale();
+
+	// 스케일 제거 → 순수 회전 행렬 추출
+	float r00 = m_WorldMatrix._11 / vScale.x;
+	float r01 = m_WorldMatrix._12 / vScale.x;
+	float r02 = m_WorldMatrix._13 / vScale.x;
+	float r10 = m_WorldMatrix._21 / vScale.y;
+	float r11 = m_WorldMatrix._22 / vScale.y;
+	float r12 = m_WorldMatrix._23 / vScale.y;
+	float r20 = m_WorldMatrix._31 / vScale.z;
+	float r21 = m_WorldMatrix._32 / vScale.z;
+	float r22 = m_WorldMatrix._33 / vScale.z;
+
+	float pitch = asinf(-r21);
+	float yaw, roll;
+
+	if (fabsf(cosf(pitch)) > 0.001f)
+	{
+		yaw = atan2f(r20, r22);
+		roll = atan2f(r01, r11);
+	}
+	else
+	{
+		yaw = atan2f(-r02, r00);
+		roll = 0.f;
+	}
+
+	return _float3{
+		XMConvertToDegrees(pitch),
+		XMConvertToDegrees(yaw),
+		XMConvertToDegrees(roll)
+	};
+}
+
+void CTransform::Set_Rotation(_float3 vDegrees)
+{
+	_float3 vScale = Get_Scale();
+
+	XMMATRIX matRot = XMMatrixRotationRollPitchYaw(
+		XMConvertToRadians(vDegrees.x),
+		XMConvertToRadians(vDegrees.y),
+		XMConvertToRadians(vDegrees.z));
+
+	Set_State(STATE::RIGHT, XMVector3Normalize(matRot.r[0]) * vScale.x);
+	Set_State(STATE::UP, XMVector3Normalize(matRot.r[1]) * vScale.y);
+	Set_State(STATE::LOOK, XMVector3Normalize(matRot.r[2]) * vScale.z);
+}
+
+void CTransform::Set_Scale(_float3 vScale)
+{
+	Set_State(STATE::RIGHT, XMVector3Normalize(Get_State(STATE::RIGHT)) * vScale.x);
+	Set_State(STATE::UP, XMVector3Normalize(Get_State(STATE::UP)) * vScale.y);
+	Set_State(STATE::LOOK, XMVector3Normalize(Get_State(STATE::LOOK)) * vScale.z);
+}
+
 void CTransform::Set_Scale(_float fScaleX, _float fScaleY, _float fScaleZ)
 {
 	Set_State(STATE::RIGHT, XMVector3Normalize(Get_State(STATE::RIGHT)) * fScaleX);

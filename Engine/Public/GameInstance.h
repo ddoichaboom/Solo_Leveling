@@ -43,6 +43,7 @@ public:
 
 #pragma region LEVEL_MANAGER
 	HRESULT 					Change_Level(_int iNewLevelIndex, class CLevel* pNewLevel);
+	_int						Get_CurrentLevelIndex() const;
 #pragma endregion
 
 #pragma region PROTOTYPE_MANAGER
@@ -53,6 +54,7 @@ public:
 #pragma region OBJECT_MANAGER
 	HRESULT						Add_GameObject(_uint iPrototypeLevelIndex, const _wstring& strPrototypeTag,
 												_uint iLayerLevelIndex, const _wstring& strLayerTag, void* pArg = nullptr);
+	const map<const _wstring, class CLayer*>* Get_Layers(_uint iLevelIndex) const;
 #pragma endregion
 
 #pragma region RENDERER

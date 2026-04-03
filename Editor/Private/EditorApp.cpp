@@ -2,9 +2,6 @@
 #include "GameInstance.h"
 #include "Panel_Manager.h"
 
-#ifdef _DEBUG
-#undef new
-#endif
 
 
 CEditorApp::CEditorApp()
@@ -43,8 +40,6 @@ HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, 
 		MSG_BOX("Failed to Initialize : Panels");
 		return E_FAIL;
 	}
-
-
 
 	return S_OK;
 }

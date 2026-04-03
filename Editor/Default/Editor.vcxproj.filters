@@ -43,6 +43,9 @@
     <Filter Include="01. Panel\Log">
       <UniqueIdentifier>{35344b91-b6cc-4478-88e5-d2cb756f62e9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="96. RTTR">
+      <UniqueIdentifier>{87f01642-a8a6-4f15-89ca-93fcacb9f2a9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp">
@@ -95,6 +98,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Panel_Hierarchy.cpp">
       <Filter>01. Panel\Hierarchy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RTTR_Registration.cpp">
+      <Filter>96. RTTR</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
