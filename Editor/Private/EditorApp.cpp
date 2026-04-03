@@ -57,30 +57,27 @@ void	CEditorApp::Update(_float fTimeDelta)
 
 HRESULT	CEditorApp::Render()
 {
-	// 1. ImGui 프레임 시작
-	Begin_ImGuiFrame();
-
-	// 2. DockSpace 설정
-	Render_DockSpace();
-
-	// 3. 에디터 UI 패널 
-	m_pPanel_Manager->Render_Panels();
-
-//#ifdef _DEBUG
-//	ImGui::ShowDemoWindow();		// 개발 중 참고용
-//#endif
-
-	// 4. Scene 렌더링
-	if(FAILED(m_pGameInstance->Begin_Draw()))
+	// (1) 별도 RT에 3D Scene 렌더
+	if (FAILED(Render_Scene()))
 		return E_FAIL;
 
-	//m_pGameInstance->Draw();
-		
+	// (2) BackBuffer Clear -> ImGui 전용
+	if (FAILED(m_pGameInstance->Begin_Draw()))
+		return E_FAIL;
 
-	// 5. ImGui 드로우 (씬 위에 오버레이)
+	// (3) ImGui 프레임 시작
+	Begin_ImGuiFrame();
+
+	// (4) DockSpace + MenuBar
+	Render_DockSpace();
+
+	// (5) 패널 UI 렌더 (Viewport 패널에서 ImGui::Image(SRV)로 3D 표시
+	m_pPanel_Manager->Render_Panels();
+
+	// (6) ImGui Draw
 	Render_ImGui();
 
-	// 6. Present
+	// (7) Present
 	if (FAILED(m_pGameInstance->End_Draw()))
 		return E_FAIL;
 
@@ -243,6 +240,25 @@ HRESULT CEditorApp::Ready_Panels()
 	// Panel_Log
 	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Log"), CPanel_Log::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
+
+	return S_OK;
+}
+
+#pragma endregion
+
+#pragma region SCENE_RENDER
+
+HRESULT CEditorApp::Render_Scene()
+{
+	// Viewport 패널의 별도 RenderTarget으로 전환 + Clear
+	if (FAILED(m_pViewport->Begin_RT()))
+		return S_OK;		// RT 없으면 스킵
+
+	// 3D 오브젝트 렌더
+	m_pGameInstance->Draw();
+
+	// RT 바인딩 해제
+	m_pViewport->End_RT();
 
 	return S_OK;
 }

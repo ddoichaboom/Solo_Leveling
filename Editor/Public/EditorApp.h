@@ -42,6 +42,13 @@ private:
 private:
 	HRESULT					Ready_Panels();
 #pragma endregion
+
+#pragma region SCENE_RENDER
+
+private:
+	HRESULT Render_Scene(); 
+
+#pragma endregion 
 private:
 	ID3D11Device*			m_pDevice			= { nullptr };
 	ID3D11DeviceContext*	m_pContext			= { nullptr };

@@ -28,7 +28,7 @@ public:
 protected:
 	ID3D11Device*			m_pDevice = { nullptr };
 	ID3D11DeviceContext*	m_pContext = { nullptr };
-	CGameInstance*	m_pGameInstance = { nullptr };
+	CGameInstance*			m_pGameInstance = { nullptr };
 
 	_char					m_szName[MAX_PATH] = {};	// ImGui 윈도우 이름
 	_bool					m_bOpen = { true };			// 패널 표시 여부

@@ -55,12 +55,12 @@ CBase (ref counting)
 │   └── CLevel_GamePlay: Initialize() 비어있음 (오브젝트 미생성 상태)
 │
 ├── [Editor.exe]
-├── CEditorApp (final) — ImGui DockSpace + MenuBar + DockBuilder 레이아웃, Ready_Panels/ToggleMenuItem
+├── CEditorApp (final) — ImGui DockSpace + MenuBar + DockBuilder 레이아웃, Ready_Panels/ToggleMenuItem/Render_Scene
 ├── CPanel (abstract) — Initialize/Update/Render, Is_Open/Set_Open/Get_Name
-│   ├── CPanel_Viewport (final) — "Viewport" (셸)
+│   ├── CPanel_Viewport (final) — "Viewport", 별도 RenderTarget 소유 (RTV/SRV/DSV), Begin_RT/End_RT, 리사이즈 대응
 │   ├── CPanel_Hierarchy (final) — "Hierarchy" (셸)
 │   ├── CPanel_Inspector (final) — "Inspector" (셸)
-│   ├── CPanel_ContentBrowser (final) — "Content Browser" (셸)
+│   ├── CPanel_ContentBrowser (final) — "Content Browser", std::filesystem 기반 Resources/ 탐색, Breadcrumb/파일타입 아이콘
 │   └── CPanel_Log (final) — "Log" (셸)
 └── CPanel_Manager (final, singleton) — map<wstring, CPanel*>, Update/Render_Panels
 ```
@@ -158,19 +158,29 @@ Framework/
 
 ### Editor Implementation
 - **구현 계획**: `명세서/Editor_ImGui_구현계획.md`
-- **현재 상태**: Phase 2 완료. DockSpace + 패널 5개 + MenuBar + DockBuilder 레이아웃 동작 확인
+- **현재 상태**: Phase 1~3 완료. Viewport RT 분리 + 패널 5개 + Content Browser 동작 확인
 - **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
   - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update_Panels + Render_Panels
   - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
   - 패널 소유권: Manager가 유일 소유자 (Add_Panel 시 AddRef 안함, Free에서 Release)
   - 캐싱 포인터는 Safe_AddRef 필요
+- **Viewport 렌더 파이프라인** (Phase 1 완료):
+  - CPanel_Viewport가 별도 RenderTarget 소유 (Texture2D + RTV + SRV + DSV)
+  - `Render_Scene()` → `Begin_RT(별도RT전환)` → `Draw(3D)` → `End_RT(해제)` → `Begin_Draw(BackBuffer재바인딩)` → ImGui → Present
+  - `CGraphic_Device::Clear_BackBuffer_View()`에서 `OMSetRenderTargets` 재바인딩 추가 (별도RT→BackBuffer 복원)
+  - 패널 리사이즈 시 `GetContentRegionAvail()` 크기 비교 → RT 재생성
+- **Content Browser** (Phase 3 완료):
+  - `std::filesystem` + C++17 필수 (`/std:c++17` 프로젝트 설정)
+  - Resources/ 루트 기준 디렉토리 순회, 캐싱 (매 프레임 순회 방지)
+  - Breadcrumb 경로 (클릭 가능) + `<-` 뒤로가기
+  - 파일 타입별 아이콘 ([D]폴더 [T]텍스처 [S]셰이더 [M]모델 [B]바이너리)
+  - 더블클릭 폴더 진입, Selectable 파일 선택
 - **Editor_Enum.h**: `MENUTYPE { PANEL, TOOL, END }` — ToggleMenuItem에서 메뉴 타입 분기용
 - **DockBuilder 레이아웃**: 최초 1회 자동 배치 (imgui.ini 없을 때), 이후 imgui.ini로 저장/복원
 - **MenuBar**: Window 메뉴에서 패널 표시/숨기기 토글 (ToggleMenuItem 헬퍼 메서드)
-- **렌더 파이프라인**: 별도 RenderTarget에 3D 렌더 → SRV → ImGui::Image()로 Viewport 패널에 표시. BackBuffer는 ImGui 전용 (Phase 1 작업 예정)
 - **ImGui 충돌**: `#define new DBG_NEW`가 ImGui와 충돌 → `#undef new` / `#define new` 복구 필요
 - **외부 라이브러리 격리**: Assimp(FBX→바이너리), RTTR(Inspector 리플렉션) 모두 Editor에만. Engine/Client 무의존
-- **Phase**: 1.Viewport 분리 → ~~2.패널 구조~~ → 3.Content Browser → 4.Inspector+RTTR → 5.Model Converter+Assimp
+- **Phase**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → 4.Inspector+RTTR → 5.Model Converter+Assimp
 
 ## Working with Claude Code in This Repository
 

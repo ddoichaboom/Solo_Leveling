@@ -77,6 +77,10 @@ HRESULT CGraphic_Device::Clear_BackBuffer_View(const _float4* pClearColor)
 	/* DX9기준 : Clear함수는 백버퍼, 깊이스텐실버퍼를 한꺼번에 지운다.  */
 	// m_pGraphic_Device->Clear(어떤 영역만큼 지울까, 어떤 것들을 지울까? , 뭘로 지울가. );	
 
+	// BackBuffer를 렌더 타겟으로 재 바인딩
+	ID3D11RenderTargetView* pRTVs[] = { m_pBackBufferRTV };
+	m_pDeviceContext->OMSetRenderTargets(1, pRTVs, m_pDepthStencilView);
+
 	/* 백버퍼를 초기화한다.  */
 	m_pDeviceContext->ClearRenderTargetView(m_pBackBufferRTV, reinterpret_cast<const _float*>(pClearColor));
 
