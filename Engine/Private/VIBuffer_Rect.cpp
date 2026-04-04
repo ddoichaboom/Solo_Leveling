@@ -59,6 +59,14 @@ HRESULT CVIBuffer_Rect::Initialize_Prototype()
 	if (FAILED(m_pDevice->CreateBuffer(&VertexBufferDesc, &VertexInitialData, &m_pVB)))
 		return E_FAIL;
 
+	// PICK_DATA 생성
+	m_pPickData = new PICK_DATA{};
+	m_pPickData->iNumVertices = m_iNumVertices;
+
+	m_pPickData->pVerticesPos = new _float3[m_iNumVertices];
+	for (size_t i = 0; i < m_iNumVertices; i++)
+		m_pPickData->pVerticesPos[i] = pVertices[i].vPosition;
+
 	Safe_Delete_Array(pVertices);
 
 
@@ -70,7 +78,7 @@ HRESULT CVIBuffer_Rect::Initialize_Prototype()
 	IndexBufferDesc.CPUAccessFlags = 0;
 	IndexBufferDesc.MiscFlags = 0;
 	IndexBufferDesc.StructureByteStride = m_iIndexStride;
-
+	
 	_ushort* pIndices = new _ushort[m_iNumIndices];
 	ZeroMemory(pIndices, sizeof(_ushort) * m_iNumIndices);
 
@@ -90,6 +98,13 @@ HRESULT CVIBuffer_Rect::Initialize_Prototype()
 
 	if (FAILED(m_pDevice->CreateBuffer(&IndexBufferDesc, &IndexInitialData, &m_pIB)))
 		return E_FAIL;
+
+	// PICK_DATA 인덱스 복사
+	m_pPickData->iNumIndices = m_iNumIndices;
+	m_pPickData->pIndices = new _uint[m_iNumIndices];
+	
+	for (size_t i = 0; i < m_iNumIndices; i++)
+		m_pPickData->pIndices[i] = static_cast<_uint>(pIndices[i]);
 
 	Safe_Delete_Array(pIndices);
 

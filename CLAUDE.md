@@ -54,9 +54,9 @@ CBase (ref counting)
 │   │   └── CTransform_2D (final) — 2D 이동
 │   ├── CShader (final) — FX11 Effect, Bind_Matrix/Bind_SRV/Bind_RawValue
 │   ├── CTexture (final) — multi-SRV, DDS/WIC 로드. Clone 시 각 SRV Safe_AddRef 필수
-│   └── CVIBuffer (abstract) — VB/IB, DrawIndexed
-│       ├── CVIBuffer_Rect (final) — VTXTEX 쿼드
-│       └── CVIBuffer_Terrain (final) — BMP heightmap, VTXNORTEX
+│   └── CVIBuffer (abstract) — VB/IB, DrawIndexed, PICK_DATA(CPU 정점 사본), Pick()(TriangleTests::Intersects)
+│       ├── CVIBuffer_Rect (final) — VTXTEX 쿼드, PICK_DATA 생성 (_ushort→_uint 인덱스 변환)
+│       └── CVIBuffer_Terrain (final) — BMP heightmap, VTXNORTEX, PICK_DATA 생성
 ├── CLevel (abstract)
 ├── CGameObject (abstract) — TRANSFORMTYPE으로 3D/2D Transform 자동 생성
 │   ├── CCamera (abstract) — CAMERA_DESC, Update_PipeLine
@@ -74,11 +74,11 @@ CBase (ref counting)
 ├── CEditorApp (final) — ImGui DockSpace + MenuBar + DockBuilder 레이아웃, Ready_Panels/ToggleMenuItem/Render_Scene
 ├── CPanel (abstract) — Initialize/Update/Render, Is_Open/Set_Open/Get_Name
 │   ├── CPanel_Viewport (final) — "Viewport", 별도 RenderTarget 소유 (RTV/SRV/DSV), Begin_RT/End_RT, 리사이즈 대응
-│   ├── CPanel_Hierarchy (final) — "Hierarchy" (셸)
-│   ├── CPanel_Inspector (final) — "Inspector" (셸)
+│   ├── CPanel_Hierarchy (final) — "Hierarchy", TreeNode(레이어)→Selectable(오브젝트), 레벨 전환 감지
+│   ├── CPanel_Inspector (final) — "Inspector", RTTR 기반 프로퍼티 자동 UI (타입→위젯 매핑)
 │   ├── CPanel_ContentBrowser (final) — "Content Browser", std::filesystem 기반 Resources/ 탐색, Breadcrumb/파일타입 아이콘
-│   └── CPanel_Log (final) — "Log" (셸)
-└── CPanel_Manager (final, singleton) — map<wstring, CPanel*>, Update/Render_Panels
+│   └── CPanel_Log (final) — "Log", 정적 로그 버퍼, 필터 토글(Info/Warning/Error), 자동 스크롤
+└── CPanel_Manager (final, singleton) — map<wstring, CPanel*>, Update/Render_Panels, 선택 상태(Get/Set_SelectedObject), Release_Panels()
 ```
 
 **Key patterns:**
@@ -118,7 +118,7 @@ Framework/
 │   │   ├── Shader, Texture, VIBuffer, VIBuffer_Rect, VIBuffer_Terrain
 │   │   ├── Light, Light_Manager
 │   │   ├── fx11/, DirectXTK/
-│   │   └── Engine_Struct.h         — ENGINE_DESC, LIGHT_DESC, VTXTEX, VTXNORTEX, VTXMESH
+│   │   └── Engine_Struct.h         — ENGINE_DESC, LIGHT_DESC, VTXTEX, VTXNORTEX, VTXMESH, PICK_DATA
 │   ├── Private/                    — 27 cpp (Public와 1:1 대응)
 │   ├── ThirdPartyLib/              — Effects11, DirectXTK (Debug/Release)
 │   └── Bin/
@@ -150,7 +150,8 @@ Framework/
 ├── EngineSDK/, ClientSDK/          — SDK 배포 (bat으로 자동 복사)
 ├── 명세서/
 │   ├── 개발_진행_가이드.md           — Phase A~G 이식 가이드
-│   └── Editor_ImGui_구현계획.md     — Editor Phase 1~5 계획
+│   ├── Editor_ImGui_구현계획.md     — Editor Phase 1~5 계획
+│   └── Editor_전체_구현계획.md     — Layer 0~4 전체 계획
 └── Framework.sln
 ```
 
@@ -163,6 +164,7 @@ Framework/
 ### 핵심 주의사항 (Gotchas)
 - **m_WorldMatrix 초기화**: 반드시 Identity. 영행렬이면 WVP 변환 시 렌더링 안됨
 - **CTexture Clone**: 복사 생성자에서 각 SRV에 `Safe_AddRef()` 필수. 미적용 시 combase.dll 크래시
+- **CVIBuffer Clone**: 복사 생성자에서 `PICK_DATA` 깊은 복사 필수. 얕은 복사 시 이중 해제 크래시
 - **InputLayout 매칭**: 정점 구조체와 D3D11_INPUT_ELEMENT_DESC 1:1 대응 필수 (불일치 시 크래시)
 - **Level Transition**: `SUCCEEDED()` 사용, `FAILED()` 아님
 - **CLoader 스레드**: WIC 텍스처 로딩 시 `CoInitializeEx(nullptr, 0)` 필수
@@ -176,11 +178,12 @@ Framework/
 ### Editor Implementation
 - **기초 구현 계획**: `명세서/Editor_ImGui_구현계획.md` (Phase 1~5, 패널/Viewport 기초)
 - **전체 구현 계획**: `명세서/Editor_전체_구현계획.md` (Layer 0~4, 아키텍처 결정사항, 배치/UI/모델 파이프라인)
-- **현재 상태**: Phase 1~3 완료 + Layer 0 Step 1~4 완료. RTTR 세팅 + 등록 완료, Transform _float3 접근자 추가
+- **현재 상태**: Phase 1~3 완료 + Layer 0 Step 1~7 완료, Step 8 진행 중 (Engine 측 완료, Editor 측 잔여)
 - **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
-  - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update_Panels + Render_Panels
+  - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update/Render_Panels, 선택 상태 관리
   - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
-  - 패널 소유권: Manager가 유일 소유자 (Add_Panel 시 AddRef 안함, Free에서 Release)
+  - CPanel 생성자에서 GameInstance/Panel_Manager Safe_AddRef → 순환 참조 발생
+  - **순환 참조 해결**: `Release_Panels()` 수동 해제 (Release_Engine() 패턴). EditorApp::Free()에서 호출
   - 캐싱 포인터는 Safe_AddRef 필요
 - **Viewport 렌더 파이프라인** (Phase 1 완료):
   - CPanel_Viewport가 별도 RenderTarget 소유 (Texture2D + RTV + SRV + DSV)
@@ -193,7 +196,7 @@ Framework/
   - Breadcrumb 경로 (클릭 가능) + `<-` 뒤로가기
   - 파일 타입별 아이콘 ([D]폴더 [T]텍스처 [S]셰이더 [M]모델 [B]바이너리)
   - 더블클릭 폴더 진입, Selectable 파일 선택
-- **Editor_Enum.h**: `MENUTYPE { PANEL, TOOL, END }` — ToggleMenuItem에서 메뉴 타입 분기용
+- **Editor_Enum.h**: `MENUTYPE { PANEL, TOOL, END }`, `LOG_LEVEL { INFO, WARNING, ERROR_, END }`
 - **DockBuilder 레이아웃**: 최초 1회 자동 배치 (imgui.ini 없을 때), 이후 imgui.ini로 저장/복원
 - **MenuBar**: Window 메뉴에서 패널 표시/숨기기 토글 (ToggleMenuItem 헬퍼 메서드)
 - **ImGui 충돌**: `#define new DBG_NEW`가 ImGui/RTTR와 충돌 → `#undef new` 필요. RTTR registration.h는 Engine 헤더 전에 include하거나 `#undef new` 후 include
@@ -208,8 +211,16 @@ Framework/
   - `Get_Position()` / `Set_Position(_float3)` — WorldMatrix에서 Position 추출/설정
   - `Get_Rotation()` / `Set_Rotation(_float3)` — 오일러 각도(Degree) 추출/설정, Gimbal Lock 허용
   - `Set_ScaleF3(_float3)` — 기존 Set_Scale(3인자) 오버로드 대신 별도 이름 (RTTR 모호성 회피)
-- **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → 4.Inspector+RTTR → 5.Model Converter+Assimp
-- **Layer (전체)**: 0.공통 인프라(Step 1~4 완료, Step 5~8 잔여) → 1.모델 파이프라인(Assimp) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
+- **Editor_Function.h**: Editor inline 유틸리티 헤더 — Get_MonitorResolution, WTOA/ATOW, Log 시스템
+- **Hierarchy**: TreeNode(레이어)→Selectable(오브젝트), 레벨 전환 감지→Clear_Selection
+- **Inspector**: RTTR 프로퍼티 순회→타입별 위젯 자동 생성, 컴포넌트별 CollapsingHeader, Render_Property()
+- **Log**: Editor 전용 정적 로그 버퍼 (Meyers' Singleton), LOG_ENTRY, 필터 토글/색상/자동 스크롤
+- **마우스 피킹** (Engine 측 완료):
+  - PICK_DATA 구조체 (Engine_Struct.h), CVIBuffer::Pick() (TriangleTests::Intersects)
+  - CPU 정점 Position 사본 유지, 복사 생성자 깊은 복사
+  - 잔여: CGameObject VIBuffer 멤버, Editor Panel_Viewport 피킹 로직
+- **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → ~~4.Inspector+RTTR~~ → 5.Model Converter+Assimp
+- **Layer (전체)**: 0.공통 인프라(Step 1~7 완료, Step 8 진행 중) → 1.모델 파이프라인(Assimp) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
 
 ## Working with Claude Code in This Repository
 

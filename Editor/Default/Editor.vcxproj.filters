@@ -173,6 +173,12 @@
     <ClInclude Include="..\Public\Editor_Enum.h">
       <Filter>99. Defines</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Editor_Function.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Editor_Struct.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Editor.ico">

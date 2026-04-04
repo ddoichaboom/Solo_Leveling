@@ -281,7 +281,7 @@ void CEditorApp::Free()
 
 	Safe_Release(m_pViewport);
 
-	CPanel_Manager::DestroyInstance();
+	m_pPanel_Manager->Release_Panels();
 	Safe_Release(m_pPanel_Manager);
 
 	Safe_Release(m_pDevice);

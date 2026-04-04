@@ -18,47 +18,14 @@
 extern HWND         g_hWnd;
 extern HINSTANCE    g_hInstance;
 
-inline bool Get_MonitorResolution(_Out_ unsigned int* pWidth, _Out_ unsigned int* pHeight)
-{
-    IDXGIFactory* pFactory = nullptr;
-    if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory)))
-        return false;
-
-    IDXGIAdapter* pAdapter = nullptr;
-    if (FAILED(pFactory->EnumAdapters(0, &pAdapter)))
-    {
-        pFactory->Release();
-        return false;
-    }
-
-    IDXGIOutput* pOutput = nullptr;
-    if (FAILED(pAdapter->EnumOutputs(0, &pOutput)))
-    {
-        pAdapter->Release();
-        pFactory->Release();
-        return false;
-    }
-
-    DXGI_OUTPUT_DESC outputDesc{};
-    pOutput->GetDesc(&outputDesc);
-
-    *pWidth = outputDesc.DesktopCoordinates.right - outputDesc.DesktopCoordinates.left;
-    *pHeight = outputDesc.DesktopCoordinates.bottom - outputDesc.DesktopCoordinates.top;
-
-    pOutput->Release();
-    pAdapter->Release();
-    pFactory->Release();
-
-    return true;
-}
-
 #include "Editor_Enum.h"
+#include "Editor_Struct.h"
+#include "Editor_Function.h"
 
 namespace Editor 
 {
 	static unsigned int     g_iWinSizeX = { 1600 };  
 	static unsigned int     g_iWinSizeY = { 900 };
-
 }
 
 

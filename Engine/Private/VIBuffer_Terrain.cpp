@@ -152,6 +152,20 @@ HRESULT CVIBuffer_Terrain::Initialize_Prototype(const _tchar* pHeightMapFilePath
     if (FAILED(m_pDevice->CreateBuffer(&IndexBufferDesc, &IndexInitialData, &m_pIB)))
         return E_FAIL;
 
+    // PICK_DATA »ý¼º
+    m_pPickData = new PICK_DATA{};
+    m_pPickData->iNumVertices = m_iNumVertices;
+    m_pPickData->iNumIndices = m_iNumIndices;
+
+    for (size_t i = 0; i < m_iNumVertices; i++)
+        m_pPickData->pVerticesPos[i] = pVertices[i].vPosition;
+
+    m_pPickData->pIndices = new _uint[m_iNumIndices];
+    memcpy(m_pPickData->pIndices, pIndices, sizeof(_uint)* m_iNumIndices);
+
+    m_pPickData->pVerticesPos = new _float3[m_iNumVertices];
+    
+
     Safe_Delete_Array(pVertices);
     Safe_Delete_Array(pIndices);
     Safe_Delete_Array(pPixels);

@@ -3,6 +3,11 @@
 #include "Editor_Defines.h"
 #include "Panel.h"
 
+NS_BEGIN(Engine)
+class CGameObject;
+class CTransform;
+NS_END
+
 NS_BEGIN(Editor)
 
 class CPanel_Inspector final : public CPanel
@@ -15,6 +20,11 @@ public:
     virtual HRESULT         Initialize() override;
     virtual void            Update(_float fTimeDelta) override;
     virtual void            Render() override;
+
+private:
+    void                    Render_GameObject(CGameObject* pObject);
+    void                    Render_Transform(CTransform* pTransform);
+    void                    Render_Property(rttr::property prop, rttr::instance instance);
 
 public:
     static CPanel_Inspector* Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

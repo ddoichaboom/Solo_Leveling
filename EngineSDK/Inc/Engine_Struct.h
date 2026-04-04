@@ -69,6 +69,14 @@ namespace Engine
 			{"BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D11_INPUT_PER_VERTEX_DATA, 0}
 		};
 	}VTXMESH;
+
+	typedef struct tagPickingData
+	{
+		XMFLOAT3*			pVerticesPos	= { nullptr };
+		unsigned int*		pIndices		= { nullptr };
+		unsigned int		iNumVertices	= {};
+		unsigned int 		iNumIndices		= {};
+	}PICK_DATA;
 }
 
 #endif // Engine_Struct_h__

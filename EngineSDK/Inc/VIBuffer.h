@@ -18,6 +18,9 @@ public:
 	virtual HRESULT				Bind_Resources();			// IA 스테이지에 버퍼 바인딩
 	virtual HRESULT				Render();					// DrawIndexed 호출
 
+public:
+	_bool						Pick(_fvector vRayOrigin, _fvector vRayDir, _fmatrix matWorld, _float& fDist);
+
 protected:
 	ID3D11Buffer*				m_pVB = { nullptr };		//  정점 버퍼 (GPU)
 	_uint						m_iNumVertexBuffers = {};	// VB 개수 (보통 1)
@@ -30,6 +33,8 @@ protected:
 	DXGI_FORMAT					m_eIndexFormat = {};		// 인덱스 포맷 (R16_UINT 등)
 
 	D3D11_PRIMITIVE_TOPOLOGY	m_ePrimitiveType = {};
+
+	PICK_DATA*					m_pPickData = { nullptr };
 
 
 

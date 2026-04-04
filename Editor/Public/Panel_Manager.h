@@ -10,6 +10,10 @@
 #include "Panel_Log.h"
 #include "Panel_Viewport.h"
 
+NS_BEGIN(Engine)
+class CGameObject;
+NS_END
+
 NS_BEGIN(Editor)
 
 class CPanel;
@@ -22,13 +26,24 @@ private:
 	virtual ~CPanel_Manager() = default;
 
 public:
-	HRESULT		Add_Panel(const _wstring& strPanelTag, CPanel* pPanel);
-	CPanel*		Get_Panel(const _wstring& strPanelTag);
-	void		Update_Panels(_float fTimeDelta);
-	void		Render_Panels();
+	CGameObject*			Get_SelectedObject() const 
+	{ 
+		return m_pSelectedObject; 
+	}
+
+public:
+	HRESULT					Add_Panel(const _wstring& strPanelTag, CPanel* pPanel);
+	CPanel*					Get_Panel(const _wstring& strPanelTag);
+	void					Update_Panels(_float fTimeDelta);
+	void					Render_Panels();
+
+	void					Clear_Selection();
+	void					Set_SelectedObject(CGameObject* pObject);
+	void					Release_Panels();
 
 private:
-	map<_wstring, CPanel*> m_Panels;
+	map<_wstring, CPanel*>	m_Panels;
+	CGameObject*			m_pSelectedObject = { nullptr };
 
 public:
 	virtual void Free() override;

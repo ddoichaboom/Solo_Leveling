@@ -51,6 +51,8 @@
     <ClInclude Include="..\Public\EditorApp.h" />
     <ClInclude Include="..\Public\Editor_Defines.h" />
     <ClInclude Include="..\Public\Editor_Enum.h" />
+    <ClInclude Include="..\Public\Editor_Function.h" />
+    <ClInclude Include="..\Public\Editor_Struct.h" />
     <ClInclude Include="..\Public\Panel.h" />
     <ClInclude Include="..\Public\Panel_ContentBrowser.h" />
     <ClInclude Include="..\Public\Panel_Hierarchy.h" />

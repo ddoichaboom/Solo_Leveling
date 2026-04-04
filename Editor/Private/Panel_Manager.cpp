@@ -1,5 +1,6 @@
 #include "Panel_Manager.h"
 #include "Panel.h"
+#include "GameObject.h"
 
 IMPLEMENT_SINGLETON(CPanel_Manager)
 
@@ -47,12 +48,31 @@ void CPanel_Manager::Render_Panels()
 	}
 }
 
-void CPanel_Manager::Free()
+void CPanel_Manager::Clear_Selection()
 {
-	__super::Free();
+	Safe_Release(m_pSelectedObject);
+}
+
+void CPanel_Manager::Set_SelectedObject(CGameObject* pObject)
+{
+	Safe_Release(m_pSelectedObject);
+	m_pSelectedObject = pObject;
+	Safe_AddRef(m_pSelectedObject);
+}
+
+void CPanel_Manager::Release_Panels()
+{
+	Safe_Release(m_pSelectedObject);
 
 	for (auto& Pair : m_Panels)
 		Safe_Release(Pair.second);
 
 	m_Panels.clear();
+
+	DestroyInstance();
+}
+
+void CPanel_Manager::Free()
+{
+	__super::Free();
 }
