@@ -3,6 +3,7 @@
 #include "Transform.h"
 
 NS_BEGIN(Engine)
+class CVIBuffer;
 
 class ENGINE_DLL CGameObject abstract : public CBase 
 {
@@ -21,6 +22,8 @@ protected:
 public:
 	const map<const _wstring, CComponent*>& Get_Components() const { return m_Components; }
 	CTransform*								Get_Transform() const { return m_pTransformCom;	}
+
+	CVIBuffer*								Get_VIBuffer() const { return m_pVIBufferCom; }
 
 	const _wstring&							Get_Name() const { return m_strName; }
 	void									Set_Name(const _wstring& strName) { m_strName = strName; }
@@ -47,6 +50,8 @@ protected:
 
 	_wstring								m_strName;
 	_wstring								m_strTag;
+
+	CVIBuffer*								m_pVIBufferCom = { nullptr };
 
 protected:
 	HRESULT									Add_Component(_uint iPrototypeLevelIndex, const _wstring& strPrototypeTag,

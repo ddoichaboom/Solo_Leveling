@@ -2,6 +2,12 @@
 #include "GameInstance.h"
 #include "Panel_Manager.h"
 
+// 임시 TestScene을 위해 추가
+#include "Terrain.h"
+#include "Camera_Free.h"
+#include "Level_Editor.h"
+
+
 
 
 CEditorApp::CEditorApp()
@@ -20,7 +26,7 @@ HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, 
 	EngineDesc.eWinMode			= WINMODE::WIN;
 	EngineDesc.iViewportWidth	= iWinSizeX;
 	EngineDesc.iViewportHeight	= iWinSizeY;
-	EngineDesc.iNumLevels		= 1; 
+	EngineDesc.iNumLevels		= 5; 
 
 	if (FAILED(m_pGameInstance->Initialize_Engine(EngineDesc, &m_pDevice, &m_pContext)))
 	{
@@ -38,6 +44,12 @@ HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, 
 	if (FAILED(Ready_Panels()))
 	{
 		MSG_BOX("Failed to Initialize : Panels");
+		return E_FAIL;
+	}
+
+	if (FAILED(Ready_TestScene()))
+	{
+		MSG_BOX("Failed to Initialize : TestScene");
 		return E_FAIL;
 	}
 
@@ -254,6 +266,75 @@ HRESULT CEditorApp::Render_Scene()
 
 	// RT 바인딩 해제
 	m_pViewport->End_RT();
+
+	return S_OK;
+}
+
+HRESULT CEditorApp::Ready_TestScene()
+{
+	_uint iLevel = 3;    // LEVEL::GAMEPLAY
+
+	// (1) 빈 레벨 활성화
+	if (FAILED(m_pGameInstance->Change_Level(iLevel, CLevel_Editor::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// (2) 컴포넌트 프로토타입
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Texture_Terrain"),
+		CTexture::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Tile0.jpg"), 1))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Shader_VtxNorTex"),
+		CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxNorTex.hlsl"),
+			VTXNORTEX::Elements, VTXNORTEX::iNumElements))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_VIBuffer_Terrain"),
+		CVIBuffer_Terrain::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Height.bmp")))))
+		return E_FAIL;
+
+	// (3) 오브젝트 프로토타입
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Terrain"),
+		CTerrain::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Camera_Free"),
+		CCamera_Free::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// (4) 카메라
+	CCamera_Free::CAMERA_FREE_DESC CameraDesc{};
+	CameraDesc.vEye = _float3(0.f, 10.f, -7.f);
+	CameraDesc.vAt = _float3(0.f, 0.f, 0.f);
+	CameraDesc.fFovy = XMConvertToRadians(60.f);
+	CameraDesc.fNear = 0.1f;
+	CameraDesc.fFar = 500.f;
+	CameraDesc.fSpeedPerSec = 20.f;
+	CameraDesc.fRotationPerSec = XMConvertToRadians(180.f);
+	CameraDesc.fMouseSensor = 0.05f;
+
+	m_pViewport->Begin_RT();
+
+	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Camera_Free"),
+		iLevel, TEXT("Layer_Camera"), &CameraDesc)))
+		return E_FAIL;
+
+	m_pViewport->End_RT();
+
+	// (5) 터레인
+	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Terrain"),
+		iLevel, TEXT("Layer_BackGround"))))
+		return E_FAIL;
+
+	// (6) 라이트
+	LIGHT_DESC LightDesc{};
+	LightDesc.eType = LIGHT::DIRECTIONAL;
+	LightDesc.vDiffuse = _float4(1.f, 1.f, 1.f, 1.f);
+	LightDesc.vAmbient = _float4(1.f, 1.f, 1.f, 1.f);
+	LightDesc.vSpecular = _float4(1.f, 1.f, 1.f, 1.f);
+	LightDesc.vDirection = _float4(1.f, -1.f, 1.f, 0.f);
+
+	if (FAILED(m_pGameInstance->Add_Light(LightDesc)))
+		return E_FAIL;
 
 	return S_OK;
 }

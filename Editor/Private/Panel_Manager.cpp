@@ -51,6 +51,7 @@ void CPanel_Manager::Render_Panels()
 void CPanel_Manager::Clear_Selection()
 {
 	Safe_Release(m_pSelectedObject);
+	m_pSelectedObject = nullptr;
 }
 
 void CPanel_Manager::Set_SelectedObject(CGameObject* pObject)

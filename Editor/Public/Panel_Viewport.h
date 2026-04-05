@@ -46,6 +46,14 @@ private:
 
 #pragma endregion
 
+#pragma region PICKING
+private:
+    void                        Pick_Object();
+
+    _float                      m_fPickX = {};
+    _float                      m_fPickY = {};
+#pragma endregion
+
 public:
     static CPanel_Viewport*     Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
     virtual void                Free() override;

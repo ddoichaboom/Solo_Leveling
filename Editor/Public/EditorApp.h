@@ -46,7 +46,8 @@ private:
 #pragma region SCENE_RENDER
 
 private:
-	HRESULT Render_Scene(); 
+	HRESULT					Render_Scene(); 
+	HRESULT					Ready_TestScene();
 
 #pragma endregion 
 private:

@@ -1,4 +1,8 @@
 #include "Panel_Viewport.h"
+#include "GameInstance.h"
+#include "Layer.h"
+#include "GameObject.h"
+#include "Panel_Manager.h"
 
 CPanel_Viewport::CPanel_Viewport(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPanel{ pDevice, pContext }
@@ -42,9 +46,19 @@ void CPanel_Viewport::Render()
 	// SRV를 ImGui::Image()로 렌더링
 	if (nullptr != m_pSRV)
 	{
+		ImVec2 vImagePos = ImGui::GetCursorScreenPos();		// Image 좌상단 좌표
+
 		ImGui::Image(
 			reinterpret_cast<ImTextureID>(m_pSRV),
 			ImVec2(static_cast<_float>(m_iRTWidth), static_cast<_float>(m_iRTHeight)));
+
+		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		{
+			ImVec2 vMousePos = ImGui::GetMousePos();
+			m_fPickX = vMousePos.x - vImagePos.x;
+			m_fPickY = vMousePos.y - vImagePos.y;
+			Pick_Object();
+		}
 	}
 
 	ImGui::End();
@@ -157,6 +171,71 @@ void CPanel_Viewport::Release_RenderTarget()
 }
 
 #pragma endregion
+
+#pragma region PICKING
+
+void CPanel_Viewport::Pick_Object()
+{
+	if (0 == m_iRTWidth || 0 == m_iRTHeight)
+		return;
+
+	// (1) Screen → World Ray
+	_float4 vRayOrigin = {};
+	_float4 vRayDir = {};
+
+	m_pGameInstance->Compute_WorldRay(
+		m_fPickX, m_fPickY,
+		static_cast<_float>(m_iRTWidth), static_cast<_float>(m_iRTHeight),
+		&vRayOrigin, &vRayDir);
+
+	_vector vOrigin = XMLoadFloat4(&vRayOrigin);
+	_vector vDir	= XMLoadFloat4(&vRayDir);
+
+	//_vector vOrigin = XMVectorSet(64.f, 100.f, 64.f, 1.f);
+	//_vector vDir = XMVectorSet(0.f, -1.f, 0.f, 0.f);
+
+	// (2) 현재 레벨의 오브젝트 순회
+	_int iLevelIndex = m_pGameInstance->Get_CurrentLevelIndex();
+	if (iLevelIndex < 0)
+		return;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(static_cast<_uint>(iLevelIndex));
+	if (nullptr == pLayers)
+		return;
+
+	CGameObject* pPicked = { nullptr };
+	_float fMinDist		= FLT_MAX;
+
+	for (auto& LayerPair : *pLayers)
+	{
+		for (auto& pObject : LayerPair.second->Get_GameObjects())
+		{
+			CVIBuffer* pVIBuffer = pObject->Get_VIBuffer();
+			if (nullptr == pVIBuffer)
+				continue;
+
+			_float fDist = { 0.f };
+			if (pVIBuffer->Pick(vOrigin, vDir,
+				XMLoadFloat4x4(pObject->Get_Transform()->Get_WorldMatrixPtr()), fDist))
+			{
+				if (fDist < fMinDist)
+				{
+					fMinDist = fDist;
+					pPicked = pObject;
+				}
+			}
+		}
+	}
+
+	// (3) 결과 반영
+	if (nullptr != pPicked)
+		m_pPanel_Manager->Set_SelectedObject(pPicked);
+	else
+		m_pPanel_Manager->Clear_Selection();
+}
+
+#pragma endregion
+
 
 CPanel_Viewport* CPanel_Viewport::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {

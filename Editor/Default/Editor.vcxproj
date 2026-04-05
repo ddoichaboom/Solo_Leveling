@@ -28,6 +28,7 @@
     <ClCompile Include="..\ImGui\imgui_tables.cpp" />
     <ClCompile Include="..\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="..\Private\EditorApp.cpp" />
+    <ClCompile Include="..\Private\Level_Editor.cpp" />
     <ClCompile Include="..\Private\Panel.cpp" />
     <ClCompile Include="..\Private\Panel_ContentBrowser.cpp" />
     <ClCompile Include="..\Private\Panel_Hierarchy.cpp" />
@@ -53,6 +54,7 @@
     <ClInclude Include="..\Public\Editor_Enum.h" />
     <ClInclude Include="..\Public\Editor_Function.h" />
     <ClInclude Include="..\Public\Editor_Struct.h" />
+    <ClInclude Include="..\Public\Level_Editor.h" />
     <ClInclude Include="..\Public\Panel.h" />
     <ClInclude Include="..\Public\Panel_ContentBrowser.h" />
     <ClInclude Include="..\Public\Panel_Hierarchy.h" />

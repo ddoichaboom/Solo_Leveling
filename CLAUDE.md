@@ -47,7 +47,7 @@ CBase (ref counting)
 ├── CGameInstance (singleton) — 전 서브시스템 래퍼 (PipeLine/Input/Light 등), OnResize
 ├── CGraphic_Device — D3D11 device, swap chain, OnResize
 ├── CInput_Device (final) — Raw Input 키보드/마우스, 2단계 static→프레임 구조
-├── CPipeLine (final) — View/Proj 행렬 저장, 역행렬, 카메라 위치
+├── CPipeLine (final) — View/Proj 행렬 저장, 역행렬, 카메라 위치, Compute_WorldRay
 ├── CComponent (abstract) — Prototype/Clone
 │   ├── CTransform (abstract) — world matrix, STATE 접근자, Bind_ShaderResource, _float3 기반 Position/Scale/Rotation 접근자
 │   │   ├── CTransform_3D (final) — 3D 이동/회전/LookAt
@@ -170,6 +170,8 @@ Framework/
 - **CLoader 스레드**: WIC 텍스처 로딩 시 `CoInitializeEx(nullptr, 0)` 필수
 - **Release 순서**: CMainApp — Device → Context → Release_Engine → GameInstance
 - **WM_INPUT**: WndProc에서 `CGameInstance::Process_RawInput(lParam)` 호출
+- **Safe_Release 동작**: RefCount가 0이 될 때만 포인터를 nullptr로 설정. RefCount > 0이면 포인터 유지 → 댕글링 위험. 선택 해제 등에서 Safe_Release 후 반드시 수동 `= nullptr` 필요
+- **VIBuffer_Terrain PICK_DATA**: Initialize_Prototype에서 pVerticesPos 할당을 정점 값 쓰기 전에 수행해야 함
 
 ### Runtime Resource Paths
 - 런타임 파일 I/O (프로젝트 속성에 Resources/ 추가 불필요)
@@ -178,7 +180,7 @@ Framework/
 ### Editor Implementation
 - **기초 구현 계획**: `명세서/Editor_ImGui_구현계획.md` (Phase 1~5, 패널/Viewport 기초)
 - **전체 구현 계획**: `명세서/Editor_전체_구현계획.md` (Layer 0~4, 아키텍처 결정사항, 배치/UI/모델 파이프라인)
-- **현재 상태**: Phase 1~3 완료 + Layer 0 Step 1~7 완료, Step 8 진행 중 (Engine 측 완료, Editor 측 잔여)
+- **현재 상태**: Phase 1~3 완료 + Layer 0 전체 완료 (Step 1~8). 다음: Layer 1 (모델 파이프라인/Assimp)
 - **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
   - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update/Render_Panels, 선택 상태 관리
   - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
@@ -215,12 +217,16 @@ Framework/
 - **Hierarchy**: TreeNode(레이어)→Selectable(오브젝트), 레벨 전환 감지→Clear_Selection
 - **Inspector**: RTTR 프로퍼티 순회→타입별 위젯 자동 생성, 컴포넌트별 CollapsingHeader, Render_Property()
 - **Log**: Editor 전용 정적 로그 버퍼 (Meyers' Singleton), LOG_ENTRY, 필터 토글/색상/자동 스크롤
-- **마우스 피킹** (Engine 측 완료):
-  - PICK_DATA 구조체 (Engine_Struct.h), CVIBuffer::Pick() (TriangleTests::Intersects)
-  - CPU 정점 Position 사본 유지, 복사 생성자 깊은 복사
-  - 잔여: CGameObject VIBuffer 멤버, Editor Panel_Viewport 피킹 로직
+- **마우스 피킹** (완료):
+  - Engine: PICK_DATA 구조체, CVIBuffer::Pick() (TriangleTests::Intersects), CPU 정점 보존
+  - Engine: CPipeLine::Compute_WorldRay() — Viewport→NDC→View→World Ray 변환, CGameInstance 래퍼
+  - Engine: CGameObject에 CVIBuffer* m_pVIBufferCom 공통 멤버 (파생 shadowing 해결)
+  - Editor: Panel_Viewport 클릭 감지 + WorldRay + 전체 오브젝트 순회 + 최소 거리 피킹
+  - **Safe_Release 주의**: RefCount > 0이면 포인터를 nullptr로 만들지 않음 → 수동 nullptr 대입 필요
+- **Editor 테스트 씬** (임시): CLevel_Editor (빈 CLevel 셸) + Ready_TestScene() (Camera_Free/Terrain/Light)
+  - Client 게임 레벨은 CLIENT_DLL export 없음 → Editor 전용 빈 레벨로 대체
 - **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → ~~4.Inspector+RTTR~~ → 5.Model Converter+Assimp
-- **Layer (전체)**: 0.공통 인프라(Step 1~7 완료, Step 8 진행 중) → 1.모델 파이프라인(Assimp) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
+- **Layer (전체)**: ~~0.공통 인프라(완료)~~ → 1.모델 파이프라인(Assimp) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
 
 ## Working with Claude Code in This Repository
 

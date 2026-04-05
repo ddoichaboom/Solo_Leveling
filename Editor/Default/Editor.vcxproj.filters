@@ -46,6 +46,9 @@
     <Filter Include="96. RTTR">
       <UniqueIdentifier>{87f01642-a8a6-4f15-89ca-93fcacb9f2a9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. Levels">
+      <UniqueIdentifier>{4c2cc02e-e886-4dcf-8b76-70550cbacf67}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp">
@@ -101,6 +104,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\RTTR_Registration.cpp">
       <Filter>96. RTTR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Level_Editor.cpp">
+      <Filter>02. Levels</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -178,6 +184,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\Editor_Struct.h">
       <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Level_Editor.h">
+      <Filter>02. Levels</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

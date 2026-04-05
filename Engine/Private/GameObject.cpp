@@ -119,6 +119,7 @@ void CGameObject::Free()
 		Safe_Release(Pair.second);
 	m_Components.clear();
 
+	Safe_Release(m_pVIBufferCom);
 	Safe_Release(m_pTransformCom);
 
 	Safe_Release(m_pGameInstance);

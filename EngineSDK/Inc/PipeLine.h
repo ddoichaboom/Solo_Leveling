@@ -33,6 +33,9 @@ public:
 	}
 
 public:
+	void					Compute_WorldRay(_float fViewportX, _float fViewportY,
+											_float fViewportWidth, _float fViewportHeight,
+											_float4* pRayOrigin, _float4* pRayDir);
 	void					Update();
 
 private:

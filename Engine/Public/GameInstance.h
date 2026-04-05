@@ -65,6 +65,9 @@ public:
 	const _float4x4*			Get_Transform(D3DTS eState) const;
 	const _float4x4*			Get_Transform_Inverse(D3DTS eState) const;
 	const _float4*				Get_CamPosition() const;
+	void                        Compute_WorldRay(_float fViewportX, _float fViewportY,
+													_float fViewportWidth, _float fViewportHeight,
+													_float4* pRayOrigin, _float4* pRayDir);
 	void						Set_Transform(D3DTS eState, _fmatrix StateMatrix);
 #pragma endregion
 

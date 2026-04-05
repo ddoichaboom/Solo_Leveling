@@ -140,6 +140,5 @@ void CBackGround::Free()
 	__super::Free();
 
 	Safe_Release(m_pShaderCom);
-	Safe_Release(m_pVIBufferCom);
 	Safe_Release(m_pTextureCom);
 }

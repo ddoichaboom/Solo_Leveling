@@ -227,6 +227,11 @@ const _float4* CGameInstance::Get_CamPosition() const
 	return m_pPipeLine->Get_CamPosition();
 }
 
+void CGameInstance::Compute_WorldRay(_float fViewportX, _float fViewportY, _float fViewportWidth, _float fViewportHeight, _float4* pRayOrigin, _float4* pRayDir)
+{
+	m_pPipeLine->Compute_WorldRay(fViewportX, fViewportY, fViewportWidth, fViewportHeight, pRayOrigin, pRayDir);
+}
+
 void			CGameInstance::Set_Transform(D3DTS eState, _fmatrix StateMatrix)
 {
 	m_pPipeLine->Set_Transform(eState, StateMatrix);

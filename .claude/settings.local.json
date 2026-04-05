@@ -5,7 +5,8 @@
       "Bash(ls -1 *.h)",
       "Bash(git check-ignore:*)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(echo \"EXIT:$?\")"
     ]
   }
 }
