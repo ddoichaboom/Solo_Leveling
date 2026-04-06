@@ -4,7 +4,6 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <filesystem>
-#include <cfloat>
 
 #include <rttr/type.h>
 
