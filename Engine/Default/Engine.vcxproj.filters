@@ -97,6 +97,24 @@
     <Filter Include="07. Component\Transform\3D">
       <UniqueIdentifier>{ceb8315c-4251-46e7-a0cc-6d55b6eb37c8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="07. Component\Model">
+      <UniqueIdentifier>{d083362f-877e-4cac-840c-09a1cae33947}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Model\Animation">
+      <UniqueIdentifier>{535a8c84-6675-45f8-9f88-c7207e9fd71e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Model\Bone">
+      <UniqueIdentifier>{19df9dcd-e1e7-4961-adb5-224a7b75438e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Model\Material">
+      <UniqueIdentifier>{6ac61843-ba55-4a11-bda3-259784574018}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Model\Mesh">
+      <UniqueIdentifier>{1b183b6d-519a-4d67-9c7e-e010c6a07dc3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Model\Animation\Channel">
+      <UniqueIdentifier>{8fd7241d-9129-4abd-9356-4f5f273a876e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -179,6 +197,24 @@
     </ClCompile>
     <ClCompile Include="..\Private\VIBuffer_Terrain.cpp">
       <Filter>07. Component\VIBuffer\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Bone.cpp">
+      <Filter>07. Component\Model\Bone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Mesh.cpp">
+      <Filter>07. Component\Model\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Material.cpp">
+      <Filter>07. Component\Model\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Channel.cpp">
+      <Filter>07. Component\Model\Animation\Channel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Animation.cpp">
+      <Filter>07. Component\Model\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Model.cpp">
+      <Filter>07. Component\Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -280,6 +316,24 @@
     </ClInclude>
     <ClInclude Include="..\Public\VIBuffer_Terrain.h">
       <Filter>07. Component\VIBuffer\Terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Bone.h">
+      <Filter>07. Component\Model\Bone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Mesh.h">
+      <Filter>07. Component\Model\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Material.h">
+      <Filter>07. Component\Model\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Channel.h">
+      <Filter>07. Component\Model\Animation\Channel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Animation.h">
+      <Filter>07. Component\Model\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Model.h">
+      <Filter>07. Component\Model</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

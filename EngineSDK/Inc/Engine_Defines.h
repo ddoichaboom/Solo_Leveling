@@ -32,6 +32,7 @@ using namespace std;
 namespace Engine
 {
 	static const _wstring g_strTransformTag = TEXT("Com_Transform");
+	static const _uint g_iNumMeshBones		= { 512 };
 }
 
 #pragma warning(disable : 4251)

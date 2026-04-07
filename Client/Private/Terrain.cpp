@@ -18,6 +18,8 @@ HRESULT CTerrain::Initialize_Prototype()
 
 HRESULT CTerrain::Initialize(void* pArg)
 {
+    m_strName = TEXT("Terrain");
+
     if (FAILED(__super::Initialize(pArg)))
         return E_FAIL;
 

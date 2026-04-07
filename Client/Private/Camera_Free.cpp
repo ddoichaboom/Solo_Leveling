@@ -19,6 +19,9 @@ HRESULT CCamera_Free::Initialize_Prototype()
 
 HRESULT CCamera_Free::Initialize(void* pArg)
 {
+	m_strName = TEXT("Camera_");
+	m_strTag = TEXT("Free");
+
 	auto pDesc = static_cast<CAMERA_FREE_DESC*>(pArg);
 
 	m_fMouseSensor = pDesc->fMouseSensor;

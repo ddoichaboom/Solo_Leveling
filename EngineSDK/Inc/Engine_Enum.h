@@ -23,6 +23,30 @@ namespace Engine
 
 	enum class MODEL { NONANIM, ANIM, END };
 
+    enum class TEXTURE_TYPE
+    {
+        DIFFUSE,
+        SPECULAR,
+        AMBIENT,
+        EMISSIVE,
+        HEIGHT,
+        NORMAL,
+        SHININESS,
+        OPACITY,
+        DISPLACEMENT,
+        LIGHTMAP,
+        REFLECTION,
+        BASE_COLOR,
+        NORMAL_CAMERA,
+        EMISSION_COLOR,
+        METALNESS,
+        DIFFUSE_ROUGHNESS,
+        AMBIENT_OCCLUSION,
+
+        UNKNOWN,
+        END
+    };
+
 	//// Dynamic 컴포넌트 경우 매 프레임마다 갱신해야하는 컴포넌트 집단
 	//enum COMPONENTID { ID_DYNAMIC, ID_STATIC, ID_END };
 
