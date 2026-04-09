@@ -54,9 +54,15 @@ CBase (ref counting)
 │   │   └── CTransform_2D (final) — 2D 이동
 │   ├── CShader (final) — FX11 Effect, Bind_Matrix/Bind_SRV/Bind_RawValue
 │   ├── CTexture (final) — multi-SRV, DDS/WIC 로드. Clone 시 각 SRV Safe_AddRef 필수
-│   └── CVIBuffer (abstract) — VB/IB, DrawIndexed, PICK_DATA(CPU 정점 사본), Pick()(TriangleTests::Intersects)
-│       ├── CVIBuffer_Rect (final) — VTXTEX 쿼드, PICK_DATA 생성 (_ushort→_uint 인덱스 변환)
-│       └── CVIBuffer_Terrain (final) — BMP heightmap, VTXNORTEX, PICK_DATA 생성
+│   ├── CVIBuffer (abstract) — VB/IB, DrawIndexed, PICK_DATA(CPU 정점 사본), Pick()(TriangleTests::Intersects)
+│   │   ├── CVIBuffer_Rect (final) — VTXTEX 쿼드, PICK_DATA 생성 (_ushort→_uint 인덱스 변환)
+│   │   └── CVIBuffer_Terrain (final) — BMP heightmap, VTXNORTEX, PICK_DATA 생성
+│   └── CModel (final) — 모델 컨테이너, vector<CMesh/CMaterial/CBone/CAnimation>, MODEL_DESC 초기화
+│       ├── CMesh — VTXMESH/VTXANIMMESH, 본 바인딩(BoneIndices/OffsetMatrices)
+│       ├── CMaterial — 텍스처 타입별 SRV vector (aiTextureType 대응)
+│       ├── CBone — Transform/Combined 계층 갱신
+│       ├── CAnimation — Duration/Channel 배열, Play_Animation _bool 반환, loop 데이터 기반
+│       └── CChannel — KEYFRAME 배열, Update 시 Scale/Rot/Translation 보간
 ├── CLevel (abstract)
 ├── CGameObject (abstract) — TRANSFORMTYPE으로 3D/2D Transform 자동 생성
 │   ├── CCamera (abstract) — CAMERA_DESC, Update_PipeLine
@@ -94,7 +100,8 @@ CBase (ref counting)
 |-----------|--------|------|
 | VTXTEX | Shader_VtxTex.hlsl | BackGround (UI) |
 | VTXNORTEX | Shader_VtxNorTex.hlsl | Terrain (Phong) |
-| VTXMESH | Shader_VtxMesh.hlsl | Model (향후) |
+| VTXMESH | Shader_VtxMesh.hlsl | Static Model (NonAnim) |
+| VTXANIMMESH | Shader_VtxAnimMesh.hlsl (예정) | Skinned Model (Anim, BoneIndices/Weights) |
 
 ## Coding Conventions
 
@@ -109,17 +116,18 @@ CBase (ref counting)
 ```
 Framework/
 ├── Engine/
-│   ├── Public/                     — 33 headers
+│   ├── Public/                     — 39 headers
 │   │   ├── Engine_Defines/Enum/Function/Macro/Struct/Typedef.h
 │   │   ├── Base, GameInstance, Graphic_Device, Input_Device, PipeLine
 │   │   ├── Timer, Timer_Manager, Level, Level_Manager
 │   │   ├── GameObject, UIObject, Camera, Layer, Object_Manager, Prototype_Manager, Renderer
 │   │   ├── Component, Transform, Transform_3D, Transform_2D
 │   │   ├── Shader, Texture, VIBuffer, VIBuffer_Rect, VIBuffer_Terrain
+│   │   ├── Model, Mesh, Material, Bone, Animation, Channel
 │   │   ├── Light, Light_Manager
 │   │   ├── fx11/, DirectXTK/
-│   │   └── Engine_Struct.h         — ENGINE_DESC, LIGHT_DESC, VTXTEX, VTXNORTEX, VTXMESH, PICK_DATA
-│   ├── Private/                    — 27 cpp (Public와 1:1 대응)
+│   │   └── Engine_Struct.h         — ENGINE_DESC, LIGHT_DESC, VTXTEX, VTXNORTEX, VTXMESH, VTXANIMMESH, PICK_DATA, MODEL_DESC, MESH_DESC, MATERIAL_DESC, BONE_DESC, ANIMATION_DESC, CHANNEL_DESC, KEYFRAME
+│   ├── Private/                    — 33 cpp (Public와 1:1 대응)
 │   ├── ThirdPartyLib/              — Effects11, DirectXTK (Debug/Release)
 │   └── Bin/
 │
@@ -172,6 +180,7 @@ Framework/
 - **WM_INPUT**: WndProc에서 `CGameInstance::Process_RawInput(lParam)` 호출
 - **Safe_Release 동작**: RefCount가 0이 될 때만 포인터를 nullptr로 설정. RefCount > 0이면 포인터 유지 → 댕글링 위험. 선택 해제 등에서 Safe_Release 후 반드시 수동 `= nullptr` 필요
 - **VIBuffer_Terrain PICK_DATA**: Initialize_Prototype에서 pVerticesPos 할당을 정점 값 쓰기 전에 수행해야 함
+- **`::operator new` / `::operator delete` 금지**: Engine_Defines.h에서 `#define new DBG_NEW`로 치환되기 때문에 `::operator new(size)` 형태는 컴파일 오류. void* 바이트 버퍼가 필요하면 `new _ubyte[size]` 로 할당하고, 해제는 `delete[] static_cast<_ubyte*>(ptr)` 로 캐스팅 후 배열 delete. `Safe_Delete_Array<T>`는 void*에 쓸 수 없음. (CModel Load_Binary_Desc에서 겪음)
 
 ### Runtime Resource Paths
 - 런타임 파일 I/O (프로젝트 속성에 Resources/ 추가 불필요)
@@ -180,7 +189,7 @@ Framework/
 ### Editor Implementation
 - **기초 구현 계획**: `명세서/Editor_ImGui_구현계획.md` (Phase 1~5, 패널/Viewport 기초)
 - **전체 구현 계획**: `명세서/Editor_전체_구현계획.md` (Layer 0~4, 아키텍처 결정사항, 배치/UI/모델 파이프라인)
-- **현재 상태**: Phase 1~3 완료 + Layer 0 전체 완료 (Step 1~8). 다음: Layer 1 (모델 파이프라인/Assimp)
+- **현재 상태**: Phase 1~3 + Layer 0 전체 완료. Layer 1 Engine 측 완료 (Mesh/Material/Bone/Channel/Animation/Model + MODEL_DESC 체인 + SLMD v1 바이너리 로더). 다음: Layer 1 Editor Step 1~6 (Assimp 연동 → Model_Converter → MenuBar 트리거 → Inspector 모델 정보/애니 재생 → Viewport 모델 렌더 + Shader_VtxAnimMesh)
 - **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
   - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update/Render_Panels, 선택 상태 관리
   - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
@@ -225,8 +234,15 @@ Framework/
   - **Safe_Release 주의**: RefCount > 0이면 포인터를 nullptr로 만들지 않음 → 수동 nullptr 대입 필요
 - **Editor 테스트 씬** (임시): CLevel_Editor (빈 CLevel 셸) + Ready_TestScene() (Camera_Free/Terrain/Light)
   - Client 게임 레벨은 CLIENT_DLL export 없음 → Editor 전용 빈 레벨로 대체
-- **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → ~~4.Inspector+RTTR~~ → 5.Model Converter+Assimp
-- **Layer (전체)**: ~~0.공통 인프라(완료)~~ → 1.모델 파이프라인(Assimp) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
+- **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → ~~4.Inspector+RTTR~~ → 5.Model Converter+Assimp (진행 중)
+- **Layer (전체)**: ~~0.공통 인프라(완료)~~ → 1.모델 파이프라인 (Engine 완료 / Editor 진행 중: Assimp → .bin → Runtime) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
+- **Layer 1 아키텍처 결정 (B안)**: Editor 만 Assimp 의존. FBX → MODEL_DESC → SLMD v1 바이너리(.bin) 저장 → Engine/Client 는 `CModel::Create(..., const _tchar* pBinaryPath)` 로 .bin 만 읽음. Engine 의 Assimp 의존 완전 제거
+- **CModel 설계**:
+  - `MODEL { NONANIM, ANIM }` 구분. MODEL_DESC 는 Mesh/Material/Bone/Animation 배열 pointer 컨테이너 (POD, 직렬화 친화)
+  - `Ready_Meshes / Ready_Materials / Ready_Bones / Ready_Animations` 로 분할 초기화. 각 파생 클래스가 DESC 값을 복사 (Mesh 는 D3D11_USAGE_DEFAULT + pSysMem 내부 복사, Bone/Channel 는 memcpy/strcpy_s) → DESC free 안전
+  - `Play_Animation(fTimeDelta)` 은 `_bool` 반환 (완료 여부). loop 여부는 `ANIMATION_DESC::bIsLoop` 에 저장 (SSOT, CModel 은 m_isAnimLoop 캐시 없음)
+  - 바이너리 포맷 `SLMD` magic + version 1: Header → Meshes → Materials → Bones → Animations 순서. 텍스처 경로는 상대 `_char[MAX_PATH]` 문자열 (옵션 b)
+  - `Load_Binary_Desc` 는 `new _ubyte[]` 로 정점 버퍼 할당 → `fread` → Initialize_Prototype 호출 → `Free_Binary_Desc` 로 역순 해제 (DBG_NEW 매크로 호환 위해 `::operator new` 금지)
 
 ## Working with Claude Code in This Repository
 

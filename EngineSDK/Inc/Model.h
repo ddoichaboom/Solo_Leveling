@@ -23,8 +23,13 @@ public:
 
 	_int							Get_AnimationIndex(const _char* pAnimationName) const;
 
+	const _float4x4&				Get_PreTransformMatrix() const { return m_PreTransformMatrix;  }
+
+	void							Set_ModelType(MODEL eType) { m_eModelType = eType; }
+	void							Set_PreTransformMatrix(_fmatrix mat) { XMStoreFloat4x4(&m_PreTransformMatrix, mat); }
+
 public:
-	virtual HRESULT					Initialize_Prototype(MODEL eType, const MODEL_DESC& Desc);
+	virtual HRESULT					Initialize_Prototype(const MODEL_DESC& Desc);
 	virtual HRESULT					Initialize(void* pArg) override;
 
 public:
@@ -41,10 +46,14 @@ public:
 	HRESULT							Set_Animation(const _char* pAnimationName);
 
 private:
-	HRESULT							Ready_Meshes(MODEL eType, const MODEL_DESC& Desc);
+	HRESULT							Ready_Meshes(const MODEL_DESC& Desc);
 	HRESULT							Ready_Materials(const MODEL_DESC& Desc);
 	HRESULT							Ready_Bones(const MODEL_DESC& Desc);
 	HRESULT							Ready_Animations(const MODEL_DESC& Desc);
+
+private:
+	static HRESULT					Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc);
+	static void						Free_Binary_Desc(MODEL_DESC* pDesc);
 
 private:
 	MODEL							m_eModelType = { MODEL::END };
@@ -68,7 +77,8 @@ private:
 	_bool							m_isAnimLoop = { false };
 
 public:
-	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, MODEL eType, const MODEL_DESC& Desc);
+	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,const MODEL_DESC& Desc);
+	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,const _tchar* pBinaryPath);
 	virtual CComponent*				Clone(void* pArg) override;
 	virtual void					Free() override;
 };

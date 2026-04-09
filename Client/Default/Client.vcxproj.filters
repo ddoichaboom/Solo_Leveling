@@ -40,6 +40,9 @@
     <Filter Include="02. GameObject\Terrain">
       <UniqueIdentifier>{36cbd348-0391-42a2-af75-9b55c7053186}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\ModelObject">
+      <UniqueIdentifier>{4adf19d0-86b2-445c-b4b0-6a6f71925e31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -69,6 +72,9 @@
     <ClInclude Include="..\Public\Terrain.h">
       <Filter>02. GameObject\Terrain</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\ModelObject.h">
+      <Filter>02. GameObject\ModelObject</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -95,6 +101,9 @@
     <ClCompile Include="..\Private\Terrain.cpp">
       <Filter>02. GameObject\Terrain</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\ModelObject.cpp">
+      <Filter>02. GameObject\ModelObject</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\Resources\ShaderFiles\Shader_VtxTex.hlsl">
@@ -104,6 +113,9 @@
       <Filter>98. ShaderFiles</Filter>
     </FxCompile>
     <FxCompile Include="..\..\Resources\ShaderFiles\Shader_VtxNorTex.hlsl">
+      <Filter>98. ShaderFiles</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\Resources\ShaderFiles\Shader_VtxAnimMesh.hlsl">
       <Filter>98. ShaderFiles</Filter>
     </FxCompile>
   </ItemGroup>

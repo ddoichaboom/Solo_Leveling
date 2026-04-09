@@ -36,7 +36,7 @@ void CPanel_Inspector::Render()
 	Render_GameObject(pSelected);
 
 	CTransform* pTransform = pSelected->Get_Transform();
-	if (nullptr == pTransform)
+	if (nullptr != pTransform)
 		Render_Transform(pTransform);
 
 	ImGui::End();

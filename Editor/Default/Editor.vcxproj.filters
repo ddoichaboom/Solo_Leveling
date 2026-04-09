@@ -49,6 +49,12 @@
     <Filter Include="02. Levels">
       <UniqueIdentifier>{4c2cc02e-e886-4dcf-8b76-70550cbacf67}</UniqueIdentifier>
     </Filter>
+    <Filter Include="95. Tools">
+      <UniqueIdentifier>{21666fda-f918-4735-bb95-f28615b99128}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="95. Tools\Model_Converter">
+      <UniqueIdentifier>{15ead82d-f167-418a-bbdf-d409f83dce28}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp">
@@ -107,6 +113,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Level_Editor.cpp">
       <Filter>02. Levels</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Model_Converter.cpp">
+      <Filter>95. Tools\Model_Converter</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -187,6 +196,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\Level_Editor.h">
       <Filter>02. Levels</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Model_Converter.h">
+      <Filter>95. Tools\Model_Converter</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

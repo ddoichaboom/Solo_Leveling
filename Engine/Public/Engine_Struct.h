@@ -97,8 +97,8 @@ namespace Engine
 
 	typedef struct tagPickingData
 	{
-		XMFLOAT3* pVerticesPos = { nullptr };
-		unsigned int* pIndices = { nullptr };
+		XMFLOAT3*			pVerticesPos = { nullptr };
+		unsigned int*		pIndices = { nullptr };
 		unsigned int		iNumVertices = {};
 		unsigned int 		iNumIndices = {};
 	}PICK_DATA;
@@ -117,17 +117,17 @@ namespace Engine
 		unsigned int	iMaterialIndex = {};
 
 		// 정점/인덱스 (NonAnim & Anim 공용)
-		void* pVertices = { nullptr };						// VTXMESH* 또는 VTXANIMMESH*
+		void*			pVertices = { nullptr };						// VTXMESH* 또는 VTXANIMMESH*
 		unsigned int	iNumVertices = {};
 		unsigned int	iVertexStride = {};
 
-		unsigned int* pIndices = { nullptr };
+		unsigned int*	pIndices = { nullptr };
 		unsigned int	iNumIndices = {};
 
 		// Anim 전용
 		unsigned int	iNumBones = {};
-		unsigned int* pBoneIndices = { nullptr };			// 글로벌 본 인덱스 배열
-		XMFLOAT4X4* pOffsetMatrices = { nullptr };
+		unsigned int*	pBoneIndices = { nullptr };			// 글로벌 본 인덱스 배열
+		XMFLOAT4X4*		pOffsetMatrices = { nullptr };
 	}MESH_DESC;
 
 	typedef struct tagChannelDesc
@@ -168,6 +168,8 @@ namespace Engine
 
 	typedef struct tagModelDesc
 	{
+		MODEL				eModelType = { MODEL::NONANIM };
+
 		// FBX -> Engine 좌표계 보정 
 		XMFLOAT4X4			PreTransformMatrix = {};
 

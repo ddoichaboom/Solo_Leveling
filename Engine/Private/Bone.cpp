@@ -20,7 +20,7 @@ void CBone::Update_CombinedTransformationMatrix(const vector<CBone*>& Bones, _fm
 {
     if (-1 == m_iParentIndex)
         XMStoreFloat4x4(&m_CombinedTransformationMatrix,
-                        XMLoadFloat4x4(&m_TransformationMatrix) * PreTransformMatrix);
+                        PreTransformMatrix * XMLoadFloat4x4(&m_TransformationMatrix));
     else
         XMStoreFloat4x4(&m_CombinedTransformationMatrix,
                         XMLoadFloat4x4(&m_TransformationMatrix) * XMLoadFloat4x4(Bones[m_iParentIndex]->Get_CombinedTransformMatrixPtr()));

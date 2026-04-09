@@ -27,6 +27,8 @@ private:
     void                            Render_Contents();
     const _char*                    Get_FileIcon(const fs::path& ext) const;
 
+    void                            Render_ConvertPopup();
+
 private:
     fs::path                        m_RootPath;        // Resources/ 절대 경로
     fs::path                        m_CurrentPath;      // 현재 탐색 경로
@@ -40,6 +42,12 @@ private:
     fs::path                        m_SelectedPath;
 
     _bool                           m_bNeedRefresh = { true };
+
+    // FBX 변환 팝업 상태
+    fs::path                        m_FbxToConvertPath;
+    _int                            m_iModelType = { ETOI(MODEL::NONANIM) };
+    _bool                           m_bOpenConvertPopup = { false };
+
 public:
     static CPanel_ContentBrowser*   Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
     virtual void                    Free() override;

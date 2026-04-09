@@ -64,6 +64,8 @@ HRESULT CMesh::Initialize(void* pArg)
 
 HRESULT CMesh::Bind_BoneMatrices(CShader* pShader, const _char* pConstantName, const vector<class CBone*>& Bones)
 {
+	ZeroMemory(m_BoneMatrices, sizeof(_float4x4) * g_iNumMeshBones);
+
 	for (_uint i = 0; i < m_iNumBones; ++i)
 	{
 		_matrix OffsetMatrix = XMLoadFloat4x4(&m_OffsetMatrices[i]);
@@ -72,7 +74,7 @@ HRESULT CMesh::Bind_BoneMatrices(CShader* pShader, const _char* pConstantName, c
 		XMStoreFloat4x4(&m_BoneMatrices[i], OffsetMatrix * CombinedMatrix);
 	}
 
-	return pShader->Bind_RawValue(pConstantName, m_BoneMatrices, sizeof(_float4x4) * m_iNumBones);
+	return pShader->Bind_Matrices(pConstantName, m_BoneMatrices, m_iNumBones);
 }
 
 HRESULT CMesh::Ready_NonAnimMesh(const MESH_DESC& Desc)

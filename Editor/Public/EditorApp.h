@@ -35,7 +35,6 @@ private:
 	void					Render_DockSpace();
 	void					Render_ImGui();
 	void					ToggleMenuItem(const _wstring& strMenuTag, MENUTYPE eType);
-
 #pragma endregion
 
 #pragma region PANEL_MANAGER

@@ -1,4 +1,5 @@
 #include "Panel_ContentBrowser.h"
+#include "Model_Converter.h"
 
 CPanel_ContentBrowser::CPanel_ContentBrowser(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPanel{ pDevice, pContext }
@@ -44,6 +45,14 @@ void CPanel_ContentBrowser::Render()
 
 	// 내용 : 폴더 + 파일
 	Render_Contents();
+
+	// 팝업 오픈 트리거
+	if (m_bOpenConvertPopup)
+	{
+		ImGui::OpenPopup("FBX Convert");
+		m_bOpenConvertPopup = false;
+	}
+	Render_ConvertPopup();
 
 	ImGui::End();
 }
@@ -127,7 +136,7 @@ void CPanel_ContentBrowser::Render_Contents()
 	// 폴더 먼저 
 	for (const auto& dir : m_Directories)
 	{
-		std::string label = std::string("[D] ") + dir.path().filename().string();
+		string label = "[D] " + dir.path().filename().string();
 
 		if (ImGui::Selectable(label.c_str(), m_SelectedPath == dir.path()))
 			m_SelectedPath = dir.path();
@@ -145,10 +154,28 @@ void CPanel_ContentBrowser::Render_Contents()
 	for (const auto& file : m_Files)
 	{
 		const _char* icon = Get_FileIcon(file.path().extension());
-		std::string label = std::string(icon) + " " + file.path().filename().string();
+		string label = string(icon) + " " + file.path().filename().string();
 
 		if (ImGui::Selectable(label.c_str(), m_SelectedPath == file.path()))
 			m_SelectedPath = file.path();
+
+		// .fbx 파일 우클릭 컨텍스트 메뉴
+		string extLower = file.path().extension().string();
+		for (auto& c : extLower)
+			c = static_cast<_char>(::tolower(c));
+
+		if (extLower == ".fbx")
+		{
+			if (ImGui::BeginPopupContextItem())
+			{
+				if (ImGui::MenuItem("Convert to .bin"))
+				{
+					m_FbxToConvertPath = file.path();
+					m_bOpenConvertPopup = true;
+				}
+				ImGui::EndPopup();
+			}
+		}
 	}
 }
 
@@ -160,14 +187,81 @@ const _char* CPanel_ContentBrowser::Get_FileIcon(const fs::path& ext) const
 	for (auto& c : strExt)
 		c = static_cast<_char>(::tolower(c));
 
-	if (strExt == ".hlsl" || strExt == ".fx")       return "[S]";   // Shader
+	if (strExt == ".hlsl" || strExt == ".fx")       
+		return "[S]";   // Shader
+
 	if (strExt == ".dds" || strExt == ".jpg" ||
 		strExt == ".jpeg" || strExt == ".png" ||
-		strExt == ".bmp" || strExt == ".tga")       return "[T]";   // Texture
-	if (strExt == ".fbx" || strExt == ".obj")       return "[M]";   // Model
-	if (strExt == ".model")                         return "[B]";   // Binary Model
+		strExt == ".bmp" || strExt == ".tga")       
+		return "[T]";   // Texture
+
+	if (strExt == ".fbx" || strExt == ".obj")       
+		return "[M]";   // Model
+
+	if (strExt == ".bin")                         
+		return "[B]";   // Binary Model
+
 
 	return "[?]";
+}
+
+void CPanel_ContentBrowser::Render_ConvertPopup()
+{
+	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+	if (!ImGui::BeginPopupModal("FBX Convert", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	// 경로 표시
+	ImGui::TextDisabled("FBX");
+	ImGui::SameLine();
+	ImGui::TextUnformatted(m_FbxToConvertPath.filename().string().c_str());
+
+	fs::path binPath = m_FbxToConvertPath;
+	binPath.replace_extension(".bin");
+
+	ImGui::TextDisabled("BIN");
+	ImGui::SameLine();
+	ImGui::TextUnformatted(binPath.filename().string().c_str());
+
+	ImGui::Separator();
+
+	// 모델 타입 선택
+	ImGui::Text("Model Type");
+	ImGui::RadioButton("NONANIM", &m_iModelType, 0);
+	ImGui::SameLine();
+	ImGui::RadioButton("ANIM", &m_iModelType, 1);
+
+	ImGui::Separator();
+
+	// Convert / Cancel
+	if (ImGui::Button("Convert", ImVec2(120.f, 0.f)))
+	{
+		MODEL eType = (0 == m_iModelType) ? MODEL::NONANIM : MODEL::ANIM;
+
+		wstring fbxW = m_FbxToConvertPath.wstring();
+		wstring binW = binPath.wstring();
+
+		if (SUCCEEDED(CModel_Converter::Convert(fbxW.c_str(), binW.c_str(), eType)))
+		{
+			Log_Info(WTOA(L"[Converter] 성공: " + binPath.filename().wstring()));
+			m_bNeedRefresh = true;  // .bin 파일이 생겼으므로 목록 갱신
+		}
+		else
+		{
+			Log_Error(WTOA(L"[Converter] 실패: " + m_FbxToConvertPath.filename().wstring()));
+		}
+
+		ImGui::CloseCurrentPopup();
+	}
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Cancel", ImVec2(120.f, 0.f)))
+		ImGui::CloseCurrentPopup();
+
+	ImGui::EndPopup();
 }
 
 CPanel_ContentBrowser* CPanel_ContentBrowser::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

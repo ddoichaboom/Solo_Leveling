@@ -6,6 +6,8 @@
 #include "Terrain.h"
 #include "Camera_Free.h"
 #include "Level_Editor.h"
+#include "Model.h"
+#include "ModelObject.h"
 
 
 
@@ -320,7 +322,7 @@ HRESULT CEditorApp::Ready_TestScene()
 
 	m_pViewport->End_RT();
 
-	// (5) 터레인
+	 //(5) 터레인
 	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Terrain"),
 		iLevel, TEXT("Layer_BackGround"))))
 		return E_FAIL;
@@ -334,6 +336,41 @@ HRESULT CEditorApp::Ready_TestScene()
 	LightDesc.vDirection = _float4(1.f, -1.f, 1.f, 0.f);
 
 	if (FAILED(m_pGameInstance->Add_Light(LightDesc)))
+		return E_FAIL;
+
+	// (7) 모델 셰이더 프로토타입
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel,
+		TEXT("Prototype_Component_Shader_VtxMesh"),
+		CShader::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/ShaderFiles/Shader_VtxMesh.hlsl"),
+			VTXMESH::Elements, VTXMESH::iNumElements))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel,
+		TEXT("Prototype_Component_Shader_VtxAnimMesh"),
+		CShader::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/ShaderFiles/Shader_VtxAnimMesh.hlsl"),
+			VTXANIMMESH::Elements, VTXANIMMESH::iNumElements))))
+		return E_FAIL;
+
+	// (8) 모델 프로토타입 (.bin)
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_SungJinWoo"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/SungJinWoo_ERank/SungJinWoo_ERank (merge).bin")))))
+				return E_FAIL;
+
+	// (9) ModelObject 게임오브젝트 프로토타입
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel,TEXT("Prototype_GameObject_ModelObject"),
+				CModelObject::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// (10) ModelObject 인스턴스 배치
+	CModelObject::MODELOBJECT_DESC ModelObjDesc{};
+	ModelObjDesc.pShaderProtoTag = TEXT("Prototype_Component_Shader_VtxAnimMesh");
+	ModelObjDesc.pModelProtoTag = TEXT("Prototype_Component_Model_SungJinWoo");
+
+	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_ModelObject"),
+				iLevel, TEXT("Layer_Model"), &ModelObjDesc)))
 		return E_FAIL;
 
 	return S_OK;

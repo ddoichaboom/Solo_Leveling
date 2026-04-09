@@ -7,6 +7,11 @@
 
 #include <rttr/type.h>
 
+// Assimp
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+
 #pragma comment(lib, "dxgi.lib")
 
 #include "imgui.h"
@@ -18,6 +23,7 @@
 extern HWND         g_hWnd;
 extern HINSTANCE    g_hInstance;
 
+#include "Engine_Defines.h"
 #include "Editor_Enum.h"
 #include "Editor_Struct.h"
 #include "Editor_Function.h"

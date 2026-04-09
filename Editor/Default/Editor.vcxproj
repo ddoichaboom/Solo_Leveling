@@ -29,6 +29,7 @@
     <ClCompile Include="..\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="..\Private\EditorApp.cpp" />
     <ClCompile Include="..\Private\Level_Editor.cpp" />
+    <ClCompile Include="..\Private\Model_Converter.cpp" />
     <ClCompile Include="..\Private\Panel.cpp" />
     <ClCompile Include="..\Private\Panel_ContentBrowser.cpp" />
     <ClCompile Include="..\Private\Panel_Hierarchy.cpp" />
@@ -55,6 +56,7 @@
     <ClInclude Include="..\Public\Editor_Function.h" />
     <ClInclude Include="..\Public\Editor_Struct.h" />
     <ClInclude Include="..\Public\Level_Editor.h" />
+    <ClInclude Include="..\Public\Model_Converter.h" />
     <ClInclude Include="..\Public\Panel.h" />
     <ClInclude Include="..\Public\Panel_ContentBrowser.h" />
     <ClInclude Include="..\Public\Panel_Hierarchy.h" />
@@ -172,7 +174,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>../../EngineSDK/Lib/;../../ClientSDK/Lib/;../ThirdPartyLib/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Engine.Lib;Client.Lib;d3d11.lib;dxguid.lib;rttr_core_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Engine.Lib;Client.Lib;d3d11.lib;dxguid.lib;rttr_core_d.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -191,7 +193,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>../../EngineSDK/Lib/;../../ClientSDK/Lib/;../ThirdPartyLib/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Engine.Lib;Client.Lib;d3d11.lib;dxguid.lib;rttr_core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Engine.Lib;Client.Lib;d3d11.lib;dxguid.lib;rttr_core.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
