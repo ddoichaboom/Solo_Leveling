@@ -72,7 +72,7 @@ CBase (ref counting)
 ├── CLight_Manager (final) — CGameInstance 소유, 비싱글톤
 │
 ├── [Client.dll]
-├── CMainApp, CBackGround, CCamera_Free, CTerrain (CLIENT_DLL export)
+├── CMainApp, CBackGround, CCamera_Free, CTerrain, CModelObject (CLIENT_DLL export)
 ├── CLevel_Logo, CLevel_Loading, CLevel_GamePlay, CLoader (internal)
 │   └── CLevel_GamePlay: Initialize() 비어있음 (오브젝트 미생성 상태)
 │
@@ -101,7 +101,7 @@ CBase (ref counting)
 | VTXTEX | Shader_VtxTex.hlsl | BackGround (UI) |
 | VTXNORTEX | Shader_VtxNorTex.hlsl | Terrain (Phong) |
 | VTXMESH | Shader_VtxMesh.hlsl | Static Model (NonAnim) |
-| VTXANIMMESH | Shader_VtxAnimMesh.hlsl (예정) | Skinned Model (Anim, BoneIndices/Weights) |
+| VTXANIMMESH | Shader_VtxAnimMesh.hlsl | Skinned Model (Anim, BoneIndices/Weights) |
 
 ## Coding Conventions
 
@@ -132,8 +132,8 @@ Framework/
 │   └── Bin/
 │
 ├── Client/
-│   ├── Public/                     — 9 headers (Client_Defines, MainApp, BackGround, Camera_Free, Terrain, Level_Logo/Loading/GamePlay, Loader)
-│   ├── Private/                    — 8 cpp
+│   ├── Public/                     — 10 headers (Client_Defines, MainApp, BackGround, Camera_Free, Terrain, ModelObject, Level_Logo/Loading/GamePlay, Loader)
+│   ├── Private/                    — 9 cpp
 │   └── Bin/
 │
 ├── GameApp/Default/                — GameApp.cpp (wWinMain, 60FPS loop), GameApp_Defines.h
@@ -143,17 +143,20 @@ Framework/
 │   │                                 Panel.h, Panel_Manager.h
 │   │                                 Panel_Viewport.h, Panel_Hierarchy.h, Panel_Inspector.h
 │   │                                 Panel_ContentBrowser.h, Panel_Log.h
+│   │                                 Model_Converter.h
+│   │                                 assimp/                  — Assimp 5.x 헤더 (Editor 전용)
 │   ├── Private/                    — EditorApp.cpp, Panel.cpp, Panel_Manager.cpp
 │   │                                 Panel_Viewport.cpp, Panel_Hierarchy.cpp, Panel_Inspector.cpp
 │   │                                 Panel_ContentBrowser.cpp, Panel_Log.cpp
-│   │                                 RTTR_Registration.cpp
+│   │                                 RTTR_Registration.cpp, Model_Converter.cpp
+│   ├── ThirdPartyLib/              — assimp-vc143-mt(d).lib, RTTR/
 │   ├── ImGui/                      — docking 브랜치 + backends/ (DX11, Win32)
 │   └── ImGuizmo/
 │
 ├── Resources/
-│   ├── ShaderFiles/                — Shader_VtxTex, Shader_VtxNorTex, Shader_VtxMesh (.hlsl)
+│   ├── ShaderFiles/                — Shader_VtxTex, Shader_VtxNorTex, Shader_VtxMesh, Shader_VtxAnimMesh (.hlsl)
 │   ├── Textures/                   — Default, Terrain/, Logo/, Player/, SkyBox/, Explosion/
-│   └── Models/                     — Fiona/, ForkLift/, map/, Rock/, Test/, Tong/ (FBX, Editor에서 변환 예정)
+│   └── Models/                     — Fiona/, ForkLift/, Rock/, SungJinWoo_ERank/ 등 (FBX + 변환된 .bin)
 │
 ├── EngineSDK/, ClientSDK/          — SDK 배포 (bat으로 자동 복사)
 ├── 명세서/
@@ -189,7 +192,7 @@ Framework/
 ### Editor Implementation
 - **기초 구현 계획**: `명세서/Editor_ImGui_구현계획.md` (Phase 1~5, 패널/Viewport 기초)
 - **전체 구현 계획**: `명세서/Editor_전체_구현계획.md` (Layer 0~4, 아키텍처 결정사항, 배치/UI/모델 파이프라인)
-- **현재 상태**: Phase 1~3 + Layer 0 전체 완료. Layer 1 Engine 측 완료 (Mesh/Material/Bone/Channel/Animation/Model + MODEL_DESC 체인 + SLMD v1 바이너리 로더). 다음: Layer 1 Editor Step 1~6 (Assimp 연동 → Model_Converter → MenuBar 트리거 → Inspector 모델 정보/애니 재생 → Viewport 모델 렌더 + Shader_VtxAnimMesh)
+- **현재 상태**: Phase 1~3 + Layer 0 전체 완료. Layer 1 — Engine 측 전체 완료 + Editor Step 1~4, 6 완료. **Step 5 (Inspector 모델 정보 + 애니메이션 컨트롤) 미구현** — 확장 범위: 모델 기본 정보, 애니 리스트/전환, Loop 토글, 타임라인/키프레임 표시, 애니메이션 전환 블렌딩(Engine CrossFade) 고려
 - **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
   - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update/Render_Panels, 선택 상태 관리
   - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
@@ -207,6 +210,7 @@ Framework/
   - Breadcrumb 경로 (클릭 가능) + `<-` 뒤로가기
   - 파일 타입별 아이콘 ([D]폴더 [T]텍스처 [S]셰이더 [M]모델 [B]바이너리)
   - 더블클릭 폴더 진입, Selectable 파일 선택
+  - .fbx 우클릭 → "Convert to .bin" 컨텍스트 메뉴 → 모달 팝업 (NONANIM/ANIM 선택 + Convert). 변환 결과 Log 출력 + 자동 새로고침
 - **Editor_Enum.h**: `MENUTYPE { PANEL, TOOL, END }`, `LOG_LEVEL { INFO, WARNING, ERROR_, END }`
 - **DockBuilder 레이아웃**: 최초 1회 자동 배치 (imgui.ini 없을 때), 이후 imgui.ini로 저장/복원
 - **MenuBar**: Window 메뉴에서 패널 표시/숨기기 토글 (ToggleMenuItem 헬퍼 메서드)
@@ -243,6 +247,9 @@ Framework/
   - `Play_Animation(fTimeDelta)` 은 `_bool` 반환 (완료 여부). loop 여부는 `ANIMATION_DESC::bIsLoop` 에 저장 (SSOT, CModel 은 m_isAnimLoop 캐시 없음)
   - 바이너리 포맷 `SLMD` magic + version 1: Header → Meshes → Materials → Bones → Animations 순서. 텍스처 경로는 상대 `_char[MAX_PATH]` 문자열 (옵션 b)
   - `Load_Binary_Desc` 는 `new _ubyte[]` 로 정점 버퍼 할당 → `fread` → Initialize_Prototype 호출 → `Free_Binary_Desc` 로 역순 해제 (DBG_NEW 매크로 호환 위해 `::operator new` 금지)
+- **CModelObject** (Client DLL): `MODELOBJECT_DESC` (ShaderProtoTag + ModelProtoTag) 기반 초기화, Update에서 ANIM이면 Play_Animation, Render에서 메시별 BoneMatrices/Material 바인딩 + 셰이더 Begin + Render
+- **CModel_Converter** (Editor): Assimp aiScene → SLMD v1 .bin 변환 static 유틸리티. Collect_Bones(DFS), Write_Meshes/Materials/Bones/Animations, Should_Skip_Mesh(LowMesh/NLOD 필터), Build_TexturePath(상대경로), 0-bone 폴백, DIFFUSE 없을 때 _CO 텍스처 자동 탐색
+- **Shader_VtxAnimMesh.hlsl**: VTXANIMMESH 입력 (BLENDINDEX uint4 + BLENDWEIGHT float4), 4본 스키닝 (가중합 BoneMatrix), Phong 라이팅 (Diffuse + Ambient + Specular)
 
 ## Working with Claude Code in This Repository
 
