@@ -310,7 +310,7 @@ HRESULT CEditorApp::Ready_TestScene()
 	CameraDesc.fFovy = XMConvertToRadians(60.f);
 	CameraDesc.fNear = 0.1f;
 	CameraDesc.fFar = 500.f;
-	CameraDesc.fSpeedPerSec = 20.f;
+	CameraDesc.fSpeedPerSec = 10.f;
 	CameraDesc.fRotationPerSec = XMConvertToRadians(180.f);
 	CameraDesc.fMouseSensor = 0.05f;
 
