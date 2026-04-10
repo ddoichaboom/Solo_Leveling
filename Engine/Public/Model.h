@@ -17,6 +17,11 @@ public:
 	_uint							Get_NumMaterials() const { return m_iNumMaterials; }
 	_uint							Get_NumBones() const { return m_iNumBones; }
 	_uint							Get_NumAnimations() const { return m_iNumAnimations; }
+	_uint							Get_CurrentAnimIndex() const { return m_iCurrentAnimationIndex; }
+	const _char*					Get_AnimationName(_uint iIndex) const;
+	_bool							Get_AnimationLoop() const { return m_isAnimLoop; }
+	_float							Get_TrackPosition() const;
+	_float							Get_Duration() const;
 
 	_int							Get_BoneIndex(const _char* pBoneName) const;
 	const _float4x4*				Get_BoneCombinedMatrixPtr(_uint iBoneIndex) const;
@@ -44,6 +49,7 @@ public:
 
 	void							Set_AnimationIndex(_uint iIndex);
 	HRESULT							Set_Animation(const _char* pAnimationName);
+	void							Set_AnimationLoop(_bool bLoop);
 
 private:
 	HRESULT							Ready_Meshes(const MODEL_DESC& Desc);

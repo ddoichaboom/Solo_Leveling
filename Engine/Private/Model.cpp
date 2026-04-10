@@ -84,6 +84,30 @@ CModel::CModel(const CModel& Prototype)
 		m_Animations.push_back(pAnim->Clone());
 }
 
+const _char* CModel::Get_AnimationName(_uint iIndex) const
+{
+	if (iIndex >= m_iNumAnimations)
+		return "";
+
+	return m_Animations[iIndex]->Get_Name();
+}
+
+_float CModel::Get_TrackPosition() const
+{
+	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
+		return 0.f;
+
+	return m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
+}
+
+_float CModel::Get_Duration() const
+{
+	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
+		return 0.f;
+
+	return m_Animations[m_iCurrentAnimationIndex]->Get_Duration();
+}
+
 _int CModel::Get_BoneIndex(const _char* pBoneName) const
 {
 	_int iIndex = { 0 };
@@ -215,6 +239,15 @@ HRESULT CModel::Set_Animation(const _char* pAnimationName)
 	Set_AnimationIndex(static_cast<_uint>(iIndex));
 
 	return S_OK;
+}
+
+void CModel::Set_AnimationLoop(_bool bLoop)
+{
+	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
+		return;
+
+	m_isAnimLoop = bLoop;
+	m_Animations[m_iCurrentAnimationIndex]->Set_IsLoop(bLoop);
 }
 
 HRESULT CModel::Ready_Meshes(const MODEL_DESC& Desc)
