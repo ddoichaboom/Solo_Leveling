@@ -30,7 +30,6 @@ public:
 	const _wstring&							Get_Tag() const { return m_strTag; }
 	void									Set_Tag(const _wstring& strTag) { m_strTag = strTag; }
 
-
 public:
 	virtual HRESULT							Initialize_Prototype();
 	virtual HRESULT							Initialize(void* pArg);

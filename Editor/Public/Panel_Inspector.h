@@ -25,6 +25,7 @@ private:
     void                    Render_GameObject(CGameObject* pObject);
     void                    Render_Transform(CTransform* pTransform);
     void                    Render_Property(rttr::property prop, rttr::instance instance);
+    void                    Render_Model(CGameObject* pObject);
 
 public:
     static CPanel_Inspector* Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

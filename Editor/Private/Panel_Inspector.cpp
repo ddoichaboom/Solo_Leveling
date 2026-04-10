@@ -3,6 +3,8 @@
 #include "GameInstance.h"
 #include "GameObject.h"
 #include "Transform.h"
+#include "Component.h"
+#include "Model.h"
 
 
 CPanel_Inspector::CPanel_Inspector(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -35,9 +37,12 @@ void CPanel_Inspector::Render()
 
 	Render_GameObject(pSelected);
 
+	Render_Model(pSelected);
+
 	CTransform* pTransform = pSelected->Get_Transform();
 	if (nullptr != pTransform)
 		Render_Transform(pTransform);
+
 
 	ImGui::End();
 }
@@ -135,6 +140,31 @@ void CPanel_Inspector::Render_Property(rttr::property prop, rttr::instance insta
 	else
 	{
 		ImGui::TextDisabled("%s: (Unsupported Type)", strName.c_str());
+	}
+}
+
+void CPanel_Inspector::Render_Model(CGameObject* pObject)
+{
+	auto& Components = pObject->Get_Components();
+	auto iter = Components.find(TEXT("Com_Model"));
+	if (iter == Components.end())
+		return;
+
+	CModel* pModel = static_cast<CModel*>(iter->second);
+	if (nullptr == pModel)
+		return;
+
+	if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		_bool bIsAnim = pModel->Get_ModelType() == MODEL::ANIM;
+		const char* szType = bIsAnim ? "ANIM" : "NONANIM";
+		ImGui::Text("Type: %s", szType);
+		ImGui::Text("Meshes: %d", pModel->Get_NumMeshes());
+		ImGui::Text("Materials: %d", pModel->Get_NumMaterials());
+		ImGui::Text("Bones: %d", pModel->Get_NumBones());
+
+		if (bIsAnim)
+			ImGui::Text("Animations: %d", pModel->Get_NumAnimations());
 	}
 }
 
