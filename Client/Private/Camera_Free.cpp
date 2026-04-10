@@ -34,36 +34,46 @@ HRESULT CCamera_Free::Initialize(void* pArg)
 
 void CCamera_Free::Priority_Update(_float fTimeDelta)
 {
-	// WASD 이동
-	if (m_pGameInstance->Get_KeyState('W') & 0x80)
-		static_cast<CTransform_3D*>(m_pTransformCom)->Go_Straight(fTimeDelta);
-
-	if (m_pGameInstance->Get_KeyState('S') & 0x80)
-		static_cast<CTransform_3D*>(m_pTransformCom)->Go_Backward(fTimeDelta);
-
-	if (m_pGameInstance->Get_KeyState('A') & 0x80)
-		static_cast<CTransform_3D*>(m_pTransformCom)->Go_Left(fTimeDelta);
-
-	if (m_pGameInstance->Get_KeyState('D') & 0x80)
-		static_cast<CTransform_3D*>(m_pTransformCom)->Go_Right(fTimeDelta);
-
-	// 마우스 회전
-	_long MouseMove = {};
-
-	// 수평 이동 -> Y축 기준 회전 (Yaw)
-	if (MouseMove = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::X))
+	if (m_pGameInstance->Get_MouseBtnState(MOUSEBTN::RBUTTON) & 0x80)
 	{
-		static_cast<CTransform_3D*>(m_pTransformCom)->Turn(
-			XMVectorSet(0.f, 1.f, 0.f, 0.f),
-			MouseMove * m_fMouseSensor * fTimeDelta);
+		// WASD 이동
+		if (m_pGameInstance->Get_KeyState('W') & 0x80)
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Straight(fTimeDelta);
+
+		if (m_pGameInstance->Get_KeyState('S') & 0x80)
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Backward(fTimeDelta);
+
+		if (m_pGameInstance->Get_KeyState('A') & 0x80)
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Left(fTimeDelta);
+
+		if (m_pGameInstance->Get_KeyState('D') & 0x80)
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Right(fTimeDelta);
+
+		// 마우스 회전
+		_long MouseMove = {};
+
+		// 수평 이동 -> Y축 기준 회전 (Yaw)
+		if (MouseMove = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::X))
+		{
+			static_cast<CTransform_3D*>(m_pTransformCom)->Turn(
+				XMVectorSet(0.f, 1.f, 0.f, 0.f),
+				MouseMove * m_fMouseSensor * fTimeDelta);
+		}
+
+		// 수직 이동 -> Right 축 기준 회전 (Pitch)
+		if (MouseMove = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::Y))
+		{
+			static_cast<CTransform_3D*>(m_pTransformCom)->Turn(
+				m_pTransformCom->Get_State(STATE::RIGHT),
+				MouseMove * m_fMouseSensor * fTimeDelta);
+		}
 	}
 
-	// 수직 이동 -> Right 축 기준 회전 (Pitch)
-	if (MouseMove = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::Y))
+	_long lWheel = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::WHEEL);
+	if (lWheel)
 	{
-		static_cast<CTransform_3D*>(m_pTransformCom)->Turn(
-			m_pTransformCom->Get_State(STATE::RIGHT),
-			MouseMove * m_fMouseSensor * fTimeDelta);
+		static_cast<CTransform_3D*>(m_pTransformCom)->Go_Straight(
+			fTimeDelta * lWheel * m_fMouseSensor);
 	}
 
 	// 부모 (CCamera)의 Priority_Update 호출

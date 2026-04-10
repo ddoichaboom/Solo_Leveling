@@ -18,6 +18,7 @@ public:
 	_bool					Get_IsLoop() const { return m_isLoop; }
 	_float					Get_CurrentTrackPosition() const { return m_fCurrentTrackPosition; }
 	void					Reset_TrackPosition() { m_fCurrentTrackPosition = 0.f; }
+	void					Set_IsLoop(_bool bLoop) { m_isLoop = bLoop; }
 
 public:
 	HRESULT					Initialize(const ANIMATION_DESC& Desc);

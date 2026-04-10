@@ -155,17 +155,56 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 		return;
 
 	if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		_bool bIsAnim = pModel->Get_ModelType() == MODEL::ANIM;
-		const char* szType = bIsAnim ? "ANIM" : "NONANIM";
-		ImGui::Text("Type: %s", szType);
-		ImGui::Text("Meshes: %d", pModel->Get_NumMeshes());
-		ImGui::Text("Materials: %d", pModel->Get_NumMaterials());
-		ImGui::Text("Bones: %d", pModel->Get_NumBones());
+		return;
 
-		if (bIsAnim)
-			ImGui::Text("Animations: %d", pModel->Get_NumAnimations());
+	_bool bIsAnim = pModel->Get_ModelType() == MODEL::ANIM;
+	const char* szType = bIsAnim ? "ANIM" : "NONANIM";
+
+	ImGui::Text("Type: %s", szType);
+	ImGui::Text("Meshes: %d", pModel->Get_NumMeshes());
+	ImGui::Text("Materials: %d", pModel->Get_NumMaterials());
+	ImGui::Text("Bones: %d", pModel->Get_NumBones());
+
+	if (!bIsAnim)
+		return;
+
+	ImGui::Text("Animations: %d", pModel->Get_NumAnimations());
+	ImGui::Separator();
+
+	// 애니메이션 리스트
+	_uint iCurrentIndex = pModel->Get_CurrentAnimIndex();
+	_uint iNumAnims = pModel->Get_NumAnimations();
+
+	if (ImGui::TreeNode("Animation List"))
+	{
+		for (size_t i = 0; i < iNumAnims; i++)
+		{
+			char szLabel[MAX_PATH] = {};
+			sprintf_s(szLabel, "[%d] %s", i, pModel->Get_AnimationName(i));
+
+			_bool bSelected = (i == iCurrentIndex);
+			if (ImGui::Selectable(szLabel, bSelected))
+			{
+				if (!bSelected)
+					pModel->Set_AnimationIndex(i);
+			}
+		}
+		ImGui::TreePop();
 	}
+
+	_bool bLoop = pModel->Get_AnimationLoop();
+	if (ImGui::Checkbox("Loop", &bLoop))
+	{
+		pModel->Set_AnimationLoop(bLoop);
+	}
+
+	_float fTrackPos = pModel->Get_TrackPosition();
+	_float fDuration = pModel->Get_Duration();
+	_float fProgress = (fDuration > 0.f) ? (fTrackPos / fDuration) : 0.f;
+
+	char szOverlay[64] = {};
+	sprintf_s(szOverlay, "%.1f / %.1f", fTrackPos, fDuration);
+	ImGui::ProgressBar(fProgress, ImVec2(-1.f, 0.f), szOverlay);
 }
 
 CPanel_Inspector* CPanel_Inspector::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
