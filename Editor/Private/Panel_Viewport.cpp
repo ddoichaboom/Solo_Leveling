@@ -3,6 +3,8 @@
 #include "Layer.h"
 #include "GameObject.h"
 #include "Panel_Manager.h"
+#include "Model.h"
+
 
 CPanel_Viewport::CPanel_Viewport(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPanel{ pDevice, pContext }
@@ -210,19 +212,29 @@ void CPanel_Viewport::Pick_Object()
 	{
 		for (auto& pObject : LayerPair.second->Get_GameObjects())
 		{
-			CVIBuffer* pVIBuffer = pObject->Get_VIBuffer();
-			if (nullptr == pVIBuffer)
-				continue;
-
 			_float fDist = { 0.f };
-			if (pVIBuffer->Pick(vOrigin, vDir,
-				XMLoadFloat4x4(pObject->Get_Transform()->Get_WorldMatrixPtr()), fDist))
+			_bool bHit = { false };
+			_matrix matWorld = XMLoadFloat4x4(pObject->Get_Transform()->Get_WorldMatrixPtr());
+
+			CVIBuffer* pVIBuffer = pObject->Get_VIBuffer();
+			if (nullptr != pVIBuffer)
 			{
-				if (fDist < fMinDist)
+				bHit = pVIBuffer->Pick(vOrigin, vDir, matWorld, fDist);
+			}
+			else
+			{
+				auto& Components = pObject->Get_Components();
+				auto iter = Components.find(TEXT("Com_Model"));
+				if (iter != Components.end())
 				{
-					fMinDist = fDist;
-					pPicked = pObject;
+					CModel* pModel = static_cast<CModel*>(iter->second);
+					bHit = pModel->Pick(vOrigin, vDir, matWorld, fDist);
 				}
+			}	
+			if (bHit && fDist < fMinDist)
+			{
+				fMinDist	= fDist;
+				pPicked		= pObject;
 			}
 		}
 	}

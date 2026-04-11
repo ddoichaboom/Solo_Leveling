@@ -12,6 +12,8 @@ private:
 	virtual ~CModel() = default;
 
 public:
+
+	// Getter 
 	MODEL							Get_ModelType() const { return m_eModelType; }
 	_uint							Get_NumMeshes() const { return m_iNumMeshes; }
 	_uint							Get_NumMaterials() const { return m_iNumMaterials; }
@@ -22,6 +24,7 @@ public:
 	_bool							Get_AnimationLoop() const { return m_isAnimLoop; }
 	_float							Get_TrackPosition() const;
 	_float							Get_Duration() const;
+	_bool							Get_AnimationPlaying() const { return m_isAnimPlaying; }
 
 	_int							Get_BoneIndex(const _char* pBoneName) const;
 	const _float4x4*				Get_BoneCombinedMatrixPtr(_uint iBoneIndex) const;
@@ -29,9 +32,16 @@ public:
 	_int							Get_AnimationIndex(const _char* pAnimationName) const;
 
 	const _float4x4&				Get_PreTransformMatrix() const { return m_PreTransformMatrix;  }
+	_bool							Get_IsBlending() const { return m_isBlending; }
+	_float							Get_BlendDuration() const { return m_fBlendDuration; }
+	void							Set_BlendDuration(_float fDuration) { m_fBlendDuration = fDuration; }
+	_float							Get_BlendRatio() const;
 
+
+	// Setter
 	void							Set_ModelType(MODEL eType) { m_eModelType = eType; }
 	void							Set_PreTransformMatrix(_fmatrix mat) { XMStoreFloat4x4(&m_PreTransformMatrix, mat); }
+	void							Set_AnimationPlaying(_bool bPlay) { m_isAnimPlaying = bPlay; }
 
 public:
 	virtual HRESULT					Initialize_Prototype(const MODEL_DESC& Desc);
@@ -44,6 +54,8 @@ public:
 													const _char* pConstantName, _uint iMeshIndex);
 
 	HRESULT							Render(_uint iMeshIndex);
+
+	_bool							Pick(_fvector vRayOrigin, _fvector vRayDir, _fmatrix matWorld, _float& fDist);
 
 	_bool							Play_Animation(_float fTimeDelta);
 
@@ -81,6 +93,11 @@ private:
 
 	_uint							m_iCurrentAnimationIndex = {};
 	_bool							m_isAnimLoop = { false };
+	_bool							m_isAnimPlaying = { true };
+	_uint							m_iPrevAnimIndex = {};
+	_float							m_fBlendElapsed = {};
+	_float							m_fBlendDuration = { 0.2f };
+	_bool							m_isBlending = { false };
 
 public:
 	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,const MODEL_DESC& Desc);

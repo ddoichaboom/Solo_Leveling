@@ -143,6 +143,14 @@ _int CModel::Get_AnimationIndex(const _char* pAnimationName) const
 	return static_cast<_int>(iter->second);
 }
 
+_float CModel::Get_BlendRatio() const
+{
+	if (!m_isBlending || m_fBlendDuration <= 0.f)
+		return 0.f;
+
+	return min(m_fBlendElapsed / m_fBlendDuration, 1.f);
+}
+
 HRESULT CModel::Initialize_Prototype(const MODEL_DESC& Desc)
 {
 	m_eModelType = Desc.eModelType;
@@ -199,15 +207,207 @@ HRESULT CModel::Render(_uint iMeshIndex)
 	return S_OK;
 }
 
+_bool CModel::Pick(_fvector vRayOrigin, _fvector vRayDir, _fmatrix matWorld, _float& fDist)
+{
+	if (MODEL::NONANIM == m_eModelType)
+	{
+		_float fMinDist = FLT_MAX;
+		_bool bHit = { false };
+
+		for (auto& pMesh : m_Meshes)
+		{
+			_float fMeshDist = { 0.f };
+			if (pMesh->Pick(vRayOrigin, vRayDir, matWorld, fMeshDist))
+			{
+				if (fMeshDist < fMinDist)
+				{
+					fMinDist = fMeshDist;
+					bHit = true;
+				}
+			}
+		}
+
+		if (bHit)
+			fDist = fMinDist;
+
+		return bHit;
+	}
+
+	// ANIM :CPU 스키닝 후 Picking
+	_matrix matWorldInverse = XMMatrixInverse(nullptr, matWorld);
+	_vector vLocalOrigin = XMVector3TransformCoord(vRayOrigin, matWorldInverse);
+	_vector vLocalDir = XMVector3Normalize(XMVector3TransformNormal(vRayDir, matWorldInverse));
+
+	_float fMinDist = FLT_MAX;
+	_bool bHit = { false };
+
+	for (auto& pMesh : m_Meshes)
+	{
+		PICK_DATA* pPickData = pMesh->Get_PickData();
+		if (nullptr == pPickData)
+			continue;
+
+		const auto& BlendIndices = pMesh->Get_PickBlendIndices();
+		const auto& BlendWeights = pMesh->Get_PickBlendWeights();
+
+		// 블렌드 데이터 없으면 바인드 포즈 그대로 테스트
+		if (BlendIndices.empty())
+		{
+			_float fMeshDist = { 0.f };
+			if (pMesh->Pick(vRayOrigin, vRayDir, matWorld, fMeshDist))
+			{
+				if (fMeshDist < fMinDist)
+				{
+					fMinDist = fMeshDist;
+					bHit = true;
+				}
+			}
+			continue;
+		}
+
+		// (1) 본 행렬 계산 (Bind_BoneMatrices와 동일 로직)
+		const auto& MeshBoneIndices = pMesh->Get_BoneIndices();
+		const auto& OffsetMatrices = pMesh->Get_OffsetMatrices();
+		_uint iNumMeshBones = pMesh->Get_NumBones();
+
+		vector<_float4x4> BoneMatrices(iNumMeshBones);
+		for (_uint b = 0; b < iNumMeshBones; ++b)
+		{
+			_matrix Offset = XMLoadFloat4x4(&OffsetMatrices[b]);
+			_matrix Combined = XMLoadFloat4x4(
+				m_Bones[MeshBoneIndices[b]]->Get_CombinedTransformMatrixPtr());
+			XMStoreFloat4x4(&BoneMatrices[b], Offset * Combined);
+		}
+
+		// (2) CPU 스키닝 → 임시 정점 배열
+		_uint iNumVerts = pPickData->iNumVertices;
+		_float3* pSkinnedPos = new _float3[iNumVerts];
+
+		for (_uint v = 0; v < iNumVerts; ++v)
+		{
+			XMUINT4  idx = BlendIndices[v];
+			XMFLOAT4 wgt = BlendWeights[v];
+			_vector  vPos = XMLoadFloat3(&pPickData->pVerticesPos[v]);
+
+			_matrix matSkin =
+				XMLoadFloat4x4(&BoneMatrices[idx.x]) * wgt.x +
+				XMLoadFloat4x4(&BoneMatrices[idx.y]) * wgt.y +
+				XMLoadFloat4x4(&BoneMatrices[idx.z]) * wgt.z +
+				XMLoadFloat4x4(&BoneMatrices[idx.w]) * wgt.w;
+
+			XMStoreFloat3(&pSkinnedPos[v],
+				XMVector3TransformCoord(vPos, matSkin));
+		}
+
+		// (3) Ray vs 삼각형 테스트
+		for (_uint i = 0; i < pPickData->iNumIndices; i += 3)
+		{
+			_vector v0 = XMLoadFloat3(&pSkinnedPos[pPickData->pIndices[i]]);
+			_vector v1 = XMLoadFloat3(&pSkinnedPos[pPickData->pIndices[i + 1]]);
+			_vector v2 = XMLoadFloat3(&pSkinnedPos[pPickData->pIndices[i + 2]]);
+
+			_float fLocalDist = { 0.f };
+			if (TriangleTests::Intersects(vLocalOrigin, vLocalDir,
+				v0, v1, v2, fLocalDist))
+			{
+				if (fLocalDist < fMinDist)
+				{
+					fMinDist = fLocalDist;
+					bHit = true;
+				}
+			}
+		}
+
+		delete[] pSkinnedPos;
+	}
+
+	if (bHit)
+	{
+		_vector vLocalHit = vLocalOrigin + vLocalDir * fMinDist;
+		_vector vWorldHit = XMVector3TransformCoord(vLocalHit, matWorld);
+		fDist = XMVectorGetX(XMVector3Length(vWorldHit - vRayOrigin));
+	}
+
+	return bHit;
+}
+
+
 _bool CModel::Play_Animation(_float fTimeDelta)
 {
+	if (!m_isAnimPlaying)
+		return false;
+
 	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
 		return false;
 
-	// 현재 애니메이션 : 각 채널이 자기 본의 LocalTransformMatrix 갱신
-	_bool isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(m_Bones, fTimeDelta, m_isAnimLoop);
+	_bool isFinished = { false };
 
-	// 모든 본 -> Combined = Local x Parent.Combined
+	if (m_isBlending)
+	{
+		m_fBlendElapsed += fTimeDelta;
+		_float fRatio = m_fBlendElapsed / m_fBlendDuration;
+
+		// 블렌드 완료 -> 이전 애니메이션 정리, 현재 애니메이션 단독 재생
+		if (fRatio >= 1.f)
+		{
+			m_isBlending = false;
+			m_Animations[m_iPrevAnimIndex]->Reset_TrackPosition();
+
+			isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(m_Bones, fTimeDelta, m_isAnimLoop);
+		}
+		else
+		{
+			// SQT 버퍼 초기환 
+			_float3 vDefaultScale = { 1.f, 1.f , 1.f };
+			_float4 vDefaultRot = { 0.f, 0.f, 0.f, 1.f };
+			_float3 vDefaultTrans = { 0.f, 0.f, 0.f };
+
+			vector<_float3> PrevScales(m_iNumBones, vDefaultScale);
+			vector<_float4> PrevRotations(m_iNumBones, vDefaultRot);
+			vector<_float3> PrevTranslations(m_iNumBones, vDefaultTrans);
+
+			vector<_float3> CurrScales(m_iNumBones, vDefaultScale);
+			vector<_float4> CurrRotations(m_iNumBones, vDefaultRot);
+			vector<_float3> CurrTranslations(m_iNumBones, vDefaultTrans);
+
+			// 두 애니메이션 동시 전진 + SQT 추출
+			m_Animations[m_iPrevAnimIndex]->Update_SQT(
+				PrevScales, PrevRotations, PrevTranslations,
+				fTimeDelta, true);
+
+			isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_SQT(
+				CurrScales, CurrRotations, CurrTranslations,
+				fTimeDelta, m_isAnimLoop);
+
+			// 본별 SQT 블렌딩 → 행렬 합성 → Bone에 세팅
+			for (_uint i = 0; i < m_iNumBones; ++i)
+			{
+				_vector vScale = XMVectorLerp(
+					XMLoadFloat3(&PrevScales[i]),
+					XMLoadFloat3(&CurrScales[i]), fRatio);
+
+				_vector vRotation = XMQuaternionSlerp(
+					XMLoadFloat4(&PrevRotations[i]),
+					XMLoadFloat4(&CurrRotations[i]), fRatio);
+
+				_vector vTranslation = XMVectorLerp(
+					XMLoadFloat3(&PrevTranslations[i]),
+					XMLoadFloat3(&CurrTranslations[i]), fRatio);
+
+				_matrix TransformationMatrix = XMMatrixAffineTransformation(
+					vScale, XMQuaternionIdentity(), vRotation, vTranslation);
+
+				m_Bones[i]->Set_TransformationMatrix(TransformationMatrix);
+			}
+		}
+	}
+	// 일반 재생
+	else
+	{
+		isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(
+			m_Bones, fTimeDelta, m_isAnimLoop);
+	}
+	// Combined 행렬 갱신 (블렌딩/일반 공통)
 	_matrix PreTransformMatrix = XMLoadFloat4x4(&m_PreTransformMatrix);
 
 	for (auto& pBone : m_Bones)
@@ -224,10 +424,26 @@ void CModel::Set_AnimationIndex(_uint iIndex)
 	if (iIndex == m_iCurrentAnimationIndex)
 		return;
 
-	m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
+	// CrossFade 블렌딩 시작
+	if (m_fBlendDuration > 0.f)
+	{
+		m_iPrevAnimIndex = m_iCurrentAnimationIndex;
+		m_iCurrentAnimationIndex = iIndex;
+		m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
 
-	m_iCurrentAnimationIndex = iIndex;
-	m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
+		m_isBlending = true;
+		m_fBlendElapsed = 0.f;
+
+		// 새 애니메이션은 처음부터, 이전 애니메이션은 현재 위치에서 계속
+		m_Animations[iIndex]->Reset_TrackPosition();
+	}
+	else
+	{
+		// 블렌딩 없이 즉시 전환 (기존 동작)
+		m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
+		m_iCurrentAnimationIndex = iIndex;
+		m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
+	}
 }
 
 HRESULT CModel::Set_Animation(const _char* pAnimationName)

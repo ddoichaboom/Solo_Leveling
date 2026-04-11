@@ -192,7 +192,7 @@ Framework/
 ### Editor Implementation
 - **기초 구현 계획**: `명세서/Editor_ImGui_구현계획.md` (Phase 1~5, 패널/Viewport 기초)
 - **전체 구현 계획**: `명세서/Editor_전체_구현계획.md` (Layer 0~4, 아키텍처 결정사항, 배치/UI/모델 파이프라인)
-- **현재 상태**: Phase 1~3 + Layer 0 전체 완료. Layer 1 — Engine 측 전체 완료 + Editor Step 1~4, 6 완료. **Step 5 (Inspector 모델 정보 + 애니메이션 컨트롤) 미구현** — 확장 범위: 모델 기본 정보, 애니 리스트/전환, Loop 토글, 타임라인/키프레임 표시, 애니메이션 전환 블렌딩(Engine CrossFade) 고려
+- **현재 상태**: Phase 1~3 + Layer 0 전체 완료. Layer 1 — Engine 측 전체 완료 + Editor Step 1~4, 6 완료. Step 5 진행 중: **5-A(모델 기본 정보) ✓, 5-B(애니메이션 컨트롤) ✓, 5-D(모델 피킹+CPU스키닝+재생/정지) ✓, 5-C(CrossFade 블렌딩) 구현 중** — Channel::Get_SQT 구현 완료, Animation::Update_SQT / Model Play_Animation 블렌딩 / Inspector 블렌딩 UI 코드 제시 완료(사용자 적용 전)
 - **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
   - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update/Render_Panels, 선택 상태 관리
   - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
@@ -239,7 +239,9 @@ Framework/
 - **Editor 테스트 씬** (임시): CLevel_Editor (빈 CLevel 셸) + Ready_TestScene() (Camera_Free/Terrain/Light)
   - Client 게임 레벨은 CLIENT_DLL export 없음 → Editor 전용 빈 레벨로 대체
 - **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → ~~4.Inspector+RTTR~~ → 5.Model Converter+Assimp (진행 중)
-- **Layer (전체)**: ~~0.공통 인프라(완료)~~ → 1.모델 파이프라인 (Engine 완료 / Editor 진행 중: Assimp → .bin → Runtime) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
+- **Layer (전체)**: ~~0.공통 인프라(완료)~~ → 1.모델 파이프라인 (Engine 완료 / Editor Step 1~4,6 완료, Step 5: 5-A,5-B,5-D 완료, **5-C 구현 중**) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
+- **5-C CrossFade 구현 진행 상태**: Channel::Get_SQT 구현 완료. Animation::Update_SQT, Model::Play_Animation 블렌딩 분기, Model::Set_AnimationIndex 블렌드 트리거, Inspector 블렌딩 UI(SliderFloat+ProgressBar) — 코드 제시 완료, 사용자 적용 전
+- **미해결 이슈 — 루트 모션 위치 동기화**: 본 애니메이션은 로컬 공간(BoneMatrix × WorldMatrix), CTransform 월드 위치는 애니메이션이 갱신 안 함. 루트 본 Translation 키프레임이 있으면 메쉬만 이동 → 전환 시 스냅백. 해결: 루트 모션 추출(매 프레임 루트 본 delta → CTransform 적용, 루트 본 원점 고정). 5-C와 독립 기능. 다음 세션에서 루트 본 Translation 유무 확인 후 결정
 - **Layer 1 아키텍처 결정 (B안)**: Editor 만 Assimp 의존. FBX → MODEL_DESC → SLMD v1 바이너리(.bin) 저장 → Engine/Client 는 `CModel::Create(..., const _tchar* pBinaryPath)` 로 .bin 만 읽음. Engine 의 Assimp 의존 완전 제거
 - **CModel 설계**:
   - `MODEL { NONANIM, ANIM }` 구분. MODEL_DESC 는 Mesh/Material/Bone/Animation 배열 pointer 컨테이너 (POD, 직렬화 친화)

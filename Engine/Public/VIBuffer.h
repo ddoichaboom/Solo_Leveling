@@ -12,6 +12,10 @@ protected:
 	virtual ~CVIBuffer() = default;
 
 public:
+	// CPU ½ºÅ°´×
+	PICK_DATA*					Get_PickData() const { return m_pPickData; }
+
+public:
 	virtual HRESULT				Initialize_Prototype();
 	virtual HRESULT				Initialize(void* pArg);
 

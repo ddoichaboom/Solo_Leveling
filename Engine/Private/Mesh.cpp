@@ -135,6 +135,15 @@ HRESULT CMesh::Ready_AnimMesh(const MESH_DESC& Desc)
 	for (_uint i = 0; i < m_iNumVertices; ++i)
 		m_pPickData->pVerticesPos[i] = pVtx[i].vPosition;
 
+	m_PickBlendIndices.resize(m_iNumVertices);
+	m_PickBlendWeights.resize(m_iNumVertices);
+
+	for (size_t i = 0; i < m_iNumVertices; i++)
+	{
+		m_PickBlendIndices[i] = pVtx[i].vBlendIndex;
+		m_PickBlendWeights[i] = pVtx[i].vBlendWeight;
+	}
+
 	return S_OK;
 }
 

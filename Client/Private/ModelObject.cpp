@@ -35,6 +35,8 @@ HRESULT CModelObject::Initialize(void* pArg)
 
     if (FAILED(Ready_Components()))
         return E_FAIL;
+
+    //m_pTransformCom->Set_Scale(_float3(0.1f, 0.1f, 0.1f));
     
     return S_OK;
 }
@@ -75,7 +77,6 @@ HRESULT CModelObject::Render()
         if (FAILED(m_pModelCom->Render(i)))
             return E_FAIL;
 
-        //m_pTransformCom->Set_Scale(_float3(100.f, 100.f, 100.f));
     }
     
     return S_OK;

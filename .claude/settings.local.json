@@ -11,15 +11,7 @@
       "mcp__claude_ai_Notion__notion-create-pages",
       "mcp__claude_ai_Notion__notion-update-page",
       "Read(//c/Users/denni/ddoichaboom/CPP_STUDY_3D/수업 파일/UnZips/8개월차/**)",
-      "Read(//c/Users/chaho/ddoichaboom/CPP_STUDY_3D/수업 파일/UnZips/8개월차/16일차/**)",
-      "Read(//c/Users/chaho/ddoichaboom/CPP_STUDY_3D/수업 파일/UnZips/8개월차/15일차/**)",
-      "Bash(xargs ls:*)",
-<<<<<<< HEAD
-      "Bash(grep -iE '\\\\.\\(dll|exe|lib|exp|pdb|obj|cso|ilk|iobj|ipdb|log|tlog|res|pch|idb|suo|user|lastbuildstate|unsuccessfulbuild\\)$')"
-=======
-      "Bash(echo \"exit: $?\")",
-      "WebFetch(domain:github.com)"
->>>>>>> Develop/feature/inspector-model-info
+      "Bash(xargs ls:*)"
     ]
   }
 }

@@ -15,6 +15,13 @@ public:
 	_uint					Get_MaterialIndex() const { return m_iMaterialIndex; }
 	const _char*			Get_Name() const {	return m_szName; }
 
+	// CPU 스키닝 구현 도전
+	const vector<XMUINT4>&		Get_PickBlendIndices() const { return m_PickBlendIndices; }
+	const vector<XMFLOAT4>&		Get_PickBlendWeights() const { return m_PickBlendWeights; }
+	const vector<_uint>&		Get_BoneIndices() const { return m_BoneIndices; }
+	const vector<_float4x4>&	Get_OffsetMatrices() const { return m_OffsetMatrices; }
+	_uint						Get_NumBones() const { return m_iNumBones; }
+
 public:
 	virtual HRESULT			Initialize_Prototype(MODEL eType, const MESH_DESC& Desc);
 	virtual HRESULT			Initialize(void* pArg) override;
@@ -34,6 +41,10 @@ private:
 	vector<_uint>			m_BoneIndices = {};
 	vector<_float4x4>		m_OffsetMatrices;
 	_float4x4				m_BoneMatrices[g_iNumMeshBones] = {};
+
+	// CPU 스키닝 - PICK_DATA 변환해서 PICKING 하기 위함 
+	vector<XMUINT4>			m_PickBlendIndices;
+	vector<XMFLOAT4>		m_PickBlendWeights;
 
 public:
 	static CMesh*			Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, MODEL eType, const MESH_DESC& Desc);

@@ -192,6 +192,12 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 		ImGui::TreePop();
 	}
 
+	_bool bPlaying = pModel->Get_AnimationPlaying();
+	if (ImGui::Checkbox("Playing", &bPlaying))
+	{
+		pModel->Set_AnimationPlaying(bPlaying);
+	}
+
 	_bool bLoop = pModel->Get_AnimationLoop();
 	if (ImGui::Checkbox("Loop", &bLoop))
 	{
@@ -205,6 +211,24 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	char szOverlay[64] = {};
 	sprintf_s(szOverlay, "%.1f / %.1f", fTrackPos, fDuration);
 	ImGui::ProgressBar(fProgress, ImVec2(-1.f, 0.f), szOverlay);
+
+	ImGui::Separator();
+
+	_float fBlendDuration = pModel->Get_BlendDuration();
+	if (ImGui::SliderFloat("Blend Duration", &fBlendDuration, 0.f, 1.f, "%.2f s"))
+	{
+		pModel->Set_BlendDuration(fBlendDuration);
+	}
+
+	// 블렌딩 상태 표시
+	if (pModel->Get_IsBlending())
+	{
+		_float fBlendRatio = pModel->Get_BlendRatio();
+		char szBlendOverlay[64] = {};
+		sprintf_s(szBlendOverlay, "%.0f%%", fBlendRatio * 100.f);
+		ImGui::ProgressBar(fBlendRatio, ImVec2(-1.f, 0.f), szBlendOverlay);
+		ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Blending...");
+	}
 }
 
 CPanel_Inspector* CPanel_Inspector::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

@@ -24,7 +24,9 @@ public:
 	HRESULT					Initialize(const ANIMATION_DESC& Desc);
 	_bool					Update_TransformationMatrix(const vector<class CBone*>& Bones,
 														_float fTimeDelta, _bool isLoop);
-
+	_bool					Update_SQT(vector<_float3>& Scales, vector<_float4>& Rotations,
+										vector<_float3>& Translations,
+										_float fTimeDelta, _bool isLoop);
 private:
 	_char					m_szName[MAX_PATH] = {};
 	_float					m_fDuration = {};
