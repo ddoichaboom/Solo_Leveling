@@ -143,14 +143,6 @@ _int CModel::Get_AnimationIndex(const _char* pAnimationName) const
 	return static_cast<_int>(iter->second);
 }
 
-_float CModel::Get_BlendRatio() const
-{
-	if (!m_isBlending || m_fBlendDuration <= 0.f)
-		return 0.f;
-
-	return min(m_fBlendElapsed / m_fBlendDuration, 1.f);
-}
-
 HRESULT CModel::Initialize_Prototype(const MODEL_DESC& Desc)
 {
 	m_eModelType = Desc.eModelType;
@@ -340,73 +332,8 @@ _bool CModel::Play_Animation(_float fTimeDelta)
 	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
 		return false;
 
-	_bool isFinished = { false };
+	_bool isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(m_Bones, fTimeDelta, m_isAnimLoop);
 
-	if (m_isBlending)
-	{
-		m_fBlendElapsed += fTimeDelta;
-		_float fRatio = m_fBlendElapsed / m_fBlendDuration;
-
-		// 블렌드 완료 -> 이전 애니메이션 정리, 현재 애니메이션 단독 재생
-		if (fRatio >= 1.f)
-		{
-			m_isBlending = false;
-			m_Animations[m_iPrevAnimIndex]->Reset_TrackPosition();
-
-			isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(m_Bones, fTimeDelta, m_isAnimLoop);
-		}
-		else
-		{
-			// SQT 버퍼 초기환 
-			_float3 vDefaultScale = { 1.f, 1.f , 1.f };
-			_float4 vDefaultRot = { 0.f, 0.f, 0.f, 1.f };
-			_float3 vDefaultTrans = { 0.f, 0.f, 0.f };
-
-			vector<_float3> PrevScales(m_iNumBones, vDefaultScale);
-			vector<_float4> PrevRotations(m_iNumBones, vDefaultRot);
-			vector<_float3> PrevTranslations(m_iNumBones, vDefaultTrans);
-
-			vector<_float3> CurrScales(m_iNumBones, vDefaultScale);
-			vector<_float4> CurrRotations(m_iNumBones, vDefaultRot);
-			vector<_float3> CurrTranslations(m_iNumBones, vDefaultTrans);
-
-			// 두 애니메이션 동시 전진 + SQT 추출
-			m_Animations[m_iPrevAnimIndex]->Update_SQT(
-				PrevScales, PrevRotations, PrevTranslations,
-				fTimeDelta, true);
-
-			isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_SQT(
-				CurrScales, CurrRotations, CurrTranslations,
-				fTimeDelta, m_isAnimLoop);
-
-			// 본별 SQT 블렌딩 → 행렬 합성 → Bone에 세팅
-			for (_uint i = 0; i < m_iNumBones; ++i)
-			{
-				_vector vScale = XMVectorLerp(
-					XMLoadFloat3(&PrevScales[i]),
-					XMLoadFloat3(&CurrScales[i]), fRatio);
-
-				_vector vRotation = XMQuaternionSlerp(
-					XMLoadFloat4(&PrevRotations[i]),
-					XMLoadFloat4(&CurrRotations[i]), fRatio);
-
-				_vector vTranslation = XMVectorLerp(
-					XMLoadFloat3(&PrevTranslations[i]),
-					XMLoadFloat3(&CurrTranslations[i]), fRatio);
-
-				_matrix TransformationMatrix = XMMatrixAffineTransformation(
-					vScale, XMQuaternionIdentity(), vRotation, vTranslation);
-
-				m_Bones[i]->Set_TransformationMatrix(TransformationMatrix);
-			}
-		}
-	}
-	// 일반 재생
-	else
-	{
-		isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(
-			m_Bones, fTimeDelta, m_isAnimLoop);
-	}
 	// Combined 행렬 갱신 (블렌딩/일반 공통)
 	_matrix PreTransformMatrix = XMLoadFloat4x4(&m_PreTransformMatrix);
 
@@ -424,26 +351,10 @@ void CModel::Set_AnimationIndex(_uint iIndex)
 	if (iIndex == m_iCurrentAnimationIndex)
 		return;
 
-	// CrossFade 블렌딩 시작
-	if (m_fBlendDuration > 0.f)
-	{
-		m_iPrevAnimIndex = m_iCurrentAnimationIndex;
-		m_iCurrentAnimationIndex = iIndex;
-		m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
-
-		m_isBlending = true;
-		m_fBlendElapsed = 0.f;
-
-		// 새 애니메이션은 처음부터, 이전 애니메이션은 현재 위치에서 계속
-		m_Animations[iIndex]->Reset_TrackPosition();
-	}
-	else
-	{
-		// 블렌딩 없이 즉시 전환 (기존 동작)
-		m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
-		m_iCurrentAnimationIndex = iIndex;
-		m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
-	}
+	// 블렌딩 없이 즉시 전환 (기존 동작)
+	m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
+	m_iCurrentAnimationIndex = iIndex;
+	m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
 }
 
 HRESULT CModel::Set_Animation(const _char* pAnimationName)

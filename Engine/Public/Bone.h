@@ -14,6 +14,7 @@ public:
 	const _char*		Get_Name() const { return m_szName; }
 	_int				Get_ParentIndex() const { return m_iParentIndex; }
 
+	const _float4x4*	Get_TransformationMatrixPtr() const { return &m_TransformationMatrix; }
 	const _float4x4*	Get_CombinedTransformMatrixPtr() const { return &m_CombinedTransformationMatrix; }
 	void				Set_TransformationMatrix(_fmatrix TransformationMatrix)
 	{

@@ -31,11 +31,7 @@ public:
 
 	_int							Get_AnimationIndex(const _char* pAnimationName) const;
 
-	const _float4x4&				Get_PreTransformMatrix() const { return m_PreTransformMatrix;  }
-	_bool							Get_IsBlending() const { return m_isBlending; }
-	_float							Get_BlendDuration() const { return m_fBlendDuration; }
-	void							Set_BlendDuration(_float fDuration) { m_fBlendDuration = fDuration; }
-	_float							Get_BlendRatio() const;
+	const _float4x4&				Get_PreTransformMatrix() const { return m_PreTransformMatrix; }
 
 
 	// Setter
@@ -94,10 +90,6 @@ private:
 	_uint							m_iCurrentAnimationIndex = {};
 	_bool							m_isAnimLoop = { false };
 	_bool							m_isAnimPlaying = { true };
-	_uint							m_iPrevAnimIndex = {};
-	_float							m_fBlendElapsed = {};
-	_float							m_fBlendDuration = { 0.2f };
-	_bool							m_isBlending = { false };
 
 public:
 	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,const MODEL_DESC& Desc);

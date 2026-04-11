@@ -79,48 +79,6 @@ void CChannel::Update_TransformationMatrix(const vector<class CBone*>& Bones, _f
     Bones[m_iBoneIndex]->Set_TransformationMatrix(TransformationMatrix);
 }
 
-void CChannel::Get_SQT(_float fCurrentTrackPosition, _uint* pCurrentKeyFrameIndex, _float3& vOutScale, _float4& vOutRotation, _float3& vOutTranslation)
-{
-    if (0 == m_iNumKeyFrames)
-        return;
-
-    if (0.f == fCurrentTrackPosition)
-        *pCurrentKeyFrameIndex = 0;
-
-    const KEYFRAME& LastKeyFrameDesc = m_KeyFrames.back();
-
-    _vector vScale, vRotation, vTranslation;
-
-    if (fCurrentTrackPosition >= LastKeyFrameDesc.fTrackPosition)
-    {
-        vScale = XMLoadFloat3(&LastKeyFrameDesc.vScale);
-        vRotation = XMLoadFloat4(&LastKeyFrameDesc.vRotation);
-        vTranslation = XMLoadFloat3(&LastKeyFrameDesc.vTranslation);
-    }
-    else
-    {
-        while (fCurrentTrackPosition >= m_KeyFrames[*pCurrentKeyFrameIndex + 1].fTrackPosition)
-            ++(*pCurrentKeyFrameIndex);
-
-        _uint iCur = *pCurrentKeyFrameIndex;
-        _uint iNext = iCur + 1;
-
-        _float fRatio = (fCurrentTrackPosition - m_KeyFrames[iCur].fTrackPosition) /
-            (m_KeyFrames[iNext].fTrackPosition - m_KeyFrames[iCur].fTrackPosition);
-
-        vScale = XMVectorLerp(XMLoadFloat3(&m_KeyFrames[iCur].vScale),
-            XMLoadFloat3(&m_KeyFrames[iNext].vScale), fRatio);
-        vRotation = XMQuaternionSlerp(XMLoadFloat4(&m_KeyFrames[iCur].vRotation),
-            XMLoadFloat4(&m_KeyFrames[iNext].vRotation), fRatio);
-        vTranslation = XMVectorLerp(XMLoadFloat3(&m_KeyFrames[iCur].vTranslation),
-            XMLoadFloat3(&m_KeyFrames[iNext].vTranslation), fRatio);
-    }
-
-    XMStoreFloat3(&vOutScale, vScale);
-    XMStoreFloat4(&vOutRotation, vRotation);
-    XMStoreFloat3(&vOutTranslation, vTranslation);
-}
-
 CChannel* CChannel::Create(const CHANNEL_DESC& Desc)
 {
     CChannel* pInstance = new CChannel();

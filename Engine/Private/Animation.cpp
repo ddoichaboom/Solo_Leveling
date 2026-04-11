@@ -68,38 +68,6 @@ _bool CAnimation::Update_TransformationMatrix(const vector<class CBone*>& Bones,
 	return false;
 }
 
-_bool CAnimation::Update_SQT(vector<_float3>& Scales, vector<_float4>& Rotations,
-	vector<_float3>& Translations, _float fTimeDelta, _bool isLoop)
-{
-	/* TrackPosition 전진 — Update_TransformationMatrix와 동일 */
-	m_fCurrentTrackPosition += m_fTickPerSecond * fTimeDelta;
-
-	if (m_fCurrentTrackPosition >= m_fDuration)
-	{
-		if (false == isLoop)
-			return true;
-
-		Reset_TrackPosition();
-	}
-
-	/* 각 채널 → 해당 본 슬롯에 SQT 기록 */
-	_uint iChannelIndex = {};
-
-	for (auto& pChannel : m_Channels)
-	{
-		_uint iBoneIndex = pChannel->Get_BoneIndex();
-
-		pChannel->Get_SQT(m_fCurrentTrackPosition,
-			&m_CurrentKeyFrameIndices[iChannelIndex++],
-			Scales[iBoneIndex],
-			Rotations[iBoneIndex],
-			Translations[iBoneIndex]);
-	}
-
-	return false;
-}
-
-
 CAnimation* CAnimation::Create(const ANIMATION_DESC& Desc)
 {
 	CAnimation* pInstance = new CAnimation();
