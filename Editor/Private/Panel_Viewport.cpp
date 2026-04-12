@@ -4,6 +4,8 @@
 #include "GameObject.h"
 #include "Panel_Manager.h"
 #include "Model.h"
+#include "ContainerObject.h"
+#include "PartObject.h"
 
 
 CPanel_Viewport::CPanel_Viewport(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -54,7 +56,93 @@ void CPanel_Viewport::Render()
 			reinterpret_cast<ImTextureID>(m_pSRV),
 			ImVec2(static_cast<_float>(m_iRTWidth), static_cast<_float>(m_iRTHeight)));
 
-		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		// ImGuizmo 오버레이 세팅
+		// (1) 기즈모 드로잉을 현재 Viewport 윈도우 drawlist에 연결
+		ImGuizmo::SetDrawlist();
+
+		// (2) 기즈모 수학이 사용할 스크린 공간 영역 = Image 위젯 영역과 일치
+		ImGuizmo::SetRect(
+			vImagePos.x, vImagePos.y,
+			static_cast<_float>(m_iRTWidth),
+			static_cast<_float>(m_iRTHeight));
+
+		// 기즈모 단축키 처리
+		// Viewport 포커스 상태 + RMB(카메라 모드) 비활성 시에만 반응
+		if (ImGui::IsWindowFocused() && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+		{
+			if (ImGui::IsKeyPressed(ImGuiKey_W))
+				m_eGizmoOperation = ImGuizmo::TRANSLATE;
+			else if (ImGui::IsKeyPressed(ImGuiKey_E))
+				m_eGizmoOperation = ImGuizmo::ROTATE;
+			else if (ImGui::IsKeyPressed(ImGuiKey_R))
+				m_eGizmoOperation = ImGuizmo::SCALE;
+
+			if (ImGui::IsKeyPressed(ImGuiKey_X))
+			{
+				m_eGizmoMode = (m_eGizmoMode == ImGuizmo::LOCAL)
+					? ImGuizmo::WORLD
+					: ImGuizmo::LOCAL;
+			}
+		}
+
+		_bool bGizmoBlocking = { false };
+
+		// 선택 오브젝트에 대한 기즈모 조작
+		CGameObject* pSelected = m_pPanel_Manager->Get_SelectedObject();
+		if (nullptr != pSelected)
+		{
+			CTransform* pTransform = pSelected->Get_Transform();
+			if (nullptr != pTransform)
+			{
+				// View/Proj 행렬 
+				const _float4x4* pViewMatrix = m_pGameInstance->Get_Transform(D3DTS::VIEW);
+				const _float4x4* pProjMatrix = m_pGameInstance->Get_Transform(D3DTS::PROJ);
+
+				// 대상 World 행렬을 스택 로컬로 복사
+				_float4x4 worldMatrix = *pTransform->Get_WorldMatrixPtr();
+
+				const _float* pSnap = { nullptr };
+				_float3 vSnap = {};
+
+				if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
+				{
+					switch (m_eGizmoOperation)
+					{
+					case ImGuizmo::TRANSLATE:
+						vSnap = _float3(m_fSnapTranslate, m_fSnapTranslate, m_fSnapTranslate);
+						break;
+					case ImGuizmo::ROTATE:
+						vSnap = _float3(m_fSnapRotate, m_fSnapRotate, m_fSnapRotate);
+						break;
+					case ImGuizmo::SCALE:
+						vSnap = _float3(m_fSnapScale, m_fSnapScale, m_fSnapScale);
+						break;
+					}
+					pSnap = reinterpret_cast<const _float*>(&vSnap);
+				}
+
+				// 기즈모 조작 
+				ImGuizmo::Manipulate(
+					reinterpret_cast<const _float*>(pViewMatrix),
+					reinterpret_cast<const _float*>(pProjMatrix),
+					m_eGizmoOperation,
+					m_eGizmoMode,
+					reinterpret_cast<_float*>(&worldMatrix),
+					nullptr,
+					pSnap);
+
+				// 조작이 발생했을 때만 Transform에 반영
+				if (ImGuizmo::IsUsing())
+					pTransform->Set_WorldMatrix(worldMatrix);
+
+				// 이 프레임에 Manipulate를 호출했을 때만 IsOver/IsUsing 상태가 유효
+				bGizmoBlocking = ImGuizmo::IsOver() || ImGuizmo::IsUsing();
+			}
+		}
+
+		if (ImGui::IsItemHovered() && 
+			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+			!bGizmoBlocking)
 		{
 			ImVec2 vMousePos = ImGui::GetMousePos();
 			m_fPickX = vMousePos.x - vImagePos.x;
@@ -212,8 +300,10 @@ void CPanel_Viewport::Pick_Object()
 	{
 		for (auto& pObject : LayerPair.second->Get_GameObjects())
 		{
+			// 1. 일반 GameObject Picking
 			_float fDist = { 0.f };
 			_bool bHit = { false };
+
 			_matrix matWorld = XMLoadFloat4x4(pObject->Get_Transform()->Get_WorldMatrixPtr());
 
 			CVIBuffer* pVIBuffer = pObject->Get_VIBuffer();
@@ -230,14 +320,48 @@ void CPanel_Viewport::Pick_Object()
 					CModel* pModel = static_cast<CModel*>(iter->second);
 					bHit = pModel->Pick(vOrigin, vDir, matWorld, fDist);
 				}
-			}	
+			}
+
 			if (bHit && fDist < fMinDist)
 			{
-				fMinDist	= fDist;
-				pPicked		= pObject;
+				fMinDist = fDist;
+				pPicked = pObject;
+			}
+
+			// 2. ContainerObject 내부 PartObject Picking
+			CContainerObject* pContainer = dynamic_cast<CContainerObject*>(pObject);
+			if (nullptr == pContainer)
+				continue;
+
+			for (auto& PartPair : pContainer->Get_PartObjects())
+			{
+				CPartObject* pPartObject = PartPair.second;
+				if (nullptr == pPartObject)
+					continue;
+
+				auto& PartComponents = pPartObject->Get_Components();
+				auto itModel = PartComponents.find(TEXT("Com_Model"));
+				if (itModel == PartComponents.end())
+					continue;
+
+				CModel* pModel = static_cast<CModel*>(itModel->second);
+				if (nullptr == pModel)
+					continue;
+
+				_matrix matPartWorld = XMLoadFloat4x4(&pPartObject->Get_CombinedWorldMatrix());
+
+				_float fPartDist = {};
+				if (pModel->Pick(vOrigin, vDir, matPartWorld, fPartDist))
+				{
+					if (fPartDist < fMinDist)
+					{
+						fMinDist = fPartDist;
+						pPicked = pPartObject;
+					}
+				}
 			}
 		}
-	}
+	}	
 
 	// (3) 결과 반영
 	if (nullptr != pPicked)

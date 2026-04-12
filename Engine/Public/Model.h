@@ -32,6 +32,7 @@ public:
 	_int							Get_AnimationIndex(const _char* pAnimationName) const;
 
 	const _float4x4&				Get_PreTransformMatrix() const { return m_PreTransformMatrix; }
+	const _float4x4*				Get_BoneMatrixPtr(const _char* pBoneName) const;
 
 
 	// Setter

@@ -33,6 +33,11 @@ HRESULT CTransform::Initialize(void* pArg)
 	m_fRotationPerSec	= pDesc->fRotationPerSec;
 	m_fSpeedPerSec		= pDesc->fSpeedPerSec;
 
+	// 배치 Transform 적용 (Scale -> Rotation -> Position)
+	Set_Scale(pDesc->vScale);
+	Set_Rotation(pDesc->vRotationDeg);
+	Set_Position(pDesc->vPosition);
+
 	return S_OK;
 }
 

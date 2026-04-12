@@ -55,6 +55,9 @@
     <Filter Include="95. Tools\Model_Converter">
       <UniqueIdentifier>{15ead82d-f167-418a-bbdf-d409f83dce28}</UniqueIdentifier>
     </Filter>
+    <Filter Include="01. Panel\Shortcuts">
+      <UniqueIdentifier>{8d4e0c35-5889-4e1a-8b94-1ed8898ccd6a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp">
@@ -116,6 +119,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Model_Converter.cpp">
       <Filter>95. Tools\Model_Converter</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_Shortcuts.cpp">
+      <Filter>01. Panel\Shortcuts</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -199,6 +205,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\Model_Converter.h">
       <Filter>95. Tools\Model_Converter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_Shortcuts.h">
+      <Filter>01. Panel\Shortcuts</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -10,8 +10,8 @@ class ENGINE_DLL CGameObject abstract : public CBase
 public:
 	typedef struct tagGameObjectDesc : public CTransform::TRANSFORM_DESC
 	{
-		_uint	iFlag = {};
-		TRANSFORMTYPE eTransformType = { TRANSFORMTYPE::TRANSFORM_3D };
+		_uint			iFlag			= {};
+		TRANSFORMTYPE	eTransformType	= { TRANSFORMTYPE::TRANSFORM_3D };
 	}GAMEOBJECT_DESC;
 
 protected:

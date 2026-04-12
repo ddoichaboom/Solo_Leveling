@@ -37,12 +37,11 @@ void CPanel_Inspector::Render()
 
 	Render_GameObject(pSelected);
 
-	Render_Model(pSelected);
-
 	CTransform* pTransform = pSelected->Get_Transform();
 	if (nullptr != pTransform)
 		Render_Transform(pTransform);
 
+	Render_Model(pSelected);
 
 	ImGui::End();
 }
@@ -65,12 +64,20 @@ void CPanel_Inspector::Render_Transform(CTransform* pTransform)
 	if (!ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
 		return;
 
+	_bool bGizmoUsing = ImGuizmo::IsUsing();
+
+	if (bGizmoUsing)
+		ImGui::BeginDisabled();
+
 	rttr::type type = rttr::type::get<CTransform>();
 
 	for (auto& prop : type.get_properties())
 	{
 		Render_Property(prop, *pTransform);
 	}
+
+	if (bGizmoUsing)
+		ImGui::EndDisabled();
 }
 
 void CPanel_Inspector::Render_Property(rttr::property prop, rttr::instance instance)
@@ -154,7 +161,7 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	if (nullptr == pModel)
 		return;
 
-	if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
+	if (!ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
 		return;
 
 	_bool bIsAnim = pModel->Get_ModelType() == MODEL::ANIM;
@@ -170,6 +177,26 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 
 	ImGui::Text("Animations: %d", pModel->Get_NumAnimations());
 	ImGui::Separator();
+
+	_bool bPlaying = pModel->Get_AnimationPlaying();
+	if (ImGui::Checkbox("Playing", &bPlaying))
+	{
+		pModel->Set_AnimationPlaying(bPlaying);
+	}
+
+	_bool bLoop = pModel->Get_AnimationLoop();
+	if (ImGui::Checkbox("Loop", &bLoop))
+	{
+		pModel->Set_AnimationLoop(bLoop);
+	}
+
+	_float fTrackPos = pModel->Get_TrackPosition();
+	_float fDuration = pModel->Get_Duration();
+	_float fProgress = (fDuration > 0.f) ? (fTrackPos / fDuration) : 0.f;
+
+	char szOverlay[64] = {};
+	sprintf_s(szOverlay, "%.1f / %.1f", fTrackPos, fDuration);
+	ImGui::ProgressBar(fProgress, ImVec2(-1.f, 0.f), szOverlay);
 
 	// 애니메이션 리스트
 	_uint iCurrentIndex = pModel->Get_CurrentAnimIndex();
@@ -191,26 +218,6 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 		}
 		ImGui::TreePop();
 	}
-
-	_bool bPlaying = pModel->Get_AnimationPlaying();
-	if (ImGui::Checkbox("Playing", &bPlaying))
-	{
-		pModel->Set_AnimationPlaying(bPlaying);
-	}
-
-	_bool bLoop = pModel->Get_AnimationLoop();
-	if (ImGui::Checkbox("Loop", &bLoop))
-	{
-		pModel->Set_AnimationLoop(bLoop);
-	}
-
-	_float fTrackPos = pModel->Get_TrackPosition();
-	_float fDuration = pModel->Get_Duration();
-	_float fProgress = (fDuration > 0.f) ? (fTrackPos / fDuration) : 0.f;
-
-	char szOverlay[64] = {};
-	sprintf_s(szOverlay, "%.1f / %.1f", fTrackPos, fDuration);
-	ImGui::ProgressBar(fProgress, ImVec2(-1.f, 0.f), szOverlay);
 
 	ImGui::Separator();
 

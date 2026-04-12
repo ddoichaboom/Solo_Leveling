@@ -143,6 +143,15 @@ _int CModel::Get_AnimationIndex(const _char* pAnimationName) const
 	return static_cast<_int>(iter->second);
 }
 
+const _float4x4* CModel::Get_BoneMatrixPtr(const _char* pBoneName) const
+{
+	_int iIndex = Get_BoneIndex(pBoneName);
+	if (iIndex < 0)
+		return nullptr;
+
+	return m_Bones[iIndex]->Get_CombinedTransformMatrixPtr();
+}
+
 HRESULT CModel::Initialize_Prototype(const MODEL_DESC& Desc)
 {
 	m_eModelType = Desc.eModelType;

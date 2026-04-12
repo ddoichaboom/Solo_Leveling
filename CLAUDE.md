@@ -49,7 +49,7 @@ CBase (ref counting)
 ├── CInput_Device (final) — Raw Input 키보드/마우스, 2단계 static→프레임 구조
 ├── CPipeLine (final) — View/Proj 행렬 저장, 역행렬, 카메라 위치, Compute_WorldRay
 ├── CComponent (abstract) — Prototype/Clone
-│   ├── CTransform (abstract) — world matrix, STATE 접근자, Bind_ShaderResource, _float3 기반 Position/Scale/Rotation 접근자
+│   ├── CTransform (abstract) — world matrix, STATE 접근자, Bind_ShaderResource, _float3 기반 Position/Scale/Rotation 접근자, Set_WorldMatrix (ImGuizmo 연동용)
 │   │   ├── CTransform_3D (final) — 3D 이동/회전/LookAt
 │   │   └── CTransform_2D (final) — 2D 이동
 │   ├── CShader (final) — FX11 Effect, Bind_Matrix/Bind_SRV/Bind_RawValue
@@ -66,24 +66,28 @@ CBase (ref counting)
 ├── CLevel (abstract)
 ├── CGameObject (abstract) — TRANSFORMTYPE으로 3D/2D Transform 자동 생성
 │   ├── CCamera (abstract) — CAMERA_DESC, Update_PipeLine
-│   └── CUIObject (abstract) — 직교 투영, CTransform_2D 자동
+│   ├── CUIObject (abstract) — 직교 투영, CTransform_2D 자동
+│   ├── CContainerObject (abstract) — PartObject map 소유, 부모 오브젝트 Update/Late_Update에서 파츠 위임
+│   │   └── Client::CPlayer — Body/Weapon 파츠를 조립하는 플레이어 컨테이너
+│   └── CPartObject (abstract) — ParentMatrix 기반 CombinedWorldMatrix 계산, Body/Weapon 같은 조립 파츠의 기반
 ├── CLayer, CLevel_Manager, CTimer_Manager, CPrototype_Manager, CObject_Manager, CRenderer
 ├── CLight (final) — LIGHT_DESC (DIRECTIONAL/POINT). CBase 상속, CComponent 아님
 ├── CLight_Manager (final) — CGameInstance 소유, 비싱글톤
 │
 ├── [Client.dll]
-├── CMainApp, CBackGround, CCamera_Free, CTerrain, CModelObject (CLIENT_DLL export)
+├── CMainApp, CBackGround, CCamera_Free, CTerrain, CModelObject, CPlayer, CBody_Player, CWeapon (CLIENT_DLL export)
 ├── CLevel_Logo, CLevel_Loading, CLevel_GamePlay, CLoader (internal)
 │   └── CLevel_GamePlay: Initialize() 비어있음 (오브젝트 미생성 상태)
 │
 ├── [Editor.exe]
-├── CEditorApp (final) — ImGui DockSpace + MenuBar + DockBuilder 레이아웃, Ready_Panels/ToggleMenuItem/Render_Scene
+├── CEditorApp (final) — ImGui DockSpace + MenuBar + DockBuilder 레이아웃, Ready_Panels/ToggleMenuItem/Render_Scene, ImGuizmo Context/BeginFrame 연동
 ├── CPanel (abstract) — Initialize/Update/Render, Is_Open/Set_Open/Get_Name
-│   ├── CPanel_Viewport (final) — "Viewport", 별도 RenderTarget 소유 (RTV/SRV/DSV), Begin_RT/End_RT, 리사이즈 대응
+│   ├── CPanel_Viewport (final) — "Viewport", 별도 RenderTarget 소유 (RTV/SRV/DSV), Begin_RT/End_RT, 리사이즈 대응, ImGuizmo 오버레이 + 단축키 + 피킹 가드
 │   ├── CPanel_Hierarchy (final) — "Hierarchy", TreeNode(레이어)→Selectable(오브젝트), 레벨 전환 감지
-│   ├── CPanel_Inspector (final) — "Inspector", RTTR 기반 프로퍼티 자동 UI (타입→위젯 매핑)
+│   ├── CPanel_Inspector (final) — "Inspector", RTTR 기반 프로퍼티 자동 UI (타입→위젯 매핑), Gizmo 드래그 중 BeginDisabled 가드
 │   ├── CPanel_ContentBrowser (final) — "Content Browser", std::filesystem 기반 Resources/ 탐색, Breadcrumb/파일타입 아이콘
-│   └── CPanel_Log (final) — "Log", 정적 로그 버퍼, 필터 토글(Info/Warning/Error), 자동 스크롤
+│   ├── CPanel_Log (final) — "Log", 정적 로그 버퍼, 필터 토글(Info/Warning/Error), 자동 스크롤
+│   └── CPanel_Shortcuts (final) — "Shortcuts", RMB 상태 기반 컨텍스트 민감 단축키 안내 (Camera/Gizmo 모드 강조)
 └── CPanel_Manager (final, singleton) — map<wstring, CPanel*>, Update/Render_Panels, 선택 상태(Get/Set_SelectedObject), Release_Panels()
 ```
 
@@ -142,16 +146,16 @@ Framework/
 │   ├── Public/                     — EditorApp.h, Editor_Defines.h, Editor_Enum.h
 │   │                                 Panel.h, Panel_Manager.h
 │   │                                 Panel_Viewport.h, Panel_Hierarchy.h, Panel_Inspector.h
-│   │                                 Panel_ContentBrowser.h, Panel_Log.h
+│   │                                 Panel_ContentBrowser.h, Panel_Log.h, Panel_Shortcuts.h
 │   │                                 Model_Converter.h
 │   │                                 assimp/                  — Assimp 5.x 헤더 (Editor 전용)
 │   ├── Private/                    — EditorApp.cpp, Panel.cpp, Panel_Manager.cpp
 │   │                                 Panel_Viewport.cpp, Panel_Hierarchy.cpp, Panel_Inspector.cpp
-│   │                                 Panel_ContentBrowser.cpp, Panel_Log.cpp
+│   │                                 Panel_ContentBrowser.cpp, Panel_Log.cpp, Panel_Shortcuts.cpp
 │   │                                 RTTR_Registration.cpp, Model_Converter.cpp
 │   ├── ThirdPartyLib/              — assimp-vc143-mt(d).lib, RTTR/
 │   ├── ImGui/                      — docking 브랜치 + backends/ (DX11, Win32)
-│   └── ImGuizmo/
+│   └── ImGuizmo/                   — ImGuizmo v1.92.5 (Transform gizmo overlay)
 │
 ├── Resources/
 │   ├── ShaderFiles/                — Shader_VtxTex, Shader_VtxNorTex, Shader_VtxMesh, Shader_VtxAnimMesh (.hlsl)
@@ -192,8 +196,8 @@ Framework/
 ### Editor Implementation
 - **기초 구현 계획**: `명세서/Editor_ImGui_구현계획.md` (Phase 1~5, 패널/Viewport 기초)
 - **전체 구현 계획**: `명세서/Editor_전체_구현계획.md` (Layer 0~4, 아키텍처 결정사항, 배치/UI/모델 파이프라인)
-- **현재 상태**: Phase 1~3 + Layer 0 전체 완료. Layer 1 — Engine 측 전체 완료 + Editor Step 1~4, 6 완료. Step 5 진행 중: **5-A(모델 기본 정보) ✓, 5-B(애니메이션 컨트롤) ✓, 5-D(모델 피킹+CPU스키닝+재생/정지) ✓, 5-C(CrossFade 블렌딩) 구현 중** — Channel::Get_SQT 구현 완료, Animation::Update_SQT / Model Play_Animation 블렌딩 / Inspector 블렌딩 UI 코드 제시 완료(사용자 적용 전)
-- **패널 시스템**: CPanel (abstract) → 파생 5개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log)
+- **현재 상태**: Phase 1~3 + Layer 0 + Layer 1 완료 (5-C 블렌딩 **보류** — Player/AnimController 단계로 이월). **Layer 2-a ImGuizmo Step 1~6 완료** (2026-04-11). 2026-04-12 기준 Player/Body/Weapon 파츠 테스트와 PartObject 피킹/Inspector 애니메이션 미리보기 검증 중. Step 7(스냅/그리드)·8(QA)는 후속
+- **패널 시스템**: CPanel (abstract) → 파생 6개 (Viewport, Hierarchy, Inspector, ContentBrowser, Log, **Shortcuts**)
   - `CPanel_Manager` (싱글톤, `map<wstring, CPanel*>`): 이름 기반 접근, Update/Render_Panels, 선택 상태 관리
   - 자주 접근하는 패널은 멤버 포인터로 캐싱 (예: `m_pViewport`)
   - CPanel 생성자에서 GameInstance/Panel_Manager Safe_AddRef → 순환 참조 발생
@@ -238,10 +242,39 @@ Framework/
   - **Safe_Release 주의**: RefCount > 0이면 포인터를 nullptr로 만들지 않음 → 수동 nullptr 대입 필요
 - **Editor 테스트 씬** (임시): CLevel_Editor (빈 CLevel 셸) + Ready_TestScene() (Camera_Free/Terrain/Light)
   - Client 게임 레벨은 CLIENT_DLL export 없음 → Editor 전용 빈 레벨로 대체
-- **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → ~~4.Inspector+RTTR~~ → 5.Model Converter+Assimp (진행 중)
-- **Layer (전체)**: ~~0.공통 인프라(완료)~~ → 1.모델 파이프라인 (Engine 완료 / Editor Step 1~4,6 완료, Step 5: 5-A,5-B,5-D 완료, **5-C 구현 중**) → 2.3D 편집 → 3.UI 에디터 → 4.부가 기능(보류)
-- **5-C CrossFade 구현 진행 상태**: Channel::Get_SQT 구현 완료. Animation::Update_SQT, Model::Play_Animation 블렌딩 분기, Model::Set_AnimationIndex 블렌드 트리거, Inspector 블렌딩 UI(SliderFloat+ProgressBar) — 코드 제시 완료, 사용자 적용 전
-- **미해결 이슈 — 루트 모션 위치 동기화**: 본 애니메이션은 로컬 공간(BoneMatrix × WorldMatrix), CTransform 월드 위치는 애니메이션이 갱신 안 함. 루트 본 Translation 키프레임이 있으면 메쉬만 이동 → 전환 시 스냅백. 해결: 루트 모션 추출(매 프레임 루트 본 delta → CTransform 적용, 루트 본 원점 고정). 5-C와 독립 기능. 다음 세션에서 루트 본 Translation 유무 확인 후 결정
+  - 2026-04-12 기준 테스트 씬에 Player 컨테이너 배치: `CPlayer` → `CBody_Player`(SungJinWoo anim model) + `CWeapon`(Weapon01 static model)
+  - 모델 프로토타입: `Prototype_Component_Model_SungJinWoo`, `Prototype_Component_Model_Weapon01`
+  - 게임오브젝트 프로토타입: `Prototype_GameObject_Player`, `Prototype_GameObject_Body_Player`, `Prototype_GameObject_Weapon`
+- **Phase (기초)**: ~~1.Viewport 분리~~ → ~~2.패널 구조~~ → ~~3.Content Browser~~ → ~~4.Inspector+RTTR~~ → ~~5.Model Converter+Assimp~~ (완료)
+- **Layer (전체)**: ~~0.공통 인프라~~ → ~~1.모델 파이프라인~~ (5-C 보류) → **2.3D 편집 (2-a ImGuizmo Step 1~6 완료, Step 7~8 진행 예정)** → 3.UI 에디터 → 4.부가 기능(보류)
+- **Layer 1 5-C CrossFade 보류 결정 (2026-04-11)**: 1차 구현(SQT 동시 재생 Lerp) 전부 제거 → 하드 컷(즉시 전환)으로 복원. Player/Weapon·AnimController 구현 시점에 상태머신과 함께 재설계. 제거 범위: `BONE_SQT`/`Channel::Get_SQT`/`Animation::Update_SQT`/CModel 블렌딩 멤버 전체/Play_Animation 분기/Set_AnimationIndex 분기/BindPose 캐시/Inspector 블렌드 UI
+- **Layer 1 보류 이슈 — 루트 모션 위치 동기화**: 본 애니메이션은 로컬 공간(BoneMatrix × WorldMatrix), CTransform 월드 위치는 애니메이션이 갱신 안 함. 루트 본 Translation 키프레임이 있으면 메쉬만 이동 → 전환 시 스냅백. 해결: 루트 모션 추출(매 프레임 루트 본 delta → CTransform 적용, 루트 본 원점 고정). 5-C 와 독립 기능, 먼저 해결 가능
+- **Layer 2-a ImGuizmo 통합** (2026-04-11):
+  - **Engine 측 변경은 `CTransform::Set_WorldMatrix(const _float4x4&)` 인라인 setter 한 줄만** — ImGuizmo 의존성은 Editor 에만 격리 (Assimp/RTTR 격리 원칙과 일관)
+  - Editor_Defines.h 에 `#include "ImGuizmo.h"`, EditorApp 에 `ImGuizmo::SetImGuiContext` (Ready_ImGui) + `BeginFrame` (Begin_ImGuiFrame) 연동
+  - Panel_Viewport 에 `m_eGizmoOperation`/`m_eGizmoMode` 멤버. Render() 에서 SetDrawlist/SetRect/Manipulate 호출
+  - **DirectX 행우선 ↔ ImGuizmo 호환**: `_float4x4*` 를 `reinterpret_cast<float*>` 로 그대로 전달 (transpose 불필요)
+  - **폴링 기반 양방향 동기화**: Inspector RTTR getter 와 Gizmo 가 독립적으로 매 프레임 `m_WorldMatrix` 폴링 → Single Source of Truth 로 자동 동기화. 이벤트/dirty 플래그 불필요
+  - **기즈모 ↔ 피킹 충돌**: `_bool bGizmoBlocking` 을 Manipulate 블록 바깥에서 선언, `pSelected && pTransform` 내부에서만 `IsOver() || IsUsing()` 대입 → 선택 해제 후 stale hit-test 가 빈 공간 피킹 방해하는 문제 해결
+  - **RMB-modal 키 충돌 공존**: CCamera_Free 의 RMB-WASD 와 ImGuizmo 단축키는 `!ImGui::IsMouseDown(ImGuiMouseButton_Right)` 가드로 배타적 공존 (RMB 중에는 기즈모 단축키 차단)
+  - **단축키를 Render() 에 배치한 이유**: `ImGui::IsWindowFocused()` 는 해당 창 `Begin()`/`End()` 스코프 내에서만 유효. Update() 에서 호출 불가. ImGui 이디엄상 패널 Render() 는 프레임 핸들러 (입력 + 드로잉 혼재 정상)
+  - **단축키 매핑**: W=TRANSLATE, E=ROTATE, R=SCALE, X=LOCAL/WORLD 토글 (Viewport 포커스 + RMB OFF 조건)
+  - **CPanel_Shortcuts**: CPanel 파생 final 패널, RMB 상태 기반 컨텍스트 민감 안내. `bool bCameraMode = ImGui::IsMouseDown(ImGuiMouseButton_Right);` 매 프레임 재평가 → 활성 모드 강조 색상 + 비활성 모드 회색 요약
+  - **Inspector 양방향 동기화**: 폴링 기반이라 자동 작동. 실제 코드 변경은 `Render_Transform` 을 `ImGuizmo::IsUsing()` 기반 `BeginDisabled`/`EndDisabled` 로 감싼 것뿐
+  - **알려진 한계 (수정 안 함)**: Euler 회전 라운드트립 다중값(행렬→Euler 분해는 동등한 다른 조합 가능), Scale 부호 손실(`XMVector3Length` 양수만), ImGuizmo SCALE 은 항상 LOCAL
+- **Player/PartObject 테스트 구현 메모 (2026-04-12)**:
+  - `CContainerObject`: `map<const _wstring, CPartObject*> m_PartObjects` 소유, `Add_PartObject()` 로 게임오브젝트 프로토타입 Clone 후 보관
+  - `CPartObject`: `PARTOBJECT_DESC::pParentMatrix` 를 받아 `Compute_CombinedWorldMatrix(ChildMatrix * ParentMatrix)` 계산. Render 시 Body/Weapon은 `m_CombinedWorldMatrix` 를 셰이더 `g_WorldMatrix` 로 바인딩
+  - `CPlayer`: Body 생성 후 Body의 소켓 본 포인터를 받아 Weapon 생성. 현재 무기 소켓은 `"Prop_Weapon_Dualwield_01_R"` 사용
+  - `CBody_Player`: `Com_Shader` = `Prototype_Component_Shader_VtxAnimMesh`, `Com_Model` = `Prototype_Component_Model_SungJinWoo`. 현재 Inspector 애니메이션 미리보기를 위해 state-driven `Set_AnimationIndex(0/1)` 는 임시 비활성화된 상태
+  - `CWeapon`: `Com_Shader` = `Prototype_Component_Shader_VtxMesh`, `Com_Model` = `Prototype_Component_Model_Weapon01`. Late_Update에서 소켓 행렬의 축 정규화 후 `Child * Socket * Parent` 계열 CombinedWorldMatrix를 구성하고 렌더 그룹에 등록
+  - `Panel_Viewport::Pick_Object()`: 일반 GameObject의 VIBuffer/Com_Model 피킹 후, `CContainerObject` 인 경우 내부 `PartObject`의 `Com_Model` 을 `Get_CombinedWorldMatrix()` 로 피킹하여 Body/Weapon 직접 선택 가능
+- **Player 애니메이션/무기 표시 설계 메모 (2026-04-12)**:
+  - 47개 애니메이션을 인덱스 직접 참조로 관리하면 `.bin` 재생성/export 순서 변경에 취약. 코드에서는 의미 단위 enum을 사용하고, 실제 매핑은 AnimationName 기반으로 초기화 시 index 캐싱
+  - 추천 흐름: Input → `PLAYER_ACTION` → `WEAPON_STATE` → AnimationResolver/Table → AnimationName/Index → `CModel::Set_AnimationIndex()`
+  - 무기 유무는 애니메이션 이름 문자열 포함 여부(`Fighter`)에 런타임 로직을 의존시키지 말고, 매핑 데이터의 `bShowWeapon`/`eWeaponState` 로 명시. `Fighter_*` 는 초기 자동 분류 힌트로만 사용 가능
+  - 같은 입력이라도 무기 상태에 따라 다른 애니메이션 선택: 예) `BASIC_ATTACK_01 + UNARMED -> Fighter_Attack_01`, `BASIC_ATTACK_01 + DUAL_BLADE -> Dualwield_Attack_01`
+  - Inspector의 Animation List는 장기적으로 검색/카테고리/무기 상태 필터가 필요. 현재 단순 전체 나열은 디버그용
 - **Layer 1 아키텍처 결정 (B안)**: Editor 만 Assimp 의존. FBX → MODEL_DESC → SLMD v1 바이너리(.bin) 저장 → Engine/Client 는 `CModel::Create(..., const _tchar* pBinaryPath)` 로 .bin 만 읽음. Engine 의 Assimp 의존 완전 제거
 - **CModel 설계**:
   - `MODEL { NONANIM, ANIM }` 구분. MODEL_DESC 는 Mesh/Material/Bone/Animation 배열 pointer 컨테이너 (POD, 직렬화 친화)

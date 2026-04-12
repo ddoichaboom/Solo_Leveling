@@ -43,6 +43,15 @@
     <Filter Include="02. GameObject\ModelObject">
       <UniqueIdentifier>{4adf19d0-86b2-445c-b4b0-6a6f71925e31}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\Player">
+      <UniqueIdentifier>{10c1e72b-cd83-4f2a-b69a-ac16d7f61b3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Player\Body">
+      <UniqueIdentifier>{a3f011eb-9e89-49c0-9c4a-93299fb44aac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Player\Weapon">
+      <UniqueIdentifier>{7a6c5aff-6948-4d62-ba0c-e00ad3dfd76b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -75,6 +84,15 @@
     <ClInclude Include="..\Public\ModelObject.h">
       <Filter>02. GameObject\ModelObject</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Player.h">
+      <Filter>02. GameObject\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Body_Player.h">
+      <Filter>02. GameObject\Player\Body</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Weapon.h">
+      <Filter>02. GameObject\Player\Weapon</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -103,6 +121,15 @@
     </ClCompile>
     <ClCompile Include="..\Private\ModelObject.cpp">
       <Filter>02. GameObject\ModelObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Player.cpp">
+      <Filter>02. GameObject\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Body_Player.cpp">
+      <Filter>02. GameObject\Player\Body</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Weapon.cpp">
+      <Filter>02. GameObject\Player\Weapon</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

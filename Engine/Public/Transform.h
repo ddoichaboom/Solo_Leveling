@@ -12,7 +12,10 @@ class ENGINE_DLL CTransform abstract : public CComponent
 public:
 	typedef struct tagTransformDesc
 	{
-		_float		fScale = { 1.f };
+		_float3		vPosition = {};
+		_float3		vRotationDeg = {};
+		_float3		vScale = { 1.f, 1.f, 1.f };
+
 		_float		fSpeedPerSec = {};
 		_float		fRotationPerSec = {};
 	}TRANSFORM_DESC;
@@ -57,8 +60,13 @@ public:
 	void					Set_Rotation(_float3 vDegrees);
 
 
-	const _float4x4*		Get_WorldMatrixPtr() const {
+	const _float4x4*		Get_WorldMatrixPtr() const 
+	{
 		return &m_WorldMatrix;
+	}
+	void					Set_WorldMatrix(const _float4x4& mat) 
+	{
+		m_WorldMatrix = mat;
 	}
 
 

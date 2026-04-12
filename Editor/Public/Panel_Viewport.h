@@ -54,6 +54,19 @@ private:
     _float                      m_fPickY = {};
 #pragma endregion
 
+#pragma region GIZMO
+
+private:
+    ImGuizmo::OPERATION         m_eGizmoOperation   = ImGuizmo::TRANSLATE;
+    ImGuizmo::MODE              m_eGizmoMode        = ImGuizmo::LOCAL;
+
+    _float                      m_fSnapTranslate    = { 1.0f };
+    _float                      m_fSnapRotate       = { 15.0f };
+    _float                      m_fSnapScale        = { 0.1f };
+#pragma endregion
+
+
+
 public:
     static CPanel_Viewport*     Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
     virtual void                Free() override;

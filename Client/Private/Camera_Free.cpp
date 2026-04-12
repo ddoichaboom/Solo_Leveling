@@ -49,6 +49,12 @@ void CCamera_Free::Priority_Update(_float fTimeDelta)
 		if (m_pGameInstance->Get_KeyState('D') & 0x80)
 			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Right(fTimeDelta);
 
+		if (m_pGameInstance->Get_KeyState('Q') & 0x80)
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Down(fTimeDelta);
+
+		if (m_pGameInstance->Get_KeyState('E') & 0x80)
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Up(fTimeDelta);
+
 		// 마우스 회전
 		_long MouseMove = {};
 
@@ -67,14 +73,16 @@ void CCamera_Free::Priority_Update(_float fTimeDelta)
 				m_pTransformCom->Get_State(STATE::RIGHT),
 				MouseMove * m_fMouseSensor * fTimeDelta);
 		}
+
+		_long lWheel = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::WHEEL);
+		if (lWheel)
+		{
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Straight(
+				fTimeDelta * lWheel * m_fMouseSensor);
+		}
 	}
 
-	_long lWheel = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::WHEEL);
-	if (lWheel)
-	{
-		static_cast<CTransform_3D*>(m_pTransformCom)->Go_Straight(
-			fTimeDelta * lWheel * m_fMouseSensor);
-	}
+
 
 	// 부모 (CCamera)의 Priority_Update 호출
 	__super::Priority_Update(fTimeDelta);

@@ -50,6 +50,26 @@ void CTransform_3D::Go_Right(_float fTimeDelta)
 	Set_State(STATE::POSITION, vPosition);
 }
 
+void CTransform_3D::Go_Up(_float fTimeDelta)
+{
+	_vector vPosition = Get_State(STATE::POSITION);
+	_vector vUp = Get_State(STATE::UP);
+
+	vPosition += XMVector3Normalize(vUp) * m_fSpeedPerSec * fTimeDelta;
+
+	Set_State(STATE::POSITION, vPosition);
+}
+
+void CTransform_3D::Go_Down(_float fTimeDelta)
+{
+	_vector vPosition = Get_State(STATE::POSITION);
+	_vector vUp = Get_State(STATE::UP);
+
+	vPosition -= XMVector3Normalize(vUp) * m_fSpeedPerSec * fTimeDelta;
+
+	Set_State(STATE::POSITION, vPosition);
+}
+
 void CTransform_3D::Rotation(_fvector vAxis, _float fRadian)
 {
 	_float3 vScale = Get_Scale();

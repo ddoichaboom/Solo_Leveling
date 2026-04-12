@@ -36,6 +36,7 @@
     <ClCompile Include="..\Private\Panel_Inspector.cpp" />
     <ClCompile Include="..\Private\Panel_Log.cpp" />
     <ClCompile Include="..\Private\Panel_Manager.cpp" />
+    <ClCompile Include="..\Private\Panel_Shortcuts.cpp" />
     <ClCompile Include="..\Private\Panel_Viewport.cpp" />
     <ClCompile Include="..\Private\RTTR_Registration.cpp" />
     <ClCompile Include="Editor.cpp" />
@@ -63,6 +64,7 @@
     <ClInclude Include="..\Public\Panel_Inspector.h" />
     <ClInclude Include="..\Public\Panel_Log.h" />
     <ClInclude Include="..\Public\Panel_Manager.h" />
+    <ClInclude Include="..\Public\Panel_Shortcuts.h" />
     <ClInclude Include="..\Public\Panel_Viewport.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="framework.h" />

@@ -9,6 +9,7 @@
 #include "Panel_Inspector.h"
 #include "Panel_Log.h"
 #include "Panel_Viewport.h"
+#include "Panel_Shortcuts.h"
 
 NS_BEGIN(Engine)
 class CGameObject;

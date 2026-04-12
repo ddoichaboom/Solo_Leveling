@@ -7,7 +7,9 @@
 #include "Camera_Free.h"
 #include "Level_Editor.h"
 #include "Model.h"
-#include "ModelObject.h"
+#include "Player.h"
+#include "Body_Player.h"
+#include "Weapon.h"
 
 
 
@@ -102,6 +104,9 @@ HRESULT CEditorApp::Ready_ImGui(HWND hWnd)
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
+	// ImGuizmo가 사용할 ImGui 컨텍스트 지정 
+	ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // 멀티 뷰포트 (필요 시)
@@ -129,6 +134,9 @@ void CEditorApp::Begin_ImGuiFrame()
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
+	// ImGuizmo 프레임 시작 - 매 프레임 NewFrame 직후 반드시 호출
+	ImGuizmo::BeginFrame();
 }
 
 void CEditorApp::Render_DockSpace()
@@ -169,7 +177,8 @@ void CEditorApp::Render_DockSpace()
 		ImGui::DockBuilderDockWindow("Viewport", center);
 		ImGui::DockBuilderDockWindow("Inspector", right);
 		ImGui::DockBuilderDockWindow("Content Browser", bottom);
-		ImGui::DockBuilderDockWindow("Log", bottom);  // Content Browser와 탭으로 공유
+		ImGui::DockBuilderDockWindow("Log", bottom);  
+		ImGui::DockBuilderDockWindow("Shortcuts", bottom);  
 
 		ImGui::DockBuilderFinish(dockspace_id);
 	}
@@ -186,6 +195,7 @@ void CEditorApp::Render_DockSpace()
 			ToggleMenuItem(TEXT("Panel_Inspector"), MENUTYPE::PANEL);
 			ToggleMenuItem(TEXT("Panel_ContentBrowser"), MENUTYPE::PANEL);
 			ToggleMenuItem(TEXT("Panel_Log"), MENUTYPE::PANEL);
+			ToggleMenuItem(TEXT("Panel_Shortcuts"), MENUTYPE::PANEL);
 
 			ImGui::EndMenu();
 		}
@@ -248,6 +258,10 @@ HRESULT CEditorApp::Ready_Panels()
 
 	// Panel_Log
 	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Log"), CPanel_Log::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Panel_Shortcuts
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Shortcuts"), CPanel_Shortcuts::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	return S_OK;
@@ -356,21 +370,31 @@ HRESULT CEditorApp::Ready_TestScene()
 	// (8) 모델 프로토타입 (.bin)
 	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_SungJinWoo"),
 		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/SungJinWoo_ERank/SungJinWoo_ERank (merge).bin")))))
+			TEXT("../../Resources/Models/hunter/SungJinWoo_E/SungJinWoo_ERank.bin")))))
 				return E_FAIL;
-
-	// (9) ModelObject 게임오브젝트 프로토타입
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel,TEXT("Prototype_GameObject_ModelObject"),
-				CModelObject::Create(m_pDevice, m_pContext))))
+	
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon01"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/weapons/Weapon01/SungJinWoo_ERank_Weapon01.bin")))))
 		return E_FAIL;
 
-	// (10) ModelObject 인스턴스 배치
-	CModelObject::MODELOBJECT_DESC ModelObjDesc{};
-	ModelObjDesc.pShaderProtoTag = TEXT("Prototype_Component_Shader_VtxAnimMesh");
-	ModelObjDesc.pModelProtoTag = TEXT("Prototype_Component_Model_SungJinWoo");
 
-	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_ModelObject"),
-				iLevel, TEXT("Layer_Model"), &ModelObjDesc)))
+	// (9) 게임오브젝트 프로토타입
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Player"),
+		CPlayer::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Body_Player"),
+		CBody_Player::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Weapon"),
+		CWeapon::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// (10) Player 인스턴스 배치
+	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Player"),
+		iLevel, TEXT("Layer_Player"))))
 		return E_FAIL;
 
 	return S_OK;
