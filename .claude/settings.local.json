@@ -11,7 +11,8 @@
       "mcp__claude_ai_Notion__notion-create-pages",
       "mcp__claude_ai_Notion__notion-update-page",
       "Read(//c/Users/denni/ddoichaboom/CPP_STUDY_3D/수업 파일/UnZips/8개월차/**)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(grep \"\\\\.h$\")"
     ]
   }
 }
