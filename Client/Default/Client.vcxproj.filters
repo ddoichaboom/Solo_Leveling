@@ -52,6 +52,15 @@
     <Filter Include="02. GameObject\Player\Weapon">
       <UniqueIdentifier>{7a6c5aff-6948-4d62-ba0c-e00ad3dfd76b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\Map">
+      <UniqueIdentifier>{d5fe7ad3-148a-4ffd-b896-7a25a1904118}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Map\StaticObject">
+      <UniqueIdentifier>{e9da4405-d4b0-4d6d-817d-625659abceb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Map\DynamicObject">
+      <UniqueIdentifier>{6e91709e-1702-4689-8237-4c410b858fa2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -93,6 +102,12 @@
     <ClInclude Include="..\Public\Weapon.h">
       <Filter>02. GameObject\Player\Weapon</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\MapObject.h">
+      <Filter>02. GameObject\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\MapStaticObject.h">
+      <Filter>02. GameObject\Map\StaticObject</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -130,6 +145,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\Weapon.cpp">
       <Filter>02. GameObject\Player\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\MapObject.cpp">
+      <Filter>02. GameObject\Map</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\MapStaticObject.cpp">
+      <Filter>02. GameObject\Map\StaticObject</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

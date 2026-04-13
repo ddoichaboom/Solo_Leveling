@@ -175,6 +175,8 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Level_Logo.h" />
     <ClInclude Include="..\Public\Loader.h" />
     <ClInclude Include="..\Public\MainApp.h" />
+    <ClInclude Include="..\Public\MapObject.h" />
+    <ClInclude Include="..\Public\MapStaticObject.h" />
     <ClInclude Include="..\Public\ModelObject.h" />
     <ClInclude Include="..\Public\Player.h" />
     <ClInclude Include="..\Public\Terrain.h" />
@@ -189,6 +191,8 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Level_Logo.cpp" />
     <ClCompile Include="..\Private\Loader.cpp" />
     <ClCompile Include="..\Private\MainApp.cpp" />
+    <ClCompile Include="..\Private\MapObject.cpp" />
+    <ClCompile Include="..\Private\MapStaticObject.cpp" />
     <ClCompile Include="..\Private\ModelObject.cpp" />
     <ClCompile Include="..\Private\Player.cpp" />
     <ClCompile Include="..\Private\Terrain.cpp" />

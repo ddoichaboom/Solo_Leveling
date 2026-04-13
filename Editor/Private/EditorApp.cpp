@@ -10,6 +10,8 @@
 #include "Player.h"
 #include "Body_Player.h"
 #include "Weapon.h"
+#include "MapObject.h"
+#include "MapStaticObject.h"
 
 
 
@@ -395,6 +397,26 @@ HRESULT CEditorApp::Ready_TestScene()
 	// (10) Player 인스턴스 배치
 	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Player"),
 		iLevel, TEXT("Layer_Player"))))
+		return E_FAIL;
+
+	// (11) 맵 모델 프로토타입 (.bin)
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Map_Lobby_Static"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/map/Lobby/Lobby_Static.bin")))))
+		return E_FAIL;
+
+	// (12) 맵 게임오브젝트 프로토타입
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_MapObject"),
+		CMapObject::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_MapStaticObject"),
+		CMapStaticObject::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+	
+	// (13) 맵 인스턴스 배치
+	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_MapObject"),
+		iLevel, TEXT("Layer_Map"))))
 		return E_FAIL;
 
 	return S_OK;
