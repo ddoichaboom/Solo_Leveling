@@ -1,20 +1,8 @@
-// float2, float3, float4 == Vector
-// float1x3, float2x3, float4x4 == Matrix
+#include "Shader_Defines.hlsli"
 
 // HLSL 코드 내에서 사용할 전역 변수 선언
 float4x4 g_WorldMatrix, g_ViewMatrix, g_ProjMatrix;
 texture2D g_Texture;
-
-// Sampler State : 필터링, 래핑 규칙 선언
-sampler DefaultSampler = sampler_state
-{
-    // 텍스처 확대/축소 시 보간 방법 
-    Filter = MIN_MAG_MIP_LINEAR;
-
-    // 텍스처 좌표가 [0, 1] 범위를 벗어날 때의 처리 (wrap : 반복)
-    AddressU = wrap;
-    AddressV = wrap;
-};
 
 // 셰이더의 입력 구조체는 C++ 측 정점 구조체 VTXTEX와 1:1 대응 해야 함.
 struct VS_IN
@@ -72,7 +60,7 @@ PS_OUT PS_MAIN(PS_IN In)
 {
     PS_OUT Out;
     
-    Out.vColor = g_Texture.Sample(DefaultSampler, In.vTexcoord);
+    Out.vColor = g_Texture.Sample(LinearSampler, In.vTexcoord);
     
     // Alpha Test 
     if (Out.vColor.a < 0.1f)
@@ -87,7 +75,12 @@ technique11 DefaultTechnique
 {
     pass DefaultPass
     {
+        SetRasterizerState(RS_Default);
+        SetDepthStencilState(DSS_Default, 0);
+        SetBlendState(BS_Default, float4(0.f, 0.f, 0.f, 0.f), 0xffffffff);
+
         VertexShader = compile vs_5_0 VS_MAIN();
         PixelShader = compile ps_5_0 PS_MAIN();
     }
+
 }

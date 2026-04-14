@@ -339,9 +339,9 @@ HRESULT CEditorApp::Ready_TestScene()
 	m_pViewport->End_RT();
 
 	 //(5) 터레인
-	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Terrain"),
-		iLevel, TEXT("Layer_BackGround"))))
-		return E_FAIL;
+	//if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Terrain"),
+	//	iLevel, TEXT("Layer_BackGround"))))
+	//	return E_FAIL;
 
 	// (6) 라이트
 	LIGHT_DESC LightDesc{};
@@ -400,9 +400,13 @@ HRESULT CEditorApp::Ready_TestScene()
 		return E_FAIL;
 
 	// (11) 맵 모델 프로토타입 (.bin)
+	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Map_Lobby_Static"),
+	//	CModel::Create(m_pDevice, m_pContext,
+	//		TEXT("../../Resources/Models/map/Lobby/Lobby_Static.bin")))))
+	//	return E_FAIL;
 	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Map_Lobby_Static"),
 		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/map/Lobby/Lobby_Static.bin")))))
+			TEXT("../../Resources/Models/map/Hapjung_Station_1F/Hapjung_Station_1F.bin")))))
 		return E_FAIL;
 
 	// (12) 맵 게임오브젝트 프로토타입

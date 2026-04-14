@@ -12,7 +12,6 @@ private:
 	virtual ~CModel() = default;
 
 public:
-
 	// Getter 
 	MODEL							Get_ModelType() const { return m_eModelType; }
 	_uint							Get_NumMeshes() const { return m_iNumMeshes; }
@@ -33,7 +32,6 @@ public:
 
 	const _float4x4&				Get_PreTransformMatrix() const { return m_PreTransformMatrix; }
 	const _float4x4*				Get_BoneMatrixPtr(const _char* pBoneName) const;
-
 
 	// Setter
 	void							Set_ModelType(MODEL eType) { m_eModelType = eType; }

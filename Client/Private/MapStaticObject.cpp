@@ -60,9 +60,10 @@ HRESULT CMapStaticObject::Render()
 	for (_uint i = 0; i < iNumMeshes; ++i)
 	{
 		if (FAILED(m_pModelCom->Bind_Material(m_pShaderCom, "g_DiffuseTexture", i, TEXTURE_TYPE::DIFFUSE)))
-			return E_FAIL;
+			/*return E_FAIL;*/
+			continue;
 
-		if (FAILED(m_pShaderCom->Begin(0)))
+		if (FAILED(m_pShaderCom->Begin(1)))
 			return E_FAIL;
 
 		if (FAILED(m_pModelCom->Render(i)))
@@ -83,6 +84,8 @@ HRESULT	CMapStaticObject::Ready_Components()
 		m_strModelProtoTag.c_str(),
 		TEXT("Com_Model"), reinterpret_cast<CComponent**>(&m_pModelCom))))
 		return E_FAIL;
+
+	return S_OK;
 }
 
 HRESULT	CMapStaticObject::Bind_ShaderResources()

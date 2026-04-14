@@ -61,6 +61,9 @@
     <Filter Include="02. GameObject\Map\DynamicObject">
       <UniqueIdentifier>{6e91709e-1702-4689-8237-4c410b858fa2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="98. ShaderFiles\Defines">
+      <UniqueIdentifier>{94a86dbc-c666-405a-85a8-b48fc43e7276}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -166,5 +169,10 @@
     <FxCompile Include="..\..\Resources\ShaderFiles\Shader_VtxAnimMesh.hlsl">
       <Filter>98. ShaderFiles</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Resources\ShaderFiles\Shader_Defines.hlsli">
+      <Filter>98. ShaderFiles\Defines</Filter>
+    </None>
   </ItemGroup>
 </Project>

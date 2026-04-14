@@ -1,3 +1,5 @@
+#include "Shader_Defines.hlsli"
+
 // Shader_VtxAnimMesh.hlsl - Skinned Animation Model
 
 float4x4 g_WorldMatrix, g_ViewMatrix, g_ProjMatrix;
@@ -14,13 +16,6 @@ vector g_vLightSpecular;
 texture2D g_DiffuseTexture;
 vector g_vMtrlAmbient   = vector(0.4f, 0.4f, 0.4f, 1.f);
 vector g_vMtrlSpecular  = vector(1.f, 1.f, 1.f, 1.f);
-
-sampler DefaultSampler = sampler_state
-{
-    Filter = MIN_MAG_MIP_LINEAR;
-    AddressU = wrap;
-    AddressV = wrap;
-};
 
 struct VS_IN
 {
@@ -89,7 +84,7 @@ PS_OUT PS_MAIN(PS_IN In)
 {
     PS_OUT Out;
     
-    vector vMtrlDiffuse = g_DiffuseTexture.Sample(DefaultSampler, In.vTexcoord);
+    vector vMtrlDiffuse = g_DiffuseTexture.Sample(LinearSampler, In.vTexcoord);
     
     if (vMtrlDiffuse.a < 0.1f)
         discard;
@@ -115,6 +110,20 @@ technique11 DefaultTechnique
 {
     pass DefaultPass
     {
+        SetRasterizerState(RS_Default);
+        SetDepthStencilState(DSS_Default, 0);
+        SetBlendState(BS_Default, float4(0.f, 0.f, 0.f, 0.f), 0xffffffff);
+
+        VertexShader = compile vs_5_0 VS_MAIN();
+        PixelShader = compile ps_5_0 PS_MAIN();
+    }
+
+    pass BlendPass
+    {
+        SetRasterizerState(RS_Default);
+        SetDepthStencilState(DSS_Default, 0);
+        SetBlendState(BS_AlphaBlend, float4(0.f, 0.f, 0.f, 0.f), 0xffffffff);
+
         VertexShader = compile vs_5_0 VS_MAIN();
         PixelShader = compile ps_5_0 PS_MAIN();
     }

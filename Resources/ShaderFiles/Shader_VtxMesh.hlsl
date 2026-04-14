@@ -1,4 +1,4 @@
-// HLSL 코드 내에서 사용할 전역 변수 선언
+#include "Shader_Defines.hlsli"
 
 // 각종 변환 행렬 (월드, 뷰, 투영)
 float4x4 g_WorldMatrix, g_ViewMatrix, g_ProjMatrix;
@@ -16,19 +16,6 @@ vector g_vLightSpecular; // 빛의 정반사 색상
 texture2D g_DiffuseTexture; // 텍스처 (재질의 난반사)
 vector g_vMtrlAmbient = vector(0.4f, 0.4f, 0.4f, 1.f); // 재질의 환경광 반응도
 vector g_vMtrlSpecular = vector(1.f, 1.f, 1.f, 1.f); // 재질의 정반사 반응도
-
-
-
-// Sampler State : 필터링, 래핑 규칙 선언
-sampler DefaultSampler = sampler_state
-{
-    // 텍스처 확대/축소 시 보간 방법 
-    Filter = MIN_MAG_MIP_LINEAR;
-
-    // 텍스처 좌표가 [0, 1] 범위를 벗어날 때의 처리 (wrap : 반복)
-    AddressU = wrap;
-    AddressV = wrap;
-};
 
 // 셰이더의 입력 구조체는 C++ 측 정점 구조체 VTXTEX와 1:1 대응 해야 함.
 struct VS_IN
@@ -98,7 +85,7 @@ PS_OUT PS_MAIN(PS_IN In)
     PS_OUT Out;
     
     // (1) 텍스처 샘플링 (재질의 Diffuse 색상)
-    vector vMtrlDiffuse = g_DiffuseTexture.Sample(DefaultSampler, In.vTexcoord);;
+    vector vMtrlDiffuse = g_DiffuseTexture.Sample(LinearSampler, In.vTexcoord);;
     if (vMtrlDiffuse.a < 0.1f)
         discard;
     
@@ -121,6 +108,20 @@ technique11 DefaultTechnique
 {
     pass DefaultPass
     {
+        SetRasterizerState(RS_Default);
+        SetDepthStencilState(DSS_Default, 0);
+        SetBlendState(BS_Default, float4(0.f, 0.f, 0.f, 0.f), 0xffffffff);
+
+        VertexShader = compile vs_5_0 VS_MAIN();
+        PixelShader = compile ps_5_0 PS_MAIN();
+    }
+
+    pass CullNonePass
+    {
+        SetRasterizerState(RS_Cull_None);
+        SetDepthStencilState(DSS_Default, 0);
+        SetBlendState(BS_Default, float4(0.f, 0.f, 0.f, 0.f), 0xffffffff);
+
         VertexShader = compile vs_5_0 VS_MAIN();
         PixelShader = compile ps_5_0 PS_MAIN();
     }
