@@ -2,6 +2,7 @@
 
 #include "GameInstance.h"
 #include "Level_Loading.h"
+#include "AnimController.h"
 
 CMainApp::CMainApp()
 	: m_pGameInstance{ CGameInstance::GetInstance() }
@@ -67,6 +68,12 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC), TEXT("Prototype_Component_Shader_VtxTex"),
 					CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxTex.hlsl"),
 					VTXTEX::Elements, VTXTEX::iNumElements))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(
+				ETOUI(LEVEL::STATIC),
+				TEXT("Prototype_Component_AnimController"),
+				CAnimController::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	return S_OK;

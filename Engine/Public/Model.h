@@ -55,11 +55,7 @@ public:
 	void							Set_AnimationPlaying(_bool bPlay) { m_isAnimPlaying = bPlay; }
 
 	void							Set_RootBoneName(const _char* pBoneName);
-	void							Set_RootMotionEnabled(_bool bEnabled) 
-	{ 
-		m_bRootMotionEnabled		= bEnabled;
-		m_bRootMotionInitialized	= false;
-	}
+	void							Set_RootMotionEnabled(_bool bEnabled);
 	void							Set_AnimationLoop(_uint iIndex, _bool bLoop);
 	void							Set_AnimationUseRootMotion(_uint iIndex, _bool bUse);
 #pragma endregion
@@ -87,6 +83,8 @@ public:
 	HRESULT							Save_Binary() const;
 	HRESULT							Save_Binary(const _tchar* pBinaryPath) const;
 
+	void							Restart_Animation();
+
 
 private:
 	HRESULT							Ready_Meshes(const MODEL_DESC& Desc);
@@ -95,6 +93,7 @@ private:
 	HRESULT							Ready_Animations(const MODEL_DESC& Desc);
 
 	void							Extract_RootMotion(_float fPrevTrackPos);
+	void							Reset_RootMotionState();
 
 private:
 	static HRESULT					Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc);

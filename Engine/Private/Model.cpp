@@ -202,7 +202,13 @@ void CModel::Set_RootBoneName(const _char* pBoneName)
 	strcpy_s(m_szRootBoneName, pBoneName);
 	m_iRootBoneIndex = Get_BoneIndex(pBoneName);
 
-	m_bRootMotionInitialized = false;
+	Reset_RootMotionState();
+}
+
+void CModel::Set_RootMotionEnabled(_bool bEnabled)
+{
+	m_bRootMotionEnabled = bEnabled;
+	Reset_RootMotionState();
 }
 
 void CModel::Set_AnimationLoop(_uint iIndex, _bool bLoop)
@@ -223,6 +229,9 @@ void CModel::Set_AnimationUseRootMotion(_uint iIndex, _bool bUse)
 		return;
 
 	m_Animations[iIndex]->Set_UseRootMotion(bUse);
+
+	if (iIndex == m_iCurrentAnimationIndex)
+		Set_RootMotionEnabled(bUse);
 }
 
 HRESULT CModel::Initialize_Prototype(const MODEL_DESC& Desc)
@@ -449,13 +458,7 @@ void CModel::Set_AnimationIndex(_uint iIndex)
 	m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
 	m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
 
-	Set_RootMotionEnabled(m_Animations[m_iCurrentAnimationIndex]->Get_UseRootMotion());
-
-	// 루트 모션 상태 리셋
-	m_bRootMotionInitialized = false;
-	m_vPrevRootTranslation = {};
-	m_vBindRootTranslation = {};
-	m_vLastRootMotionDelta = {};
+	Set_RootMotionEnabled(m_Animations[m_iCurrentAnimationIndex]->Get_UseRootMotion());	
 }
 
 HRESULT CModel::Set_Animation(const _char* pAnimationName)
@@ -521,6 +524,15 @@ HRESULT CModel::Save_Binary(const _tchar* pBinaryPath) const
 	Free_Binary_Desc(&Desc);
 
 	return hr;
+}
+
+void CModel::Restart_Animation()
+{
+	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
+		return;
+
+	m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
+	Reset_RootMotionState();
 }
 
 HRESULT CModel::Ready_Meshes(const MODEL_DESC& Desc)
@@ -673,6 +685,14 @@ void CModel::Extract_RootMotion(_float fPrevTrackPos)
 	matFixed._42 = m_vBindRootTranslation.y;
 	matFixed._43 = m_vBindRootTranslation.z;
 	pRootBone->Set_TransformationMatrix(XMLoadFloat4x4(&matFixed));
+}
+
+void CModel::Reset_RootMotionState()
+{
+	m_bRootMotionInitialized = false;
+	m_vPrevRootTranslation = {};
+	m_vBindRootTranslation = {};
+	m_vLastRootMotionDelta = {};
 }
 
 HRESULT CModel::Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc)

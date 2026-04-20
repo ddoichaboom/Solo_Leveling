@@ -292,6 +292,8 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 			{
 				if (!bSelected)
 					pModel->Set_AnimationIndex(static_cast<_uint>(i));
+				else
+					pModel->Restart_Animation();
 			}
 
 			ImGui::PopID();

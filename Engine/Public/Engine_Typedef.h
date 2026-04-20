@@ -17,6 +17,7 @@ namespace Engine
 
 	typedef		signed int					_int;
 	typedef		unsigned int				_uint;
+	typedef		unsigned long long			_uint64;
 
 	typedef		signed long					_long;
 	typedef		unsigned long				_ulong;

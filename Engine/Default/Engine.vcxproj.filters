@@ -121,6 +121,9 @@
     <Filter Include="05. GameObject\ContainerObject\PartObject">
       <UniqueIdentifier>{43bc62e1-5206-473a-b8e2-f22700d65d2a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="07. Component\AnimController">
+      <UniqueIdentifier>{74dc34b9-95cd-4f52-b08c-c83a84b7337a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -227,6 +230,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\PartObject.cpp">
       <Filter>05. GameObject\ContainerObject\PartObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AnimController.cpp">
+      <Filter>07. Component\AnimController</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -352,6 +358,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\PartObject.h">
       <Filter>05. GameObject\ContainerObject\PartObject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AnimController.h">
+      <Filter>07. Component\AnimController</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -3,6 +3,9 @@
 #include <process.h>
 
 #include "Engine_Defines.h"
+#include "Client_Enum.h"
+#include "Client_Struct.h"
+
 
 namespace Client
 {

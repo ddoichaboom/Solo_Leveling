@@ -4,6 +4,7 @@
 
 #include "Model.h"
 #include "Shader.h"
+#include "AnimController.h"
 
 CBody_Player::CBody_Player(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPartObject { pDevice, pContext }
@@ -43,6 +44,9 @@ HRESULT CBody_Player::Initialize(void* pArg)
         return E_FAIL;
 
     if (FAILED(Ready_Components()))
+        return E_FAIL;
+
+    if (FAILED(m_pAnimController->Bind_Model(m_pModelCom)))
         return E_FAIL;
 
     m_pModelCom->Set_AnimationIndex(29);        // Normal_Idle
@@ -109,6 +113,13 @@ HRESULT CBody_Player::Ready_Components()
         TEXT("Com_Model"), reinterpret_cast<CComponent**>(&m_pModelCom))))
         return E_FAIL;
 
+    if (FAILED(__super::Add_Component(ETOUI(LEVEL::STATIC),
+        TEXT("Prototype_Component_AnimController"),
+        TEXT("Com_AnimController"),
+        reinterpret_cast<CComponent**>(&m_pAnimController))))
+        return E_FAIL;
+
+
     return S_OK;
 }
 
@@ -171,6 +182,7 @@ void CBody_Player::Free()
 {
     __super::Free();
 
+    Safe_Release(m_pAnimController);
     Safe_Release(m_pModelCom);
-    Safe_Release(m_pShaderCom);
+    Safe_Release(m_pShaderCom);    
 }

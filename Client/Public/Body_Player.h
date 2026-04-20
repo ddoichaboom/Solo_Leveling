@@ -6,6 +6,7 @@
 NS_BEGIN(Engine)
 class CShader;
 class CModel;
+class CAnimController;
 NS_END
 
 NS_BEGIN(Client)
@@ -38,6 +39,7 @@ public:
 private:
     CShader*                m_pShaderCom = { nullptr };
     CModel*                 m_pModelCom = { nullptr };
+    CAnimController*        m_pAnimController = { nullptr };
 
 private:
     const _uint*            m_pParentState = { nullptr };
