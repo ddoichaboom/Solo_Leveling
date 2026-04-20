@@ -41,7 +41,7 @@ HRESULT CModel_Converter::Convert(const _tchar* pFbxPath, const _tchar* pBinPath
     // 6. Header (80 bytes)
     {
         const char szMagic[4] = { 'S','L','M','D' };
-        _uint iVersion = 1u;
+        _uint iVersion = 2u;
         _uint iModelType = static_cast<_uint>(eModelType);
         _uint iReserved = 0u;
         fwrite(szMagic, sizeof(char), 4, fp);
@@ -52,6 +52,9 @@ HRESULT CModel_Converter::Convert(const _tchar* pFbxPath, const _tchar* pBinPath
         _float4x4 PreTransform;
         XMStoreFloat4x4(&PreTransform, XMMatrixIdentity());
         fwrite(&PreTransform, sizeof(_float4x4), 1, fp);
+
+        _char szRootBoneName[MAX_PATH] = {};
+        fwrite(szRootBoneName, sizeof(_char), MAX_PATH, fp);
     }
 
     // 7. 섹션 순서대로 write
@@ -403,6 +406,9 @@ HRESULT CModel_Converter::Write_Animations(FILE* fp, const aiScene* pScene, cons
         // bIsLoop — 기본 false (0). 게임 로직에서 필요 시 변경
         _uint iIsLoop = 0u;
         fwrite(&iIsLoop, sizeof(_uint), 1, fp);
+
+        _uint iUseRootMotion = 0u;
+        fwrite(&iUseRootMotion, sizeof(_uint), 1, fp);
 
         // iNumChannels
         _uint iNumChannels = pAnim->mNumChannels;

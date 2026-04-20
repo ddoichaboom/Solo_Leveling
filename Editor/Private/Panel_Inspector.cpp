@@ -171,6 +171,27 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	ImGui::Text("Meshes: %d", pModel->Get_NumMeshes());
 	ImGui::Text("Materials: %d", pModel->Get_NumMaterials());
 
+	{
+		char szRootBone[MAX_PATH] = {};
+		strcpy_s(szRootBone, pModel->Get_RootBoneName());
+		if (ImGui::InputText("Root Bone", szRootBone, MAX_PATH, ImGuiInputTextFlags_EnterReturnsTrue))
+		{
+			pModel->Set_RootBoneName(szRootBone);
+		}
+		ImGui::SameLine();
+		ImGui::TextDisabled("(Enter to apply)");
+
+		if (ImGui::Button("Save Model (.bin)"))
+		{
+			HRESULT hr = pModel->Save_Binary();
+			if (SUCCEEDED(hr))
+				Log_Info("Model saved (.bin v2). .bak backup created.");
+			else
+				Log_Error("Save Model failed (no binary path or write error).");
+		}
+	}
+	ImGui::Separator();
+
 	// Bone List
 	_uint iNumBones = pModel->Get_NumBones();
 
@@ -240,23 +261,43 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 
 	if (ImGui::TreeNode("Animation List"))
 	{
+		ImGui::TextDisabled("Loop RM [Idx] Name");
+
 		for (size_t i = 0; i < iNumAnims; i++)
 		{
+			ImGui::PushID(static_cast<int>(i));
+
+			// Loop per-anim
+			_bool bLoopI = pModel->Get_AnimationLoop(static_cast<_uint>(i));
+			if (ImGui::Checkbox("##loop", &bLoopI))
+				pModel->Set_AnimationLoop(static_cast<_uint>(i), bLoopI);
+
+			ImGui::SameLine();
+
+			// UseRootMotion per-anim
+			_bool bRMI = pModel->Get_AnimationUseRootMotion(static_cast<_uint>(i));
+			if (ImGui::Checkbox("##rm", &bRMI))
+				pModel->Set_AnimationUseRootMotion(static_cast<_uint>(i), bRMI);
+
+			ImGui::SameLine();
+
+			// 재생 선택
 			char szLabel[MAX_PATH] = {};
-			sprintf_s(szLabel, "[%d] %s", i, pModel->Get_AnimationName(i));
+			sprintf_s(szLabel, "[%d] %s",
+				static_cast<int>(i),
+				pModel->Get_AnimationName(static_cast<_uint>(i)));
 
 			_bool bSelected = (i == iCurrentIndex);
 			if (ImGui::Selectable(szLabel, bSelected))
 			{
 				if (!bSelected)
-					pModel->Set_AnimationIndex(i);
+					pModel->Set_AnimationIndex(static_cast<_uint>(i));
 			}
+
+			ImGui::PopID();
 		}
 		ImGui::TreePop();
 	}
-
-	ImGui::Separator();
-
 }
 
 CPanel_Inspector* CPanel_Inspector::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

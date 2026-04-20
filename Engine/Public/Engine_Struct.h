@@ -143,6 +143,7 @@ namespace Engine
 		float			fDuration = {};
 		float			fTickPerSecond = {};
 		bool			bIsLoop	= { false };
+		bool			bUseRootMotion = { false };
 		unsigned int	iNumChannels = {};
 		CHANNEL_DESC*	pChannels = { nullptr };
 	}ANIMATION_DESC;
@@ -172,6 +173,9 @@ namespace Engine
 
 		// FBX -> Engine 좌표계 보정 
 		XMFLOAT4X4			PreTransformMatrix = {};
+
+		// Root Motion (SLMD v2)
+		char				szRootBoneName[MAX_PATH] = {};
 
 		// Mesh
 		unsigned int		iNumMeshes = {};

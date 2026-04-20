@@ -45,8 +45,6 @@ HRESULT CBody_Player::Initialize(void* pArg)
     if (FAILED(Ready_Components()))
         return E_FAIL;
 
-    //m_pModelCom->Set_RootBoneName("Bip001");
-    m_pModelCom->Set_RootBoneName("Translate");
     m_pModelCom->Set_AnimationIndex(29);        // Normal_Idle
 
     return S_OK;

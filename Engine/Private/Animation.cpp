@@ -14,11 +14,20 @@ CAnimation::CAnimation(const CAnimation& Prototype)
 	, m_Channels { Prototype.m_Channels }
 	, m_CurrentKeyFrameIndices { Prototype.m_CurrentKeyFrameIndices }
 	, m_isLoop { Prototype.m_isLoop }
+	, m_bUseRootMotion{ Prototype.m_bUseRootMotion }
 {
 	strcpy_s(m_szName, Prototype.m_szName);
 
 	for (auto& pChannel : m_Channels)
 		Safe_AddRef(pChannel);
+}
+
+void CAnimation::Reset_TrackPosition()
+{
+	m_fCurrentTrackPosition = 0.f;
+
+	for (auto& iKeyFrameIndex : m_CurrentKeyFrameIndices)
+		iKeyFrameIndex = 0;
 }
 
 HRESULT CAnimation::Initialize(const ANIMATION_DESC& Desc)
@@ -28,6 +37,7 @@ HRESULT CAnimation::Initialize(const ANIMATION_DESC& Desc)
 	m_fTickPerSecond	= Desc.fTickPerSecond;
 	m_iNumChannels		= Desc.iNumChannels;
 	m_isLoop			= Desc.bIsLoop;
+	m_bUseRootMotion	= Desc.bUseRootMotion;
 
 	m_Channels.reserve(m_iNumChannels);
 
@@ -49,12 +59,20 @@ _bool CAnimation::Update_TransformationMatrix(const vector<class CBone*>& Bones,
 {
 	m_fCurrentTrackPosition += m_fTickPerSecond * fTimeDelta;
 
+	_bool bFinished = false;
+
 	if (m_fCurrentTrackPosition >= m_fDuration)
 	{
 		if (false == isLoop)
-			return true;
+		{
+			m_fCurrentTrackPosition = m_fDuration;
+			bFinished = true;
+		}
+		else
+		{
+			Reset_TrackPosition();
+		}
 
-		Reset_TrackPosition();		// 0으로 이동
 	}
 
 	_uint iChannelIndex = {};
@@ -65,7 +83,7 @@ _bool CAnimation::Update_TransformationMatrix(const vector<class CBone*>& Bones,
 	}
 
 
-	return false;
+	return bFinished;
 }
 
 CAnimation* CAnimation::Create(const ANIMATION_DESC& Desc)

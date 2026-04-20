@@ -18,13 +18,17 @@ public:
 	_uint							Get_NumMaterials() const { return m_iNumMaterials; }
 	_uint							Get_NumBones() const { return m_iNumBones; }
 	_uint							Get_NumAnimations() const { return m_iNumAnimations; }
-	_uint							Get_CurrentAnimIndex() const { return m_iCurrentAnimationIndex; }
-	const _char*					Get_AnimationName(_uint iIndex) const;
-	_bool							Get_AnimationLoop() const { return m_isAnimLoop; }
 	_float							Get_TrackPosition() const;
 	_float							Get_Duration() const;
+	
+	_uint							Get_CurrentAnimIndex() const { return m_iCurrentAnimationIndex; }
+	const _char*					Get_AnimationName(_uint iIndex) const;
 	_bool							Get_AnimationPlaying() const { return m_isAnimPlaying; }
+	_bool							Get_AnimationLoop() const { return m_isAnimLoop; }
+	_bool							Get_AnimationLoop(_uint iIndex) const;
+	_bool							Get_AnimationUseRootMotion(_uint iIndex) const;
 
+	const _char*					Get_RootBoneName() const { return m_szRootBoneName; }
 	_int							Get_RootBoneIndex() const { return m_iRootBoneIndex; }
 	_bool							Get_RootMotionEnabled() const { return m_bRootMotionEnabled; }
 	_float3							Get_LastRootMotionDelta() const { return m_vLastRootMotionDelta; }
@@ -39,6 +43,10 @@ public:
 
 	const _char*					Get_BoneName(_uint iIndex) const;
 	_int							Get_BoneParentIndex(_uint iIndex) const;
+
+	const _tchar*					Get_BinaryPath() const { return m_szBinaryPath; }
+
+
 #pragma endregion
 
 #pragma region SET METHOD
@@ -52,6 +60,8 @@ public:
 		m_bRootMotionEnabled		= bEnabled;
 		m_bRootMotionInitialized	= false;
 	}
+	void							Set_AnimationLoop(_uint iIndex, _bool bLoop);
+	void							Set_AnimationUseRootMotion(_uint iIndex, _bool bUse);
 #pragma endregion
 
 public:
@@ -74,6 +84,10 @@ public:
 	HRESULT							Set_Animation(const _char* pAnimationName);
 	void							Set_AnimationLoop(_bool bLoop);
 
+	HRESULT							Save_Binary() const;
+	HRESULT							Save_Binary(const _tchar* pBinaryPath) const;
+
+
 private:
 	HRESULT							Ready_Meshes(const MODEL_DESC& Desc);
 	HRESULT							Ready_Materials(const MODEL_DESC& Desc);
@@ -85,6 +99,7 @@ private:
 private:
 	static HRESULT					Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc);
 	static void						Free_Binary_Desc(MODEL_DESC* pDesc);
+	static HRESULT					Save_Binary_Desc(const _tchar* pBinaryPath, const MODEL_DESC& Desc);
 
 private:
 	MODEL							m_eModelType = { MODEL::END };
@@ -115,6 +130,8 @@ private:
 	_float3							m_vLastRootMotionDelta = {};
 	_bool							m_bRootMotionEnabled = { false };
 	_bool							m_bRootMotionInitialized = { false };
+
+	_tchar							m_szBinaryPath[MAX_PATH] = {};
 
 
 public:
