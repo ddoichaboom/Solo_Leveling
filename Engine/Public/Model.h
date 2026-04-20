@@ -12,7 +12,7 @@ private:
 	virtual ~CModel() = default;
 
 public:
-	// Getter 
+#pragma region GET METHOD
 	MODEL							Get_ModelType() const { return m_eModelType; }
 	_uint							Get_NumMeshes() const { return m_iNumMeshes; }
 	_uint							Get_NumMaterials() const { return m_iNumMaterials; }
@@ -25,6 +25,10 @@ public:
 	_float							Get_Duration() const;
 	_bool							Get_AnimationPlaying() const { return m_isAnimPlaying; }
 
+	_int							Get_RootBoneIndex() const { return m_iRootBoneIndex; }
+	_bool							Get_RootMotionEnabled() const { return m_bRootMotionEnabled; }
+	_float3							Get_LastRootMotionDelta() const { return m_vLastRootMotionDelta; }
+
 	_int							Get_BoneIndex(const _char* pBoneName) const;
 	const _float4x4*				Get_BoneCombinedMatrixPtr(_uint iBoneIndex) const;
 
@@ -33,10 +37,22 @@ public:
 	const _float4x4&				Get_PreTransformMatrix() const { return m_PreTransformMatrix; }
 	const _float4x4*				Get_BoneMatrixPtr(const _char* pBoneName) const;
 
-	// Setter
+	const _char*					Get_BoneName(_uint iIndex) const;
+	_int							Get_BoneParentIndex(_uint iIndex) const;
+#pragma endregion
+
+#pragma region SET METHOD
 	void							Set_ModelType(MODEL eType) { m_eModelType = eType; }
 	void							Set_PreTransformMatrix(_fmatrix mat) { XMStoreFloat4x4(&m_PreTransformMatrix, mat); }
 	void							Set_AnimationPlaying(_bool bPlay) { m_isAnimPlaying = bPlay; }
+
+	void							Set_RootBoneName(const _char* pBoneName);
+	void							Set_RootMotionEnabled(_bool bEnabled) 
+	{ 
+		m_bRootMotionEnabled		= bEnabled;
+		m_bRootMotionInitialized	= false;
+	}
+#pragma endregion
 
 public:
 	virtual HRESULT					Initialize_Prototype(const MODEL_DESC& Desc);
@@ -64,6 +80,8 @@ private:
 	HRESULT							Ready_Bones(const MODEL_DESC& Desc);
 	HRESULT							Ready_Animations(const MODEL_DESC& Desc);
 
+	void							Extract_RootMotion(_float fPrevTrackPos);
+
 private:
 	static HRESULT					Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc);
 	static void						Free_Binary_Desc(MODEL_DESC* pDesc);
@@ -89,6 +107,15 @@ private:
 	_uint							m_iCurrentAnimationIndex = {};
 	_bool							m_isAnimLoop = { false };
 	_bool							m_isAnimPlaying = { true };
+
+	_int							m_iRootBoneIndex = { -1 };
+	_char							m_szRootBoneName[MAX_PATH] = {};
+	_float3							m_vPrevRootTranslation = {};
+	_float3							m_vBindRootTranslation = {};
+	_float3							m_vLastRootMotionDelta = {};
+	_bool							m_bRootMotionEnabled = { false };
+	_bool							m_bRootMotionInitialized = { false };
+
 
 public:
 	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,const MODEL_DESC& Desc);

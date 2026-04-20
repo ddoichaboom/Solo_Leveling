@@ -5,6 +5,8 @@
 
 NS_BEGIN(Client)
 
+class CBody_Player;
+
 class CLIENT_DLL CPlayer final : public CContainerObject
 {
 public:
@@ -28,8 +30,12 @@ public:
     virtual void            Late_Update(_float fTimeDelta) override;
     virtual HRESULT         Render() override;
 
+public:
+    void                    Apply_RootMotion(const _float3& vLocalDelta);
+
 private:
     _uint                   m_iState = { PLAYER_STATE::IDLE };
+    CBody_Player*           m_pBody = { nullptr };
 
 private:
     HRESULT                 Ready_PartObjects();

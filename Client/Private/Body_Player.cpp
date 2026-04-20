@@ -20,6 +20,14 @@ const _float4x4* CBody_Player::Get_BoneMatrixPtr(const _char* pBoneName) const
 	return m_pModelCom->Get_BoneMatrixPtr(pBoneName);
 }
 
+_float3   CBody_Player::Get_LastRootMotionDelta() const
+{
+    if (nullptr == m_pModelCom)
+        return _float3{};
+
+    return m_pModelCom->Get_LastRootMotionDelta();
+}
+
 HRESULT CBody_Player::Initialize_Prototype()
 {
     return S_OK;
@@ -37,7 +45,9 @@ HRESULT CBody_Player::Initialize(void* pArg)
     if (FAILED(Ready_Components()))
         return E_FAIL;
 
-    m_pModelCom->Set_AnimationIndex(0);
+    //m_pModelCom->Set_RootBoneName("Bip001");
+    m_pModelCom->Set_RootBoneName("Translate");
+    m_pModelCom->Set_AnimationIndex(29);        // Normal_Idle
 
     return S_OK;
 }

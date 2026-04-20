@@ -68,7 +68,11 @@ CModel::CModel(const CModel& Prototype)
 	, m_iNumBones { Prototype.m_iNumBones }
 	, m_iNumAnimations { Prototype.m_iNumAnimations }
 	, m_AnimationIndices { Prototype.m_AnimationIndices }
+	, m_iRootBoneIndex { Prototype.m_iRootBoneIndex }
+	, m_bRootMotionEnabled { Prototype.m_bRootMotionEnabled }
 {
+	strcpy_s(m_szRootBoneName, Prototype.m_szRootBoneName);
+
 	for (auto& pMesh : m_Meshes)
 		Safe_AddRef(pMesh);
 
@@ -150,6 +154,37 @@ const _float4x4* CModel::Get_BoneMatrixPtr(const _char* pBoneName) const
 		return nullptr;
 
 	return m_Bones[iIndex]->Get_CombinedTransformMatrixPtr();
+}
+
+const _char* CModel::Get_BoneName(_uint iIndex) const
+{
+	if (iIndex >= m_iNumBones)
+		return "";
+
+	return m_Bones[iIndex]->Get_Name();
+}
+
+_int CModel::Get_BoneParentIndex(_uint iIndex) const
+{
+	if (iIndex >= m_iNumBones)
+		return -1;
+
+	return m_Bones[iIndex]->Get_ParentIndex();
+}
+
+void CModel::Set_RootBoneName(const _char* pBoneName)
+{
+	if (nullptr == pBoneName)
+	{
+		m_szRootBoneName[0] = '\0';
+		m_iRootBoneIndex = -1;
+		return;
+	}
+
+	strcpy_s(m_szRootBoneName, pBoneName);
+	m_iRootBoneIndex = Get_BoneIndex(pBoneName);
+
+	m_bRootMotionInitialized = false;
 }
 
 HRESULT CModel::Initialize_Prototype(const MODEL_DESC& Desc)
@@ -341,7 +376,12 @@ _bool CModel::Play_Animation(_float fTimeDelta)
 	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
 		return false;
 
+	// 루프 감지용 : 업데이트 전 트랙 위치 캐시
+	_float fPrevTrackPos = m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
+
 	_bool isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(m_Bones, fTimeDelta, m_isAnimLoop);
+
+	Extract_RootMotion(fPrevTrackPos);
 
 	// Combined 행렬 갱신 (블렌딩/일반 공통)
 	_matrix PreTransformMatrix = XMLoadFloat4x4(&m_PreTransformMatrix);
@@ -364,6 +404,10 @@ void CModel::Set_AnimationIndex(_uint iIndex)
 	m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
 	m_iCurrentAnimationIndex = iIndex;
 	m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
+
+	// 루트 모션 상태 리셋
+	m_bRootMotionInitialized = false;
+	m_vLastRootMotionDelta = {};
 }
 
 HRESULT CModel::Set_Animation(const _char* pAnimationName)
@@ -466,6 +510,67 @@ HRESULT CModel::Ready_Animations(const MODEL_DESC& Desc)
 	}
 
 	return S_OK;
+}
+
+void CModel::Extract_RootMotion(_float fPrevTrackPos)
+{
+	// 비활성 또는 루트 본 미지정 -> delta 0으로 정리
+	if (!m_bRootMotionEnabled || m_iRootBoneIndex < 0 )
+	{
+		m_vLastRootMotionDelta = {};
+		return;
+	}
+
+	if (static_cast<_uint>(m_iRootBoneIndex) >= m_iNumBones)
+	{
+		m_vLastRootMotionDelta = {};
+		return;
+	}
+
+	CBone* pRootBone = m_Bones[m_iRootBoneIndex];
+	if (nullptr == pRootBone)
+	{
+		m_vLastRootMotionDelta = {};
+		return;
+	}
+
+	// 현재 루트 본 로컬 translation 
+	const _float4x4* pMatrix = pRootBone->Get_TransformationMatrixPtr();
+	_float3 T_cur = { pMatrix->_41, pMatrix->_42, pMatrix->_43 };
+
+	// 루프 wrap 감지
+	_float fCurrTrackPos = m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
+	_bool bWrapped = (fCurrTrackPos < fPrevTrackPos);
+
+	if (!m_bRootMotionInitialized)
+	{
+		// 첫 프레임 / 애니메이션 전환 직후 
+		m_vBindRootTranslation = T_cur;
+		m_vPrevRootTranslation = T_cur;
+		m_vLastRootMotionDelta = {};
+		m_bRootMotionInitialized = true;
+	}
+	else if (bWrapped)
+	{
+		// 루프 wrap : 현재 delta  무시 ( 이전 프레임이 끝이고 키프레임 0으로 돌아가면 delta가 큰 값이 들어감 )
+		m_vLastRootMotionDelta = {};
+		m_vPrevRootTranslation = T_cur;
+	}
+	else
+	{
+		// 정상 프레임 : 증분 델타
+		m_vLastRootMotionDelta.x = T_cur.x - m_vPrevRootTranslation.x;
+		m_vLastRootMotionDelta.y = T_cur.y - m_vPrevRootTranslation.y;
+		m_vLastRootMotionDelta.z = T_cur.z - m_vPrevRootTranslation.z;
+		m_vPrevRootTranslation = T_cur;
+	}
+
+	// 루트 본 로컬 translation을 T_bind로 고정 -> Mesh는 CTransform 기준 제자리
+	_float4x4 matFixed = *pMatrix;
+	matFixed._41 = m_vBindRootTranslation.x;
+	matFixed._42 = m_vBindRootTranslation.y;
+	matFixed._43 = m_vBindRootTranslation.z;
+	pRootBone->Set_TransformationMatrix(XMLoadFloat4x4(&matFixed));
 }
 
 HRESULT CModel::Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc)

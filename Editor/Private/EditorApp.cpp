@@ -372,7 +372,7 @@ HRESULT CEditorApp::Ready_TestScene()
 	// (8) 모델 프로토타입 (.bin)
 	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_SungJinWoo"),
 		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/hunter/SungJinWoo_E/SungJinWoo_ERank.bin")))))
+			TEXT("../../Resources/Models/hunter/SungJinWoo_ERank/SungJinWooERank.bin")))))
 				return E_FAIL;
 	
 	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon01"),

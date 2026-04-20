@@ -25,6 +25,7 @@ private:
 
 public:
     const _float4x4*        Get_BoneMatrixPtr(const _char* pBoneName) const;
+    _float3                 Get_LastRootMotionDelta() const;
 
 public:
     virtual HRESULT         Initialize_Prototype() override;

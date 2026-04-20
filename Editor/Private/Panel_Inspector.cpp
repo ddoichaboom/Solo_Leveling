@@ -170,7 +170,33 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	ImGui::Text("Type: %s", szType);
 	ImGui::Text("Meshes: %d", pModel->Get_NumMeshes());
 	ImGui::Text("Materials: %d", pModel->Get_NumMaterials());
-	ImGui::Text("Bones: %d", pModel->Get_NumBones());
+
+	// Bone List
+	_uint iNumBones = pModel->Get_NumBones();
+
+	ImGui::Text("Bones: %d", iNumBones);
+	if (iNumBones > 0 && ImGui::TreeNode("Bone List"))
+	{
+		for (size_t i = 0; i < iNumBones; i++)
+		{
+			const _char* szBoneName = pModel->Get_BoneName(i);
+			_int iParentIndex = pModel->Get_BoneParentIndex(i);
+
+			char szLabel[MAX_PATH] = {};
+			sprintf_s(szLabel, "[%d] %s (Parent : %d)", i, szBoneName, iParentIndex);
+
+			if (-1 == iParentIndex)
+			{
+				// Root : 강조 표시
+				ImGui::TextColored(ImVec4(0.4f, 1.f, 0.4f, 1.f), "%s", szLabel);
+			}
+			else
+			{
+				ImGui::TextUnformatted(szLabel);
+			}
+		}
+		ImGui::TreePop();
+	}
 
 	if (!bIsAnim)
 		return;
@@ -189,6 +215,16 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	{
 		pModel->Set_AnimationLoop(bLoop);
 	}
+	
+	// Root Motion
+	_bool bRootMotion = pModel->Get_RootMotionEnabled();
+	if (ImGui::Checkbox("Root Motion", &bRootMotion))
+	{
+		pModel->Set_RootMotionEnabled(bRootMotion);
+	}
+
+	_float3 vDelta = pModel->Get_LastRootMotionDelta();
+	ImGui::Text("Root Delta: %.4f, %.4f, %.4f", vDelta.x, vDelta.y, vDelta.z);
 
 	_float fTrackPos = pModel->Get_TrackPosition();
 	_float fDuration = pModel->Get_Duration();
