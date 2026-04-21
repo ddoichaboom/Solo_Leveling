@@ -46,10 +46,11 @@ HRESULT CBody_Player::Initialize(void* pArg)
     if (FAILED(Ready_Components()))
         return E_FAIL;
 
-    if (FAILED(m_pAnimController->Bind_Model(m_pModelCom)))
+    if (FAILED(Ready_AnimationTable()))
         return E_FAIL;
 
-    m_pModelCom->Set_AnimationIndex(29);        // Normal_Idle
+    if (FAILED(Play_Action(CHARACTER_ACTION::IDLE)))
+        return E_FAIL;
 
     return S_OK;
 }
@@ -60,13 +61,15 @@ void CBody_Player::Priority_Update(_float fTimeDelta)
 
 void CBody_Player::Update(_float fTimeDelta)
 {
-    //if (*m_pParentState & CPlayer::PLAYER_STATE::IDLE)
-    //    m_pModelCom->Set_AnimationIndex(0);
+    _bool bFinished = m_pAnimController->Update(fTimeDelta);
 
-    //if (*m_pParentState & CPlayer::PLAYER_STATE::RUN)
-    //    m_pModelCom->Set_AnimationIndex(1);
+    if (bFinished)
+    {
+        const CHARACTER_ACTION_POLICY* pPolicy = Find_ActionPolicy(m_eCurrentAction);
 
-    m_pModelCom->Play_Animation(fTimeDelta);
+        if (nullptr != pPolicy && true == pPolicy->bAutoReturn)
+            Play_Action(pPolicy->eReturnAction);
+    }
 }
 
 void CBody_Player::Late_Update(_float fTimeDelta)
@@ -150,6 +153,104 @@ HRESULT CBody_Player::Bind_ShaderResources()
         return E_FAIL;
 
     return S_OK;
+}
+
+HRESULT CBody_Player::Ready_AnimationTable()
+{
+    m_pAnimTable = Find_CharacterAnimTable(m_eAnimSet);
+
+    if (nullptr == m_pAnimTable)
+        return E_FAIL;
+
+    if (nullptr == m_pAnimController || nullptr == m_pModelCom)
+        return E_FAIL;
+
+    if (nullptr != m_pAnimTable->pRootBoneName)
+        m_pModelCom->Set_RootBoneName(m_pAnimTable->pRootBoneName);
+
+    if (FAILED(m_pAnimController->Bind_Model(m_pModelCom)))
+        return E_FAIL;
+
+    if (FAILED(Register_AnimationClips()))
+        return E_FAIL;
+
+    return S_OK;
+}
+
+HRESULT CBody_Player::Register_AnimationClips()
+{
+    if (nullptr == m_pAnimTable)
+        return E_FAIL;
+
+    for (size_t i = 0; i < m_pAnimTable->iNumClips; i++)
+    {
+        const CHARACTER_ANIM_BIND_DESC& Clip = m_pAnimTable->pClips[i];
+
+        CAnimController::ANIM_CLIP_DESC Desc{};
+        Desc.pAnimationName = Clip.pAnimationName;
+        Desc.bRestartOnEnter = Clip.bRestartOnEnter;
+
+        if (FAILED(m_pAnimController->Register_Clip(
+            Make_CharacterAnimKey(Clip.eAction, Clip.eWeapon), Desc)))
+            return E_FAIL;
+    }
+
+    return S_OK;
+}
+
+HRESULT CBody_Player::Play_Action(CHARACTER_ACTION eAction)
+{
+    if (nullptr == m_pAnimController || nullptr == m_pAnimTable)
+        return E_FAIL;
+
+    const _uint64 iKey = Resolve_ActionKey(eAction);
+
+    if (FAILED(m_pAnimController->Play(iKey)))
+        return E_FAIL;
+
+    m_eCurrentAction = eAction;
+
+    return S_OK;
+}
+
+_bool CBody_Player::Has_Action(CHARACTER_ACTION eAction, CHARACTER_WEAPON_STATE eWeapon) const
+{
+    if (nullptr == m_pAnimTable)
+        return false;
+
+    for (size_t i = 0; i < m_pAnimTable->iNumClips; i++)
+    {
+        const CHARACTER_ANIM_BIND_DESC& Clip = m_pAnimTable->pClips[i];
+
+        if (Clip.eAction == eAction && Clip.eWeapon == eWeapon)
+            return true;
+    }
+
+    return false;
+}
+
+_uint64 CBody_Player::Resolve_ActionKey(CHARACTER_ACTION eAction) const
+{
+    if (Has_Action(eAction, m_eWeaponState))
+        return Make_CharacterAnimKey(eAction, m_eWeaponState);
+
+    return Make_CharacterAnimKey(eAction, CHARACTER_WEAPON_STATE::COMMON);
+}
+
+const CHARACTER_ACTION_POLICY* CBody_Player::Find_ActionPolicy(CHARACTER_ACTION eAction) const
+{
+    if (nullptr == m_pAnimTable)
+        return nullptr;
+
+    for (size_t i = 0; i < m_pAnimTable->iNumPolicies; i++)
+    {
+        const CHARACTER_ACTION_POLICY& Policy = m_pAnimTable->pPolicies[i];
+
+        if (Policy.eAction == eAction)
+            return &Policy;
+    }
+
+    return nullptr;
 }
 
 CBody_Player* CBody_Player::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

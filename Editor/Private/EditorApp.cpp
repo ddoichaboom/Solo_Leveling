@@ -12,7 +12,7 @@
 #include "Weapon.h"
 #include "MapObject.h"
 #include "MapStaticObject.h"
-
+#include "AnimController.h"
 
 
 
@@ -290,6 +290,13 @@ HRESULT CEditorApp::Render_Scene()
 
 HRESULT CEditorApp::Ready_TestScene()
 {
+	if (FAILED(m_pGameInstance->Add_Prototype(
+		ETOUI(LEVEL::STATIC),
+		TEXT("Prototype_Component_AnimController"),
+		CAnimController::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+
 	_uint iLevel = 3;    // LEVEL::GAMEPLAY
 
 	// (1) 빈 레벨 활성화

@@ -3,6 +3,8 @@
 
 namespace Client
 {
+	enum class LEVEL { STATIC, LOADING, LOGO, GAMEPLAY, END };
+
 	enum class CHARACTER_ACTION : unsigned int
 	{
 		// 기본 이동 모션

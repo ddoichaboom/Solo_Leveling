@@ -5,11 +5,6 @@
 #include "Engine_Defines.h"
 #include "Client_Enum.h"
 #include "Client_Struct.h"
-
-
-namespace Client
-{
-    enum class LEVEL { STATIC, LOADING, LOGO, GAMEPLAY, END };
-}
+#include "Client_Func.h"
 
 using namespace Client;

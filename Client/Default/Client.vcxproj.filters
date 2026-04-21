@@ -64,6 +64,15 @@
     <Filter Include="98. ShaderFiles\Defines">
       <UniqueIdentifier>{94a86dbc-c666-405a-85a8-b48fc43e7276}</UniqueIdentifier>
     </Filter>
+    <Filter Include="97. Tables">
+      <UniqueIdentifier>{89290fd3-2889-4cff-9e3b-26d78f8021fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="97. Tables\Character">
+      <UniqueIdentifier>{26347b44-c6c3-4853-a598-b97d551127bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="97. Tables\Monster">
+      <UniqueIdentifier>{5745b8f9-3e35-4c74-9db6-37b30b4d096a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -111,6 +120,21 @@
     <ClInclude Include="..\Public\MapStaticObject.h">
       <Filter>02. GameObject\Map\StaticObject</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Client_Enum.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Client_Struct.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\CharacterAnimTable.h">
+      <Filter>97. Tables\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\MonsterAnimTable.h">
+      <Filter>97. Tables\Monster</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Client_Func.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -154,6 +178,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\MapStaticObject.cpp">
       <Filter>02. GameObject\Map\StaticObject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\CharacterAnimTable.cpp">
+      <Filter>97. Tables\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\MonsterAnimTable.cpp">
+      <Filter>97. Tables\Monster</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

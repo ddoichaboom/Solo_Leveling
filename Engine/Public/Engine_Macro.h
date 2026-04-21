@@ -3,6 +3,7 @@
 
 #define 		ETOI(_enum) static_cast<signed int>(_enum)
 #define			ETOUI(_enum) static_cast<unsigned int>(_enum)
+#define			ETOUI64(_enum) static_cast<unsigned long long>(_enum)
 
 #define			PURE	= 0
 

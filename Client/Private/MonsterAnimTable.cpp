@@ -1,0 +1,1 @@
+#include "MonsterAnimTable.h"

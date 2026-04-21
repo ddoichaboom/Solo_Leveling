@@ -2,6 +2,7 @@
 
 #include "Client_Defines.h"
 #include "PartObject.h"
+#include "CharacterAnimTable.h"
 
 NS_BEGIN(Engine)
 class CShader;
@@ -25,33 +26,46 @@ private:
     virtual ~CBody_Player() = default;
 
 public:
-    const _float4x4*        Get_BoneMatrixPtr(const _char* pBoneName) const;
-    _float3                 Get_LastRootMotionDelta() const;
+    const _float4x4*                    Get_BoneMatrixPtr(const _char* pBoneName) const;
+    _float3                             Get_LastRootMotionDelta() const;
 
 public:
-    virtual HRESULT         Initialize_Prototype() override;
-    virtual HRESULT         Initialize(void* pArg) override;
-    virtual void            Priority_Update(_float fTimeDelta) override;
-    virtual void            Update(_float fTimeDelta) override;
-    virtual void            Late_Update(_float fTimeDelta) override;
-    virtual HRESULT         Render() override;
+    virtual HRESULT                     Initialize_Prototype() override;
+    virtual HRESULT                     Initialize(void* pArg) override;
+    virtual void                        Priority_Update(_float fTimeDelta) override;
+    virtual void                        Update(_float fTimeDelta) override;
+    virtual void                        Late_Update(_float fTimeDelta) override;
+    virtual HRESULT                     Render() override;
 
 private:
-    CShader*                m_pShaderCom = { nullptr };
-    CModel*                 m_pModelCom = { nullptr };
-    CAnimController*        m_pAnimController = { nullptr };
+    CShader*                            m_pShaderCom = { nullptr };
+    CModel*                             m_pModelCom = { nullptr };
+    CAnimController*                    m_pAnimController = { nullptr };
 
 private:
-    const _uint*            m_pParentState = { nullptr };
+    const _uint*                        m_pParentState = { nullptr };
+    const CHARACTER_ANIM_TABLE_DESC*    m_pAnimTable = { nullptr };
+
+    CHARACTER_ANIM_SET                  m_eAnimSet = { CHARACTER_ANIM_SET::SUNGJINWOO_ERANK };
+    CHARACTER_WEAPON_STATE              m_eWeaponState = { CHARACTER_WEAPON_STATE::COMMON };
+    CHARACTER_ACTION                    m_eCurrentAction = { CHARACTER_ACTION::IDLE };
 
 private:
-    HRESULT                 Ready_Components();
-    HRESULT                 Bind_ShaderResources();
+    HRESULT                             Ready_Components();
+    HRESULT                             Bind_ShaderResources();
+
+    HRESULT                             Ready_AnimationTable();
+    HRESULT                             Register_AnimationClips();
+    HRESULT                             Play_Action(CHARACTER_ACTION eAction);
+
+    _bool                               Has_Action(CHARACTER_ACTION eAction, CHARACTER_WEAPON_STATE eWeapon) const;
+    _uint64                             Resolve_ActionKey(CHARACTER_ACTION eAction) const;
+    const CHARACTER_ACTION_POLICY*      Find_ActionPolicy(CHARACTER_ACTION eAction) const;
 
 public:
-    static CBody_Player*    Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
-    virtual CGameObject*    Clone(void* pArg) override;
-    virtual void            Free() override;
+    static CBody_Player*                Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+    virtual CGameObject*                Clone(void* pArg) override;
+    virtual void                        Free() override;
 };
 
 NS_END

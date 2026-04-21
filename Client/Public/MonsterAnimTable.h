@@ -1,5 +1,7 @@
 #pragma once
-class CMonsterAnimTable
-{
-};
+#include "Client_Defines.h"
 
+namespace Client
+{
+
+}
