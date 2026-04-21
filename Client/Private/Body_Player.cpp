@@ -26,7 +26,56 @@ _float3   CBody_Player::Get_LastRootMotionDelta() const
     if (nullptr == m_pModelCom)
         return _float3{};
 
+    if (true == m_bPreviewMode)
+        return _float3{};
+
     return m_pModelCom->Get_LastRootMotionDelta();
+}
+
+HRESULT CBody_Player::Begin_Preview(_uint iAnimationIndex)
+{
+    if (nullptr == m_pModelCom)
+        return E_FAIL;
+
+    if (iAnimationIndex >= m_pModelCom->Get_NumAnimations())
+        return E_FAIL;
+
+    m_bPreviewMode = true;
+    m_iPreviewAnimationIndex = iAnimationIndex;
+
+    m_pModelCom->Set_AnimationIndex(iAnimationIndex);
+    m_pModelCom->Restart_Animation();
+    m_pModelCom->Set_AnimationPlaying(true);
+
+    return S_OK;
+}
+
+HRESULT CBody_Player::Restart_Preview()
+{
+    if (nullptr == m_pModelCom)
+        return E_FAIL;
+
+    if (false == m_bPreviewMode)
+        return E_FAIL;
+
+    if (static_cast<_uint>(-1) == m_iPreviewAnimationIndex)
+        return E_FAIL;
+
+    m_pModelCom->Restart_Animation();
+    m_pModelCom->Set_AnimationPlaying(true);
+
+    return S_OK;
+}
+
+HRESULT CBody_Player::End_Preview()
+{
+    if (false == m_bPreviewMode)
+        return S_OK;
+
+    m_bPreviewMode = false;
+    m_iPreviewAnimationIndex = static_cast<_uint>(-1);
+
+    return Play_Action(CHARACTER_ACTION::IDLE);
 }
 
 HRESULT CBody_Player::Initialize_Prototype()
@@ -61,6 +110,19 @@ void CBody_Player::Priority_Update(_float fTimeDelta)
 
 void CBody_Player::Update(_float fTimeDelta)
 {
+    if (true == m_bPreviewMode)
+    {
+        if (nullptr != m_pModelCom)
+            m_pModelCom->Play_Animation(fTimeDelta);
+
+        return;
+    }
+
+    if (m_pGameInstance->Get_KeyState('1') & 0x80)
+        Play_Action(CHARACTER_ACTION::DASH);
+    if (m_pGameInstance->Get_KeyState('2') & 0x80)
+        Play_Action(CHARACTER_ACTION::BACK_DASH);
+
     _bool bFinished = m_pAnimController->Update(fTimeDelta);
 
     if (bFinished)

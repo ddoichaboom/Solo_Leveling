@@ -1,33 +1,39 @@
 #ifndef Client_Enum_h__
 #define Client_Enum_h__
 
+
 namespace Client
 {
 	enum class LEVEL { STATIC, LOADING, LOGO, GAMEPLAY, END };
 
 	enum class CHARACTER_ACTION : unsigned int
 	{
-		// 기본 이동 모션
+
+		// 기본 이동 (WASD)
 		IDLE,
 		WALK,	
+
 		RUN,	// DASH 이후에 이동은 RUN 처리(속도 빨라짐)
 
-		// 회피
+		// 회피 (Space)
 		DASH,
 		BACK_DASH,
 
-		// 기본 공격
+		// 기본 공격 - 콤보(순차 진행) (MOUSE_LB)
 		BASIC_ATTACK_01,
 		BASIC_ATTACK_02,
 		BASIC_ATTACK_03,
+
 		CORE_ATTACK_01,
 
 		// 스킬 공격
 		SKILL_01,
 		SKILL_02,
+
+		// 궁극기 (R)
 		U_SKILL,
 
-		// 방어 모션
+		// 방어 (MOUSE_RB)
 		GUARD_START,
 		GUARD_LOOP,
 		GUARD_END,

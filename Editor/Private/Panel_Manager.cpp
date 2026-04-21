@@ -1,6 +1,7 @@
 #include "Panel_Manager.h"
 #include "Panel.h"
 #include "GameObject.h"
+#include "Body_Player.h"
 
 IMPLEMENT_SINGLETON(CPanel_Manager)
 
@@ -48,14 +49,26 @@ void CPanel_Manager::Render_Panels()
 	}
 }
 
+void CPanel_Manager::End_Preview_If_Needed(CGameObject* pObject)
+{
+	CBody_Player* pBodyPlayer = dynamic_cast<CBody_Player*>(pObject);
+	if (nullptr != pBodyPlayer && true == pBodyPlayer->Is_Previewing())
+		pBodyPlayer->End_Preview();
+}
+
 void CPanel_Manager::Clear_Selection()
 {
+	End_Preview_If_Needed(m_pSelectedObject);
+
 	Safe_Release(m_pSelectedObject);
 	m_pSelectedObject = nullptr;
 }
 
 void CPanel_Manager::Set_SelectedObject(CGameObject* pObject)
 {
+	if (m_pSelectedObject != pObject)
+		End_Preview_If_Needed(m_pSelectedObject);
+
 	Safe_Release(m_pSelectedObject);
 	m_pSelectedObject = pObject;
 	Safe_AddRef(m_pSelectedObject);

@@ -5,6 +5,7 @@
 #include "Transform.h"
 #include "Component.h"
 #include "Model.h"
+#include "Body_Player.h"
 
 
 CPanel_Inspector::CPanel_Inspector(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -161,6 +162,8 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	if (nullptr == pModel)
 		return;
 
+	CBody_Player* pBodyPlayer = dynamic_cast<CBody_Player*>(pObject);
+
 	if (!ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
 		return;
 
@@ -255,6 +258,17 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	sprintf_s(szOverlay, "%.1f / %.1f", fTrackPos, fDuration);
 	ImGui::ProgressBar(fProgress, ImVec2(-1.f, 0.f), szOverlay);
 
+	if (nullptr != pBodyPlayer && true == pBodyPlayer->Is_Previewing())
+	{
+		if (ImGui::Button("Stop Preview"))
+		{
+			pBodyPlayer->End_Preview();
+		}
+
+		ImGui::SameLine();
+		ImGui::TextDisabled("Preview Mode");
+	}
+
 	// 애니메이션 리스트
 	_uint iCurrentIndex = pModel->Get_CurrentAnimIndex();
 	_uint iNumAnims = pModel->Get_NumAnimations();
@@ -290,10 +304,27 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 			_bool bSelected = (i == iCurrentIndex);
 			if (ImGui::Selectable(szLabel, bSelected))
 			{
-				if (!bSelected)
-					pModel->Set_AnimationIndex(static_cast<_uint>(i));
+				if (nullptr != pBodyPlayer)
+				{
+					const _uint iAnimIndex = static_cast<_uint>(i);
+
+					if (true == pBodyPlayer->Is_Previewing() &&
+						pBodyPlayer->Get_PreviewAnimationIndex() == iAnimIndex)
+					{
+						pBodyPlayer->Restart_Preview();
+					}
+					else
+					{
+						pBodyPlayer->Begin_Preview(iAnimIndex);
+					}
+				}
 				else
-					pModel->Restart_Animation();
+				{
+					if (!bSelected)
+						pModel->Set_AnimationIndex(static_cast<_uint>(i));
+					else
+						pModel->Restart_Animation();
+				}
 			}
 
 			ImGui::PopID();
