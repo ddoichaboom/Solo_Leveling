@@ -672,11 +672,25 @@ void CModel::Extract_RootMotion(_float fPrevTrackPos)
 	}
 	else
 	{
-		// 정상 프레임 : 증분 델타
-		m_vLastRootMotionDelta.x = T_cur.x - m_vPrevRootTranslation.x;
-		m_vLastRootMotionDelta.y = T_cur.y - m_vPrevRootTranslation.y;
-		m_vLastRootMotionDelta.z = T_cur.z - m_vPrevRootTranslation.z;
+		// local root delta
+		_float3 vLocalDelta{};
+		vLocalDelta.x = T_cur.x - m_vPrevRootTranslation.x;
+		vLocalDelta.y = T_cur.y - m_vPrevRootTranslation.y;
+		vLocalDelta.z = T_cur.z - m_vPrevRootTranslation.z;
+
 		m_vPrevRootTranslation = T_cur;
+
+		// Translation 성분은 제외하고, 축 보정용 회전만 사용한다.
+		_matrix matPre = XMLoadFloat4x4(&m_PreTransformMatrix);
+		matPre.r[0] = XMVectorSetW(XMVector3Normalize(matPre.r[0]), 0.f);
+		matPre.r[1] = XMVectorSetW(XMVector3Normalize(matPre.r[1]), 0.f);
+		matPre.r[2] = XMVectorSetW(XMVector3Normalize(matPre.r[2]), 0.f);
+		matPre.r[3] = XMVectorSet(0.f, 0.f, 0.f, 1.f);
+
+		_vector vDelta = XMVectorSet(vLocalDelta.x, vLocalDelta.y, vLocalDelta.z, 0.f);
+		vDelta = XMVector3TransformNormal(vDelta, matPre);
+
+		XMStoreFloat3(&m_vLastRootMotionDelta, vDelta);
 	}
 
 	// 루트 본 로컬 translation을 T_bind로 고정 -> Mesh는 CTransform 기준 제자리
