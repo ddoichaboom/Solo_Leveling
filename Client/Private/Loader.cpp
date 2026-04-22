@@ -2,15 +2,18 @@
 
 // ENGINE
 #include "GameInstance.h"
+#include "Model.h"
 
 // LOGO
 #include "BackGround.h"
 
 // GAMEOBJECT
-#include "Terrain.h"
 #include "Camera_Free.h"
-// #include "Monster.h"
-// #include "ForkLift.h"
+#include "Player.h"
+#include "Body_Player.h"
+#include "Weapon.h"
+#include "MapObject.h"
+#include "MapStaticObject.h"
 
 
 CLoader::CLoader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -111,42 +114,79 @@ HRESULT CLoader::Ready_Resources_For_Logo()
 
 HRESULT CLoader::Ready_Resources_For_GamePlay()
 {
-	lstrcpy(m_szLoadingText, TEXT("텍스쳐 로딩 중"));
+	const LEVEL eLevel = LEVEL::GAMEPLAY;
 
-	// Prototype_Component_Texture_Terrain
-	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_Component_Texture_Terrain"),
-		CTexture::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Tile0.jpg"), 1))))
-		return E_FAIL;
-
-	lstrcpy(m_szLoadingText, TEXT("셰이더 로딩 중"));
-
-	// Prototype_Component_Shader_VtxNorTex
-	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_Component_Shader_VtxNorTex"),
-		CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxNorTex.hlsl"), VTXNORTEX::Elements, VTXNORTEX::iNumElements))))
-		return E_FAIL;
+	lstrcpy(m_szLoadingText, TEXT("셰이더 로드 중"));
 
 	// Prototype_Component_Shader_VtxMesh
-	//if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_Component_Shader_VtxMesh"),
-	//	CShader::Create(m_pDevice, m_pContext, TEXT("../Bin/ShaderFiles/Shader_VtxMesh.hlsl"), VTXMESH::Elements, VTXMESH::iNumElements))))
-	//	return E_FAIL;
-
-	lstrcpy(m_szLoadingText, TEXT("정점, 인덱스 버퍼 로딩 중"));
-
-	// Prototype_Component_VIBuffer_Terrain
-	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_Component_VIBuffer_Terrain"),
-		CVIBuffer_Terrain::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Height.bmp")))))
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Shader_VtxMesh"),
+		CShader::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/ShaderFiles/Shader_VtxMesh.hlsl"),
+			VTXMESH::Elements, VTXMESH::iNumElements))))
 		return E_FAIL;
 
-	lstrcpy(m_szLoadingText, TEXT("객체원형 로딩 중"));
-
-	// Prototype_GameObject_Terrain
-	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Terrain"),
-		CTerrain::Create(m_pDevice, m_pContext))))
+	// Prototype_Component_Shader_VtxAnimMesh 
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Shader_VtxAnimMesh"),
+		CShader::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/ShaderFiles/Shader_VtxAnimMesh.hlsl"),
+			VTXANIMMESH::Elements, VTXANIMMESH::iNumElements))))
 		return E_FAIL;
+
+	lstrcpy(m_szLoadingText, TEXT("모델 로드 중"));
+
+	// Prototype_Component_Model_SungJinWoo
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Model_SungJinWoo"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/hunter/SungJinWoo_ERank/SungJinWooERank.bin")))))
+		return E_FAIL;
+
+	// Prototype_Component_Model_Weapon01
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Model_Weapon01"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/weapons/Weapon01/SungJinWoo_ERank_Weapon01.bin")))))
+		return E_FAIL;
+
+	// Prototype_Component_Model_Map_Lobby_Static
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Model_Map_Lobby_Static"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/map/Hapjung_Station_1F/Hapjung_Station_1F.bin")))))
+		return E_FAIL;
+
+	lstrcpy(m_szLoadingText, TEXT("객체원형 로드 중"));
 
 	// Prototype_GameObject_Camera_Free
-	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Camera_Free"),
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Camera_Free"),
 		CCamera_Free::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_Player
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Player"),
+		CPlayer::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_Body_Player
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Body_Player"),
+		CBody_Player::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_Weapon
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Weapon"),
+		CWeapon::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_MapObject
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_MapObject"),
+		CMapObject::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_MapStaticObject
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_MapStaticObject"),
+		CMapStaticObject::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	lstrcpy(m_szLoadingText, TEXT("로딩이 완료되었습니다."));

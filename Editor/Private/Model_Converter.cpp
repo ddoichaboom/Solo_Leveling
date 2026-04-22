@@ -1,6 +1,6 @@
 ﻿#include "Model_Converter.h"
 
-HRESULT CModel_Converter::Convert(const _tchar* pFbxPath, const _tchar* pBinPath, MODEL eModelType)
+HRESULT CModel_Converter::Convert(const _tchar* pFbxPath, const _tchar* pBinPath, MODEL eModelType, const _float4x4* pPreTransform)
 {
     // 1. wchar_t → char (Assimp는 char 경로 사용)
     _char szFbxPathA[MAX_PATH] = {};
@@ -50,7 +50,10 @@ HRESULT CModel_Converter::Convert(const _tchar* pFbxPath, const _tchar* pBinPath
         fwrite(&iReserved, sizeof(_uint), 1, fp);
 
         _float4x4 PreTransform;
-        XMStoreFloat4x4(&PreTransform, XMMatrixIdentity());
+        if (nullptr != pPreTransform)
+            PreTransform = *pPreTransform;
+        else
+            XMStoreFloat4x4(&PreTransform, XMMatrixIdentity());
         fwrite(&PreTransform, sizeof(_float4x4), 1, fp);
 
         _char szRootBoneName[MAX_PATH] = {};

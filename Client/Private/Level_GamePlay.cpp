@@ -1,6 +1,7 @@
 #include "Level_GamePlay.h"
 #include "GameInstance.h"
 #include "Camera_Free.h"
+#include "Player.h"
 
 CLevel_GamePlay::CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	:CLevel{ pDevice, pContext }
@@ -19,8 +20,8 @@ HRESULT CLevel_GamePlay::Initialize()
 	if (FAILED(Ready_Layer_BackGround(TEXT("Layer_BackGround"))))
 		return E_FAIL;
 
-	//if (FAILED(Ready_Layer_Monster(TEXT("Layer_Monster"))))
-	//	return E_FAIL;
+	if (FAILED(Ready_Layer_Player(TEXT("Layer_Player"))))
+		return E_FAIL;
 
 	return S_OK;
 }
@@ -77,17 +78,11 @@ HRESULT CLevel_GamePlay::Ready_Layer_Camera(const _wstring& strLayerTag)
 
 HRESULT CLevel_GamePlay::Ready_Layer_BackGround(const _wstring& strLayerTag)
 {
+	// Prototype_GameObject_MapObject
 	if (FAILED(m_pGameInstance->Add_GameObject(
-		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Terrain"),
+		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_MapObject"),
 		ETOUI(LEVEL::GAMEPLAY), strLayerTag)))
 		return E_FAIL;
-
-	//for (size_t i = 0; i < 10; i++)
-	//{
-	//	if (FAILED(m_pGameInstance->Add_GameObject(ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_ForkLift"),
-	//		ETOUI(LEVEL::GAMEPLAY), strLayerTag)))
-	//		return E_FAIL;
-	//}
 
 	return S_OK;
 }
@@ -97,6 +92,24 @@ HRESULT CLevel_GamePlay::Ready_Layer_Monster(const _wstring& strLayerTag)
 	if (FAILED(m_pGameInstance->Add_GameObject(
 		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Monster"),
 		ETOUI(LEVEL::GAMEPLAY), strLayerTag)))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT CLevel_GamePlay::Ready_Layer_Player(const _wstring& strLayerTag)
+{
+	CPlayer::PLAYER_DESC Desc{};
+	Desc.vPosition			= _float3(0.f, 1.f, 0.f);
+	Desc.vRotationDeg		= _float3(0.f, 180.f, 0.f);
+	Desc.vScale				= _float3(1.f, 1.f, 1.f);
+	Desc.fSpeedPerSec		= 10.f;
+	Desc.fRotationPerSec	= XMConvertToRadians(180.f);
+
+	// Prototype_GameObject_Player
+	if (FAILED(m_pGameInstance->Add_GameObject(
+		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Player"),
+		ETOUI(LEVEL::GAMEPLAY), strLayerTag, &Desc)))
 		return E_FAIL;
 
 	return S_OK;

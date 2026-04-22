@@ -17,6 +17,11 @@ public:
         ATTACK  = 0x00000004,
     };
 
+    typedef struct tagPlayerDesc : public CGameObject::GAMEOBJECT_DESC
+    {
+
+    }PLAYER_DESC;
+
 private:
     CPlayer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
     CPlayer(const CPlayer& Prototype);

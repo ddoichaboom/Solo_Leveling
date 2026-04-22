@@ -9,7 +9,8 @@ public:
     // pFbxPath  : FBX 파일 절대 경로 (wchar_t)
     // pBinPath  : 출력 .bin 절대 경로 (wchar_t)
     // eModelType: MODEL::NONANIM or MODEL::ANIM
-    static HRESULT      Convert(const _tchar* pFbxPath, const _tchar* pBinPath, MODEL eModelType);
+    static HRESULT      Convert(const _tchar* pFbxPath, const _tchar* pBinPath, MODEL eModelType,
+                                const _float4x4* pPreTransform = nullptr);
 
 private:
     // 본 노드 트리를 DFS 순서로 수집 — CModel::Ready_Bones 와 동일 순서

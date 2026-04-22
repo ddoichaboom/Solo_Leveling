@@ -235,6 +235,18 @@ void CPanel_ContentBrowser::Render_ConvertPopup()
 
 	ImGui::Separator();
 
+	ImGui::Text("PreTransform");
+	ImGui::DragFloat3("Scale", &m_vPreScale.x, 0.01f, 0.001f, 1000.f, "%.3f");
+	ImGui::DragFloat3("Rotation (deg)", &m_vPreRotationDeg.x, 1.0f, -360.f, 360.f, "%.1f");
+
+	if (ImGui::Button("Reset PreTransform"))
+	{
+		m_vPreScale = _float3(1.f, 1.f, 1.f);
+		m_vPreRotationDeg = _float3(0.f, 0.f, 0.f);
+	}
+
+	ImGui::Separator();
+
 	// Convert / Cancel
 	if (ImGui::Button("Convert", ImVec2(120.f, 0.f)))
 	{
@@ -243,7 +255,17 @@ void CPanel_ContentBrowser::Render_ConvertPopup()
 		wstring fbxW = m_FbxToConvertPath.wstring();
 		wstring binW = binPath.wstring();
 
-		if (SUCCEEDED(CModel_Converter::Convert(fbxW.c_str(), binW.c_str(), eType)))
+		_matrix matPre =
+			XMMatrixScaling(m_vPreScale.x, m_vPreScale.y, m_vPreScale.z) *
+			XMMatrixRotationRollPitchYaw(
+				XMConvertToRadians(m_vPreRotationDeg.x),
+				XMConvertToRadians(m_vPreRotationDeg.y),
+				XMConvertToRadians(m_vPreRotationDeg.z));
+
+		_float4x4 PreTransform;
+		XMStoreFloat4x4(&PreTransform, matPre);
+
+		if (SUCCEEDED(CModel_Converter::Convert(fbxW.c_str(), binW.c_str(), eType, &PreTransform)))
 		{
 			Log_Info(WTOA(L"[Converter] 성공: " + binPath.filename().wstring()));
 			m_bNeedRefresh = true;  // .bin 파일이 생겼으므로 목록 갱신

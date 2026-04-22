@@ -345,11 +345,6 @@ HRESULT CEditorApp::Ready_TestScene()
 
 	m_pViewport->End_RT();
 
-	 //(5) 터레인
-	//if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Terrain"),
-	//	iLevel, TEXT("Layer_BackGround"))))
-	//	return E_FAIL;
-
 	// (6) 라이트
 	LIGHT_DESC LightDesc{};
 	LightDesc.eType = LIGHT::DIRECTIONAL;

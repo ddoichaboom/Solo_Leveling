@@ -2,7 +2,7 @@
 #include "GameInstance.h"
 #include "Body_Player.h"
 #include "Weapon.h"
-#include "Transform.h"
+#include "Transform_3D.h"
 
 CPlayer::CPlayer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CContainerObject{ pDevice, pContext }
@@ -22,8 +22,15 @@ HRESULT CPlayer::Initialize_Prototype()
 HRESULT CPlayer::Initialize(void* pArg)
 {
 	GAMEOBJECT_DESC Desc{};
-	Desc.fSpeedPerSec = 10.f;
-	Desc.fRotationPerSec = XMConvertToRadians(180.f);
+
+	if (nullptr != pArg)
+		Desc = *static_cast<PLAYER_DESC*>(pArg);
+
+	if (0.f == Desc.fSpeedPerSec)
+		Desc.fSpeedPerSec = 10.f;
+
+	if (0.f == Desc.fRotationPerSec)
+		Desc.fRotationPerSec = XMConvertToRadians(180.f);
 
 	if (FAILED(__super::Initialize(&Desc)))
 		return E_FAIL;
@@ -53,6 +60,24 @@ void CPlayer::Update(_float fTimeDelta)
 
 	if (nullptr != m_pBody)
 		Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
+
+	// TEMP: Intent 레이어 없이 키->Transform 직결. Step 3에서 Intent->Action 경로로 교체.
+	// 주의: Root Motion 클립(Dash/BackDash) 재생 중 WASD 를 누르면 두 delta 가 동시 누적됨.
+	//       스모크 단계에서는 IDLE 유지 상태로만 WASD 테스트.
+	// 임시 테스트용
+	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
+
+	if (!(m_pGameInstance->Get_MouseBtnState(MOUSEBTN::RBUTTON) & 0x80))
+	{
+		if (m_pGameInstance->Get_KeyState('W') & 0x80)
+			pTransform->Go_Straight(fTimeDelta);
+		if (m_pGameInstance->Get_KeyState('S') & 0x80)
+			pTransform->Go_Backward(fTimeDelta);
+		if (m_pGameInstance->Get_KeyState('A') & 0x80)
+			pTransform->Go_Left(fTimeDelta);
+		if (m_pGameInstance->Get_KeyState('D') & 0x80)
+			pTransform->Go_Right(fTimeDelta);
+	}
 }
 
 void CPlayer::Late_Update(_float fTimeDelta)

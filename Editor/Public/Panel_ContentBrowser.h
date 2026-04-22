@@ -48,6 +48,9 @@ private:
     _int                            m_iModelType = { ETOI(MODEL::NONANIM) };
     _bool                           m_bOpenConvertPopup = { false };
 
+    _float3                         m_vPreScale         = { 1.f, 1.f, 1.f };
+    _float3                         m_vPreRotationDeg   = { 0.f, 0.f, 0.f };
+
 public:
     static CPanel_ContentBrowser*   Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
     virtual void                    Free() override;
