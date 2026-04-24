@@ -280,6 +280,22 @@ void		CGameInstance::Process_RawInput(LPARAM lParam)
 	CInput_Device::Process_Input(lParam);
 }
 
+void		CGameInstance::Set_CursorLocked(_bool bLock)
+{
+	if (nullptr == m_pInput_Device)
+		return;
+
+	m_pInput_Device->Set_CursorLocked(bLock);
+}
+
+_bool		CGameInstance::Is_CursorLocked() const
+{
+	if (nullptr == m_pInput_Device)
+		return false; 
+
+	return m_pInput_Device->Is_CursorLocked();
+}
+
 #pragma endregion
 
 #pragma region LIGHT_MANAGER

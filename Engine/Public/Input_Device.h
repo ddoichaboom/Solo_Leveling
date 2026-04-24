@@ -49,12 +49,18 @@ public:
 		return m_lMouseDelta[ETOUI(eAxis)];
 	}
 
+	void					Set_CursorLocked(_bool bLock);
+	_bool					Is_CursorLocked() const { return m_bCursorLocked; }
+
 public:
 	HRESULT					Initialize(HWND hWnd);
 	void					Update();
 
 	// WndProc에서 WM_INPUT 발생 시 호출하는 정적 콜백
 	static void				Process_Input(LPARAM lParam);
+
+private:
+	void					Lock_Cursor_ToCenter();
 
 private:
 	// 프레임 데이터 (Update에서 복사됨, 게임 로직이 읽음)
@@ -70,6 +76,9 @@ private:
 	static _byte			s_byRawKeyState[256];
 	static _byte			s_byRawMouseBtn[ETOUI(MOUSEBTN::END)];
 	static _long			s_lRawMouseAccum[ETOUI(MOUSEAXIS::END)];
+
+	HWND					m_hWnd = { nullptr };
+	_bool					m_bCursorLocked = { false };
 
 public:
 	static CInput_Device*	Create(HWND hWnd);

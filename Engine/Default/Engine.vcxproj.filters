@@ -130,6 +130,9 @@
     <Filter Include="11. Notify">
       <UniqueIdentifier>{4cfe06a5-fc5f-4271-9af5-2e65ff25ef1a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="07. Component\SpringArm">
+      <UniqueIdentifier>{78fd9a44-dc6e-40f5-84ed-9ec02ab6fb5f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -242,6 +245,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\StateMachine.cpp">
       <Filter>10. StateMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\SpringArm.cpp">
+      <Filter>07. Component\SpringArm</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -376,6 +382,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\NotifyListener.h">
       <Filter>11. Notify</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\SpringArm.h">
+      <Filter>07. Component\SpringArm</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

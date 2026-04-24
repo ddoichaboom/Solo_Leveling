@@ -80,6 +80,9 @@ public:
 	_bool						Get_MouseBtnUp(MOUSEBTN eBtn);
 	_long						Get_MouseDelta(MOUSEAXIS eAxis);
 	static void					Process_RawInput(LPARAM lParam);
+
+	void						Set_CursorLocked(_bool bLock);
+	_bool						Is_CursorLocked() const;
 #pragma endregion
 
 #pragma region LIGHT_MANAGER

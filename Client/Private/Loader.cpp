@@ -14,6 +14,7 @@
 #include "Weapon.h"
 #include "MapObject.h"
 #include "MapStaticObject.h"
+#include "Camera_Follow.h"
 
 
 CLoader::CLoader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -159,9 +160,9 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 
 	lstrcpy(m_szLoadingText, TEXT("객체원형 로드 중"));
 
-	// Prototype_GameObject_Camera_Free
-	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Camera_Free"),
-		CCamera_Free::Create(m_pDevice, m_pContext))))
+	// Prototype_GameObject_Camera_Follow
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Camera_Follow"),
+		CCamera_Follow::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	// Prototype_GameObject_Player

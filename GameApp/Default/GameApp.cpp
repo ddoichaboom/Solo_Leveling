@@ -202,6 +202,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
     }
     break;
+    case WM_ACTIVATE:
+        
+        if (WA_INACTIVE == LOWORD(wParam))
+        {
+                // 포커스 잃음 - 커서 해제
+                while (ShowCursor(TRUE) < 0) {}
+                ClipCursor(nullptr);
+        }
+        else
+        {
+            if (CGameInstance::GetInstance()->Is_CursorLocked())
+                {
+                    CGameInstance::GetInstance()->Set_CursorLocked(false);
+                    CGameInstance::GetInstance()->Set_CursorLocked(true);      // 강제 재적용
+                }
+            }
+        break;
     //case WM_ENTERSIZEMOVE:
     //{
     //    g_bResizing = true;
@@ -246,7 +263,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     //}
     //return DefWindowProc(hWnd, message, wParam, lParam);
     case WM_INPUT:
-		CGameInstance::GetInstance()->Process_RawInput(lParam);
+        CGameInstance::GetInstance()->Process_RawInput(lParam);
         break;
     case WM_PAINT:
     {
@@ -262,6 +279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
+
     return 0;
 }
 

@@ -10,8 +10,43 @@ CInput_Device::CInput_Device()
 	ZeroMemory(m_byKeyState, sizeof(m_byKeyState));
 }
 
+void CInput_Device::Set_CursorLocked(_bool bLock)
+{
+	if (m_bCursorLocked == bLock)
+		return;
+
+	m_bCursorLocked = bLock;
+
+	if (true == bLock)
+	{
+		// 카운터 기반 API -1 될 때까지 반복
+		while (ShowCursor(FALSE) >= 0) {}
+
+		// 창 영역으로 클립 (창 밖으로 못 나감)
+		RECT rc{};
+		GetClientRect(m_hWnd, &rc);
+		POINT topLeft		= { rc.left, rc.top };		// 좌상단
+		POINT bottomRight	= { rc.right, rc.bottom };	// 우하단
+		ClientToScreen(m_hWnd, &topLeft);
+		ClientToScreen(m_hWnd, &bottomRight);
+		RECT clipRect{ topLeft.x, topLeft.y, bottomRight.x, bottomRight.y };
+		ClipCursor(&clipRect);
+
+		Lock_Cursor_ToCenter();
+	}
+	else
+	{
+		// 해제
+		ClipCursor(nullptr);
+
+		while (ShowCursor(TRUE) < 0) {}
+	}
+}
+
 HRESULT CInput_Device::Initialize(HWND hWnd)
 {
+	m_hWnd = hWnd;
+
 	// Raw Input Device 등록
 	RAWINPUTDEVICE rid[2]{};
 
@@ -113,6 +148,19 @@ void CInput_Device::Process_Input(LPARAM lParam)
 	Safe_Delete_Array(lpb);
 }
 
+void CInput_Device::Lock_Cursor_ToCenter()
+{
+	if (nullptr == m_hWnd)
+		return;
+
+	RECT rc{};
+	GetClientRect(m_hWnd, &rc);
+
+	POINT center = { (rc.right - rc.left) / 2, (rc.bottom - rc.top) / 2 };
+	ClientToScreen(m_hWnd, &center);
+	SetCursorPos(center.x, center.y);
+}
+
 void CInput_Device::Update()
 {
 	memcpy(m_byPrevKeyState, m_byKeyState, sizeof(m_byKeyState));
@@ -126,6 +174,10 @@ void CInput_Device::Update()
 	// 마우스 이동량은 프레임당 델타이므로 누적 초기화
 	// 키/버튼 상태는 초기화하지 않음 (눌린채로 유지되어야 함)
 	ZeroMemory(s_lRawMouseAccum, sizeof(s_lRawMouseAccum));
+
+	//  커서 락 유지 - 매 프레임 중앙으로 재고정
+	if (true == m_bCursorLocked)
+		Lock_Cursor_ToCenter();
 }
 
 CInput_Device* CInput_Device::Create(HWND hWnd)
@@ -143,5 +195,8 @@ CInput_Device* CInput_Device::Create(HWND hWnd)
 
 void CInput_Device::Free()
 {
-	// COM 객체가 없으므로 별도 해제 불필요
+	if (true == m_bCursorLocked)
+		Set_CursorLocked(false);
+
+	__super::Free();
 }

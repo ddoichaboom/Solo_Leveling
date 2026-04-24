@@ -168,6 +168,7 @@ call ClientSDK_Update.bat</Command>
   <ItemGroup>
     <ClInclude Include="..\Public\BackGround.h" />
     <ClInclude Include="..\Public\Body_Player.h" />
+    <ClInclude Include="..\Public\Camera_Follow.h" />
     <ClInclude Include="..\Public\Camera_Free.h" />
     <ClInclude Include="..\Public\CharacterAnimTable.h" />
     <ClInclude Include="..\Public\Client_Defines.h" />
@@ -192,6 +193,7 @@ call ClientSDK_Update.bat</Command>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp" />
     <ClCompile Include="..\Private\Body_Player.cpp" />
+    <ClCompile Include="..\Private\Camera_Follow.cpp" />
     <ClCompile Include="..\Private\Camera_Free.cpp" />
     <ClCompile Include="..\Private\CharacterAnimTable.cpp" />
     <ClCompile Include="..\Private\IntentResolver.cpp" />

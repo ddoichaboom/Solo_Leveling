@@ -85,6 +85,9 @@
     <Filter Include="96. StateMachine\Monster">
       <UniqueIdentifier>{fb9f39fa-13da-4750-acb4-b4b4037448d3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\Camera\Follow">
+      <UniqueIdentifier>{94990f58-f408-4dd5-8f01-7c81695008d2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -153,6 +156,9 @@
     <ClInclude Include="..\Public\Player_StateMachine.h">
       <Filter>96. StateMachine\Player</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Camera_Follow.h">
+      <Filter>02. GameObject\Camera\Follow</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -208,6 +214,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Player_StateMachine.cpp">
       <Filter>96. StateMachine\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Camera_Follow.cpp">
+      <Filter>02. GameObject\Camera\Follow</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
