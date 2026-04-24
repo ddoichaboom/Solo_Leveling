@@ -61,6 +61,8 @@ void CPlayer::Priority_Update(_float fTimeDelta)
 
 void CPlayer::Update(_float fTimeDelta)
 {
+	Tick_DashRegen(fTimeDelta);
+
 	PLAYER_RAW_INPUT_FRAME Raw{};
 	PLAYER_INTENT_FRAME Intent{};
 
@@ -85,9 +87,6 @@ void CPlayer::Update(_float fTimeDelta)
 		Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
 
 	Apply_MoveIntent(Intent, fTimeDelta);
-
-	//if (m_pGameInstance->Get_KeyState(VK_F1) & 0x80)
-	//	m_pStateMachine->Try_Transition(ETOUI(CHARACTER_ACTION::DASH));
 }
 
 void CPlayer::Late_Update(_float fTimeDelta)
@@ -132,6 +131,30 @@ void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION e
 		return;
 
 	m_pBody->Play_Action(eTo);
+}
+
+_bool CPlayer::Consume_DashCharge()
+{
+	if (m_iDashChargeCurent <= 0)
+		return false;
+
+	--m_iDashChargeCurent;
+
+	return true;
+}
+
+void CPlayer::Tick_DashRegen(_float fTimeDelta)
+{
+	// 항상 일정 주기 - 풀 차지 여도 타이머는 리셋
+	m_fDashRegenTimer += fTimeDelta;
+
+	while (m_fDashRegenTimer >= m_fDashRegenInterval)
+	{
+		m_fDashRegenTimer -= m_fDashRegenInterval;
+
+		if (m_iDashChargeCurent < m_iDashChargeMax)
+			++m_iDashChargeCurent;
+	}
 }
 
 HRESULT CPlayer::Ready_PartObjects()
@@ -199,6 +222,7 @@ void CPlayer::Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw)
 		pOutRaw->bMoveLeftHeld = (m_pGameInstance->Get_KeyState('A') & 0x80) != 0;
 		pOutRaw->bMoveRightHeld = (m_pGameInstance->Get_KeyState('D') & 0x80) != 0;
 	}
+	pOutRaw->bDashPressed = m_pGameInstance->Get_KeyDown(VK_SPACE);
 
 	pOutRaw->lMouseDeltaX = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::X);
 	pOutRaw->lMouseDeltaY = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::Y);
@@ -206,6 +230,19 @@ void CPlayer::Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw)
 
 void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDelta)
 {
+	if (nullptr != m_pStateMachine)
+	{
+		const CHARACTER_ACTION eCurrent = m_pStateMachine->Get_CurrentCharacterAction();
+
+		const _bool bIsLocomotion =
+			(CHARACTER_ACTION::IDLE == eCurrent) ||
+			(CHARACTER_ACTION::WALK == eCurrent) ||
+			(CHARACTER_ACTION::RUN == eCurrent);
+
+		if (false == bIsLocomotion)
+			return;
+	}
+
 	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
 
 	if (Intent.vMoveAxis.y > 0.f)

@@ -33,6 +33,8 @@ protected:
 
 private:
 	CPlayer*						m_pOwner = { nullptr };
+	_bool							m_bLastHasMoveIntent = { false };
+
 
 public:
 	static CPlayer_StateMachine*	Create(const CHARACTER_ANIM_TABLE_DESC* pAnimTable);

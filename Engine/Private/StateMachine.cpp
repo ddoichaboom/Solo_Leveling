@@ -109,6 +109,10 @@ void CStateMachine::On_ActionFinished()
 	if (false == m_bHasCurrentAction)
 		return;
 
+	auto iterCurrent = m_Policies.find(m_iCurrentAction);
+
+	m_bHasCurrentAction = false;
+
 	// Pending Action  우선 소비
 	if (m_bHasPendingAction)
 	{
@@ -120,7 +124,6 @@ void CStateMachine::On_ActionFinished()
 		return;
 	}
 
-	auto iterCurrent = m_Policies.find(m_iCurrentAction);
 	if (iterCurrent == m_Policies.end())
 		return;
 

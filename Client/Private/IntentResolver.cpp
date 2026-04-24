@@ -10,6 +10,8 @@ void CIntentResolver::Resolve(const PLAYER_RAW_INPUT_FRAME& Raw, PLAYER_INTENT_F
 
     pOutIntent->lLookDeltaX = Raw.lMouseDeltaX;
     pOutIntent->bHasMoveIntent = ((0.f != pOutIntent->vMoveAxis.x) || (0.f != pOutIntent->vMoveAxis.y));
+
+    pOutIntent->bDashRequested = Raw.bDashPressed;
 }
 
 _float CIntentResolver::Compute_Axis(_bool bNegativeHeld, _bool bPositiveHeld) const

@@ -31,14 +31,35 @@ HRESULT	CPlayer_StateMachine::Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimT
 
 void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
 {
+    m_bLastHasMoveIntent = Intent.bHasMoveIntent;
+
+    if (true == Intent.bDashRequested && nullptr != m_pOwner)
+    {
+        if (true == m_pOwner->Can_ConsumeDashCharge())
+        {
+            const CHARACTER_ACTION eDashAction = (Intent.vMoveAxis.y < 0.f)
+                ? CHARACTER_ACTION::BACK_DASH
+                : CHARACTER_ACTION::DASH;
+
+            if (true == Try_Transition(ETOUI(eDashAction)))
+                m_pOwner->Consume_DashCharge();
+        }
+    }
+
+    const CHARACTER_ACTION eCurrent = Get_CurrentCharacterAction();
+
+    if (CHARACTER_ACTION::RUN == eCurrent)
+    {
+        if (false == Intent.bHasMoveIntent)
+            Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+        
+        return;
+    }
+
     if (true == Intent.bHasMoveIntent)
-    {
         Try_Transition(ETOUI(CHARACTER_ACTION::WALK));
-    }
     else
-    {
         Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
-    }
 }
 
 void CPlayer_StateMachine::Bind_Owner(CPlayer* pOwner)
@@ -56,8 +77,21 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
     switch (Event.eType)
     {
     case NOTIFY_TYPE::ACTION_FINISHED:
+    {
+        const CHARACTER_ACTION eFinished = static_cast<CHARACTER_ACTION>(Event.iPayload);
+
+        // (1) 기본 AutoReturn (IDLE) 수행
         __super::On_ActionFinished();
+
+        // Dash 계열 종료 + WASD 홀드 중이면 즉시 RUN
+        if ((CHARACTER_ACTION::DASH == eFinished ||
+            CHARACTER_ACTION::BACK_DASH == eFinished &&
+            true == m_bLastHasMoveIntent))
+        {
+            Try_Transition(ETOUI(CHARACTER_ACTION::RUN));
+        }
         break;
+    }
 
     case NOTIFY_TYPE::ANIM_EVENT:
         // Step C 에서 AnimNotify 처리 연결

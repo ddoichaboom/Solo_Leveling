@@ -69,6 +69,7 @@ namespace Client
 		_bool bMoveRightHeld = { false };
 
 		_bool bRButtonHeld = { false };
+		_bool bDashPressed = { false };
 
 		_long lMouseDeltaX = {};
 		_long lMouseDeltaY = {};
@@ -80,6 +81,8 @@ namespace Client
 		_float2 vMoveAxis = {};
 		_long	lLookDeltaX = {};
 		_bool	bHasMoveIntent = { false };
+
+		_bool bDashRequested = { false };		// 이번 프레임에 Dash 요청
 
 	}PLAYER_INTENT_FRAME;
 
