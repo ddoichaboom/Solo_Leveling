@@ -85,6 +85,9 @@ void CPlayer::Update(_float fTimeDelta)
 		Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
 
 	Apply_MoveIntent(Intent, fTimeDelta);
+
+	//if (m_pGameInstance->Get_KeyState(VK_F1) & 0x80)
+	//	m_pStateMachine->Try_Transition(ETOUI(CHARACTER_ACTION::DASH));
 }
 
 void CPlayer::Late_Update(_float fTimeDelta)
@@ -173,6 +176,9 @@ HRESULT CPlayer::Ready_StateMachine()
 		return E_FAIL;
 
 	m_pStateMachine->Bind_Owner(this);
+
+	if (nullptr != m_pBody)
+		m_pBody->Set_Listener(m_pStateMachine);
 
 	if (false == m_pStateMachine->Enter_InitialState(CHARACTER_ACTION::IDLE))
 		return E_FAIL;

@@ -51,6 +51,23 @@ _bool CPlayer_StateMachine::Enter_InitialState(CHARACTER_ACTION eInitialAction)
     return Try_Transition(ETOUI(eInitialAction));
 }
 
+void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
+{
+    switch (Event.eType)
+    {
+    case NOTIFY_TYPE::ACTION_FINISHED:
+        __super::On_ActionFinished();
+        break;
+
+    case NOTIFY_TYPE::ANIM_EVENT:
+        // Step C 에서 AnimNotify 처리 연결
+        break;
+
+    default:
+        break;
+    }
+}
+
 void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
 {
     if (nullptr == m_pOwner)

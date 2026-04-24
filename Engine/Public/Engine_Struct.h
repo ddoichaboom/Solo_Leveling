@@ -205,6 +205,14 @@ namespace Engine
 		float			fEnterBlendTime = {};
 
 	}ACTION_POLICY_BASE;
+
+	typedef struct tagNotifyEvent
+	{
+		NOTIFY_TYPE eType = { NOTIFY_TYPE::END };
+		unsigned int iPayload = {};
+		const void* pData = { nullptr };
+
+	}NOTIFY_EVENT;
 }
 
 #endif // Engine_Struct_h__

@@ -214,6 +214,7 @@ call EngineSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Material.h" />
     <ClInclude Include="..\Public\Mesh.h" />
     <ClInclude Include="..\Public\Model.h" />
+    <ClInclude Include="..\Public\NotifyListener.h" />
     <ClInclude Include="..\Public\Object_Manager.h" />
     <ClInclude Include="..\Public\PartObject.h" />
     <ClInclude Include="..\Public\PipeLine.h" />

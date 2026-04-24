@@ -2,11 +2,12 @@
 
 #include "Client_Defines.h"
 #include "StateMachine.h"
+#include "NotifyListener.h"
 
 NS_BEGIN(Client)
 class CPlayer;
 
-class CLIENT_DLL CPlayer_StateMachine final : public CStateMachine
+class CLIENT_DLL CPlayer_StateMachine final : public CStateMachine, public INotifyListener
 {
 private:
 	CPlayer_StateMachine();
@@ -25,6 +26,7 @@ public:
 	void							Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent);
 	void							Bind_Owner(CPlayer* pOwner);
 	_bool							Enter_InitialState(CHARACTER_ACTION eInitialAction = CHARACTER_ACTION::IDLE);
+	virtual void					OnNotify(const NOTIFY_EVENT& Event) override;
 
 protected:
 	virtual void					On_Transition(_uint iFrom, _uint iTo, _bool bInitial) override;

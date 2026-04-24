@@ -127,6 +127,9 @@
     <Filter Include="10. StateMachine">
       <UniqueIdentifier>{930eecb1-69f8-4b69-b03e-2461de18f010}</UniqueIdentifier>
     </Filter>
+    <Filter Include="11. Notify">
+      <UniqueIdentifier>{4cfe06a5-fc5f-4271-9af5-2e65ff25ef1a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -370,6 +373,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\StateMachine.h">
       <Filter>10. StateMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\NotifyListener.h">
+      <Filter>11. Notify</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

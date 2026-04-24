@@ -8,6 +8,7 @@ NS_BEGIN(Engine)
 class CShader;
 class CModel;
 class CAnimController;
+class INotifyListener;
 NS_END
 
 NS_BEGIN(Client)
@@ -49,6 +50,7 @@ public:
 
 public:
     HRESULT                             Play_Action(CHARACTER_ACTION eAction);
+    void                                Set_Listener(INotifyListener* pListener) { m_pListener = pListener; }
 
 private:
     CShader*                            m_pShaderCom = { nullptr };
@@ -65,6 +67,7 @@ private:
 
     _bool                               m_bPreviewMode = { false };
     _uint                               m_iPreviewAnimationIndex = { static_cast<_uint>(-1) };
+    INotifyListener*                    m_pListener = { nullptr };
 
 private:
     HRESULT                             Ready_Components();

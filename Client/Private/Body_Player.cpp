@@ -5,6 +5,7 @@
 #include "Model.h"
 #include "Shader.h"
 #include "AnimController.h"
+#include "NotifyListener.h"
 
 CBody_Player::CBody_Player(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPartObject { pDevice, pContext }
@@ -120,12 +121,14 @@ void CBody_Player::Update(_float fTimeDelta)
 
     _bool bFinished = m_pAnimController->Update(fTimeDelta);
 
-    if (bFinished)
+    if (bFinished && nullptr != m_pListener)
     {
-        const CHARACTER_ACTION_POLICY* pPolicy = Find_ActionPolicy(m_eCurrentAction);
+        NOTIFY_EVENT Event{};
+        Event.eType = NOTIFY_TYPE::ACTION_FINISHED;
+        Event.iPayload = ETOUI(m_eCurrentAction);
+        Event.pData = nullptr;
 
-        if (nullptr != pPolicy && true == pPolicy->bAutoReturn)
-            Play_Action(pPolicy->eReturnAction);
+        m_pListener->OnNotify(Event);
     }
 }
 
