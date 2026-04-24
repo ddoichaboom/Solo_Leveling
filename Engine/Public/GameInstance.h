@@ -73,7 +73,11 @@ public:
 
 #pragma region INPUT_DEVICE
 	_byte						Get_KeyState(_ubyte byKeyID);
+	_bool						Get_KeyDown(_ubyte byKeyID);
+	_bool						Get_KeyUp(_ubyte byKeyID);
 	_byte						Get_MouseBtnState(MOUSEBTN eBtn);
+	_bool						Get_MouseBtnDown(MOUSEBTN eBtn);
+	_bool						Get_MouseBtnUp(MOUSEBTN eBtn);
 	_long						Get_MouseDelta(MOUSEAXIS eAxis);
 	static void					Process_RawInput(LPARAM lParam);
 #pragma endregion

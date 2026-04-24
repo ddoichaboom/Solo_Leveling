@@ -61,6 +61,28 @@ namespace Client
 		_uint							iNumPolicies = {};
 	} MONSTER_ANIM_TABLE_DESC;
 
+	typedef struct tagPlayerRawInputFrame
+	{
+		_bool bMoveForwardHeld = { false };
+		_bool bMoveBackwardHeld = { false };
+		_bool bMoveLeftHeld = { false };
+		_bool bMoveRightHeld = { false };
+
+		_bool bRButtonHeld = { false };
+
+		_long lMouseDeltaX = {};
+		_long lMouseDeltaY = {};
+
+	}PLAYER_RAW_INPUT_FRAME;
+
+	typedef struct tagPlayerIntentFrame
+	{
+		_float2 vMoveAxis = {};
+		_long	lLookDeltaX = {};
+		_bool	bHasMoveIntent = { false };
+
+	}PLAYER_INTENT_FRAME;
+
 }
 
 #endif // Client_Struct_h

@@ -6,17 +6,12 @@
 NS_BEGIN(Client)
 
 class CBody_Player;
+class CIntentResolver;
+class CPlayer_StateMachine;
 
 class CLIENT_DLL CPlayer final : public CContainerObject
 {
 public:
-    // юс╫ц
-    enum PLAYER_STATE {
-        IDLE    = 0x00000001,
-        RUN     = 0x00000002,
-        ATTACK  = 0x00000004,
-    };
-
     typedef struct tagPlayerDesc : public CGameObject::GAMEOBJECT_DESC
     {
 
@@ -37,13 +32,19 @@ public:
 
 public:
     void                    Apply_RootMotion(const _float3& vLocalDelta);
+    void                    Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial);
 
 private:
-    _uint                   m_iState = { PLAYER_STATE::IDLE };
+    _uint                   m_iState = {};
     CBody_Player*           m_pBody = { nullptr };
+    CIntentResolver*        m_pIntentResolver = { nullptr };
+    CPlayer_StateMachine*   m_pStateMachine = { nullptr };
 
 private:
     HRESULT                 Ready_PartObjects();
+    HRESULT                 Ready_StateMachine();
+    void                    Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw);
+    void                    Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDelta);
 
 public:
     static CPlayer*         Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

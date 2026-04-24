@@ -194,6 +194,17 @@ namespace Engine
 		ANIMATION_DESC*		pAnimations = { nullptr };
 
 	}MODEL_DESC;
+
+	typedef struct tagActionPolicyBase
+	{
+		unsigned int	iAction = {};
+		unsigned int	iPriority = {};
+		bool			bAutoReturn = { false };
+		unsigned int	iReturnAction = {};
+		float			fCooldown = {};
+		float			fEnterBlendTime = {};
+
+	}ACTION_POLICY_BASE;
 }
 
 #endif // Engine_Struct_h__

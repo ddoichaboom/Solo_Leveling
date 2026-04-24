@@ -47,6 +47,9 @@ public:
     virtual void                        Late_Update(_float fTimeDelta) override;
     virtual HRESULT                     Render() override;
 
+public:
+    HRESULT                             Play_Action(CHARACTER_ACTION eAction);
+
 private:
     CShader*                            m_pShaderCom = { nullptr };
     CModel*                             m_pModelCom = { nullptr };
@@ -69,7 +72,6 @@ private:
 
     HRESULT                             Ready_AnimationTable();
     HRESULT                             Register_AnimationClips();
-    HRESULT                             Play_Action(CHARACTER_ACTION eAction);
 
     _bool                               Has_Action(CHARACTER_ACTION eAction, CHARACTER_WEAPON_STATE eWeapon) const;
     _uint64                             Resolve_ActionKey(CHARACTER_ACTION eAction) const;

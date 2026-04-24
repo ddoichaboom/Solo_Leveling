@@ -115,6 +115,9 @@ void CInput_Device::Process_Input(LPARAM lParam)
 
 void CInput_Device::Update()
 {
+	memcpy(m_byPrevKeyState, m_byKeyState, sizeof(m_byKeyState));
+	memcpy(m_byPrevMouseBtnState, m_byMouseBtnState, sizeof(m_byMouseBtnState));
+
 	// 누적된 Raw Input 데이터를 프레임 데이터로 복사
 	memcpy(m_byKeyState, s_byRawKeyState, sizeof(m_byKeyState));
 	memcpy(m_byMouseBtnState, s_byRawMouseBtn, sizeof(m_byMouseBtnState));

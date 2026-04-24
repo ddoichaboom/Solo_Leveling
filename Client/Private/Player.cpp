@@ -3,6 +3,8 @@
 #include "Body_Player.h"
 #include "Weapon.h"
 #include "Transform_3D.h"
+#include "IntentResolver.h"
+#include "Player_StateMachine.h"
 
 CPlayer::CPlayer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CContainerObject{ pDevice, pContext }
@@ -38,6 +40,13 @@ HRESULT CPlayer::Initialize(void* pArg)
 	if (FAILED(Ready_PartObjects()))
 		return E_FAIL;
 
+	m_pIntentResolver = CIntentResolver::Create();
+	if (nullptr == m_pIntentResolver)
+		return E_FAIL;
+
+	if (FAILED(Ready_StateMachine()))
+		return E_FAIL;
+
 	return S_OK;
 }
 
@@ -52,6 +61,20 @@ void CPlayer::Priority_Update(_float fTimeDelta)
 
 void CPlayer::Update(_float fTimeDelta)
 {
+	PLAYER_RAW_INPUT_FRAME Raw{};
+	PLAYER_INTENT_FRAME Intent{};
+
+	Gather_RawInput(&Raw);
+
+	if (nullptr != m_pIntentResolver)
+		m_pIntentResolver->Resolve(Raw, &Intent);
+
+	if (nullptr != m_pStateMachine)
+	{
+		m_pStateMachine->Update_LocoMotion(Intent);
+		m_pStateMachine->Update(fTimeDelta);
+	}
+
 	for (auto& Pair : m_PartObjects)
 	{
 		if (nullptr != Pair.second)
@@ -61,23 +84,7 @@ void CPlayer::Update(_float fTimeDelta)
 	if (nullptr != m_pBody)
 		Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
 
-	// TEMP: Intent 레이어 없이 키->Transform 직결. Step 3에서 Intent->Action 경로로 교체.
-	// 주의: Root Motion 클립(Dash/BackDash) 재생 중 WASD 를 누르면 두 delta 가 동시 누적됨.
-	//       스모크 단계에서는 IDLE 유지 상태로만 WASD 테스트.
-	// 임시 테스트용
-	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
-
-	if (!(m_pGameInstance->Get_MouseBtnState(MOUSEBTN::RBUTTON) & 0x80))
-	{
-		if (m_pGameInstance->Get_KeyState('W') & 0x80)
-			pTransform->Go_Straight(fTimeDelta);
-		if (m_pGameInstance->Get_KeyState('S') & 0x80)
-			pTransform->Go_Backward(fTimeDelta);
-		if (m_pGameInstance->Get_KeyState('A') & 0x80)
-			pTransform->Go_Left(fTimeDelta);
-		if (m_pGameInstance->Get_KeyState('D') & 0x80)
-			pTransform->Go_Right(fTimeDelta);
-	}
+	Apply_MoveIntent(Intent, fTimeDelta);
 }
 
 void CPlayer::Late_Update(_float fTimeDelta)
@@ -116,6 +123,14 @@ void CPlayer::Apply_RootMotion(const _float3& vLocalDelta)
 	m_pTransformCom->Set_State(STATE::POSITION, vPos);
 }
 
+void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial)
+{
+	if (nullptr == m_pBody)
+		return;
+
+	m_pBody->Play_Action(eTo);
+}
+
 HRESULT CPlayer::Ready_PartObjects()
 {
 	// Body 
@@ -145,6 +160,56 @@ HRESULT CPlayer::Ready_PartObjects()
 		return E_FAIL;
 
 	return S_OK;
+}
+
+HRESULT CPlayer::Ready_StateMachine()
+{
+	const CHARACTER_ANIM_TABLE_DESC* pAnimTable = Find_CharacterAnimTable(CHARACTER_ANIM_SET::SUNGJINWOO_ERANK);
+	if (nullptr == pAnimTable)
+		return E_FAIL;
+
+	m_pStateMachine = CPlayer_StateMachine::Create(pAnimTable);
+	if (nullptr == m_pStateMachine)
+		return E_FAIL;
+
+	m_pStateMachine->Bind_Owner(this);
+
+	if (false == m_pStateMachine->Enter_InitialState(CHARACTER_ACTION::IDLE))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+void CPlayer::Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw)
+{
+	if (nullptr == pOutRaw)
+		return;
+
+	pOutRaw->bRButtonHeld = (m_pGameInstance->Get_MouseBtnState(MOUSEBTN::RBUTTON) & 0x80) != 0;
+	if (false == pOutRaw->bRButtonHeld)
+	{
+		pOutRaw->bMoveForwardHeld = (m_pGameInstance->Get_KeyState('W') & 0x80) != 0;
+		pOutRaw->bMoveBackwardHeld = (m_pGameInstance->Get_KeyState('S') & 0x80) != 0;
+		pOutRaw->bMoveLeftHeld = (m_pGameInstance->Get_KeyState('A') & 0x80) != 0;
+		pOutRaw->bMoveRightHeld = (m_pGameInstance->Get_KeyState('D') & 0x80) != 0;
+	}
+
+	pOutRaw->lMouseDeltaX = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::X);
+	pOutRaw->lMouseDeltaY = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::Y);
+}
+
+void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDelta)
+{
+	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
+
+	if (Intent.vMoveAxis.y > 0.f)
+		pTransform->Go_Straight(fTimeDelta);
+	if (Intent.vMoveAxis.y < 0.f)
+		pTransform->Go_Backward(fTimeDelta);
+	if (Intent.vMoveAxis.x < 0.f)
+		pTransform->Go_Left(fTimeDelta);
+	if (Intent.vMoveAxis.x > 0.f)
+		pTransform->Go_Right(fTimeDelta);
 }
 
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -178,5 +243,7 @@ void CPlayer::Free()
 {
 	__super::Free();
 
+	Safe_Release(m_pStateMachine);
+	Safe_Release(m_pIntentResolver);
 	Safe_Release(m_pBody);
 }

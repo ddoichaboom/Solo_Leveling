@@ -118,13 +118,6 @@ void CBody_Player::Update(_float fTimeDelta)
         return;
     }
 
-    // TEMP: Step 3에서 CPlayer::Update 의 Intent 레이어로 이관 예정.
-    //       현재는 Root Motion 스모크 검증용으로 여기서 직접 Action 호출.
-    if (m_pGameInstance->Get_KeyState('1') & 0x80)
-        Play_Action(CHARACTER_ACTION::DASH);
-    if (m_pGameInstance->Get_KeyState('2') & 0x80)
-        Play_Action(CHARACTER_ACTION::BACK_DASH);
-
     _bool bFinished = m_pAnimController->Update(fTimeDelta);
 
     if (bFinished)

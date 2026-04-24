@@ -73,6 +73,18 @@
     <Filter Include="97. Tables\Monster">
       <UniqueIdentifier>{5745b8f9-3e35-4c74-9db6-37b30b4d096a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\Player\IntentResolver">
+      <UniqueIdentifier>{51b15c93-2312-43ee-bbd4-c3fb970a1e40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="96. StateMachine">
+      <UniqueIdentifier>{0f7a8134-2658-4a29-9b3c-8c6e993f6123}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="96. StateMachine\Player">
+      <UniqueIdentifier>{0a8fcbc1-b3a1-4c09-ad77-b1d56efc745b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="96. StateMachine\Monster">
+      <UniqueIdentifier>{fb9f39fa-13da-4750-acb4-b4b4037448d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -135,6 +147,12 @@
     <ClInclude Include="..\Public\Client_Func.h">
       <Filter>99. Defines</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\IntentResolver.h">
+      <Filter>02. GameObject\Player\IntentResolver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Player_StateMachine.h">
+      <Filter>96. StateMachine\Player</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -184,6 +202,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\MonsterAnimTable.cpp">
       <Filter>97. Tables\Monster</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\IntentResolver.cpp">
+      <Filter>02. GameObject\Player\IntentResolver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Player_StateMachine.cpp">
+      <Filter>96. StateMachine\Player</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

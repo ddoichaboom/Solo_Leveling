@@ -245,9 +245,29 @@ _byte			CGameInstance::Get_KeyState(_ubyte byKeyID)
 	return m_pInput_Device->Get_KeyState(byKeyID);
 }
 
+_bool			CGameInstance::Get_KeyDown(_ubyte byKeyID)
+{
+	return m_pInput_Device->Get_KeyDown(byKeyID);
+}
+
+_bool			CGameInstance::Get_KeyUp(_ubyte byKeyID)
+{
+	return m_pInput_Device->Get_KeyUp(byKeyID);
+}
+
 _byte			CGameInstance::Get_MouseBtnState(MOUSEBTN eBtn)
 {
 	return m_pInput_Device->Get_MouseBtnState(eBtn);
+}
+
+_bool			CGameInstance::Get_MouseBtnDown(MOUSEBTN eBtn)
+{
+	return m_pInput_Device->Get_MouseBtnDown(eBtn);
+}
+
+_bool			CGameInstance::Get_MouseBtnUp(MOUSEBTN eBtn)
+{
+	return m_pInput_Device->Get_MouseBtnUp(eBtn);
 }
 
 _long			CGameInstance::Get_MouseDelta(MOUSEAXIS eAxis)

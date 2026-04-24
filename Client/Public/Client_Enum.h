@@ -8,7 +8,6 @@ namespace Client
 
 	enum class CHARACTER_ACTION : unsigned int
 	{
-
 		// 기본 이동 (WASD)
 		IDLE,
 		WALK,	

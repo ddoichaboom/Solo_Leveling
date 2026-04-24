@@ -150,9 +150,9 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 			TEXT("../../Resources/Models/weapons/Weapon01/SungJinWoo_ERank_Weapon01.bin")))))
 		return E_FAIL;
 
-	// Prototype_Component_Model_Map_Lobby_Static
+	// Prototype_Component_Model_Map_Hapjung_Station_1F_Static
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
-		TEXT("Prototype_Component_Model_Map_Lobby_Static"),
+		TEXT("Prototype_Component_Model_Map_Hapjung_Station_1F_Static"),
 		CModel::Create(m_pDevice, m_pContext,
 			TEXT("../../Resources/Models/map/Hapjung_Station_1F/Hapjung_Station_1F.bin")))))
 		return E_FAIL;

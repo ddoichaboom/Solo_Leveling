@@ -124,6 +124,9 @@
     <Filter Include="07. Component\AnimController">
       <UniqueIdentifier>{74dc34b9-95cd-4f52-b08c-c83a84b7337a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="10. StateMachine">
+      <UniqueIdentifier>{930eecb1-69f8-4b69-b03e-2461de18f010}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -233,6 +236,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\AnimController.cpp">
       <Filter>07. Component\AnimController</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\StateMachine.cpp">
+      <Filter>10. StateMachine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -361,6 +367,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\AnimController.h">
       <Filter>07. Component\AnimController</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\StateMachine.h">
+      <Filter>10. StateMachine</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
