@@ -79,6 +79,7 @@ namespace Client
 	typedef struct tagPlayerIntentFrame
 	{
 		_float2 vMoveAxis = {};
+		_float3 vMoveDirWorld = {};
 		_long	lLookDeltaX = {};
 		_bool	bHasMoveIntent = { false };
 

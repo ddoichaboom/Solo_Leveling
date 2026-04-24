@@ -70,7 +70,7 @@ HRESULT CSpringArm::Initialize(void* pArg)
 
 	// Runtime state 초기화
 	_vector qInit = XMQuaternionRotationRollPitchYaw(
-		pDesc->fInitialPitch, pDesc->fInitialPitch, 0.f);
+		pDesc->fInitialPitch, pDesc->fInitialYaw, 0.f);
 	XMStoreFloat4(&m_qOrientation, qInit);
 
 	m_fCurrentDistance = m_fIdealDistance;		// 시작 시 충돌 없다고 가정
@@ -101,7 +101,7 @@ void CSpringArm::Update_Rotation(_long lMouseDX, _long lMouseDY)
 		_vector vLocalRight = XMVector3Rotate(XMVectorSet(1.f, 0.f, 0.f, 0.f), q);
 		_vector qPitch = XMQuaternionRotationAxis(vLocalRight, fPitchDelta);
 
-		_vector qTentative = XMQuaternionMultiply(q, qPitch);
+		_vector qTentative = XMQuaternionMultiply(qPitch, q);
 
 		// Pitch 추출
 		_vector vForward = XMVector3Rotate(vDefaultForward, qTentative);
