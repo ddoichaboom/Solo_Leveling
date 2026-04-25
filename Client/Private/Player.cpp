@@ -68,8 +68,10 @@ void CPlayer::Update(_float fTimeDelta)
 
 	Gather_RawInput(&Raw);
 
+	const _float fCameraYaw = Query_CameraYaw();
+
 	if (nullptr != m_pIntentResolver)
-		m_pIntentResolver->Resolve(Raw, &Intent);
+		m_pIntentResolver->Resolve(Raw, fCameraYaw, &Intent);
 
 	if (nullptr != m_pStateMachine)
 	{
@@ -243,16 +245,72 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 			return;
 	}
 
+	if (false == Intent.bHasMoveIntent)
+		return;
+
+
 	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
 
-	if (Intent.vMoveAxis.y > 0.f)
-		pTransform->Go_Straight(fTimeDelta);
-	if (Intent.vMoveAxis.y < 0.f)
-		pTransform->Go_Backward(fTimeDelta);
-	if (Intent.vMoveAxis.x < 0.f)
-		pTransform->Go_Left(fTimeDelta);
-	if (Intent.vMoveAxis.x > 0.f)
-		pTransform->Go_Right(fTimeDelta);
+	// (1) 목표 Yaw / 현재 Yaw
+	const _float fTargetYaw = atan2f(Intent.vMoveDirWorld.x, Intent.vMoveDirWorld.z);
+
+	_vector vLook = pTransform->Get_State(STATE::LOOK);
+	_float fLookX = XMVectorGetX(vLook);
+	_float fLookZ = XMVectorGetZ(vLook);
+	const _float fCurrentYaw = atan2f(fLookX, fLookZ);
+
+	// 각도차 wrap 
+	_float fDiff = fTargetYaw - fCurrentYaw;
+	while (fDiff > XM_PI) 
+		fDiff -= XM_2PI;
+	while (fDiff < -XM_PI) 
+		fDiff += XM_2PI;
+
+	// (3) 회전 속도 한계 내 클램프
+	const _float fMaxStep = pTransform->Get_RotationPerSec() * fTimeDelta;
+	if (fDiff > fMaxStep) fDiff = fMaxStep;
+	if (fDiff < -fMaxStep) fDiff = -fMaxStep;
+
+	const _float fNewYaw = fCurrentYaw + fDiff;
+
+	// (4) 스케일 보존하며 RIGHT/UP/LOOK 재구성
+	_vector vRight0 = pTransform->Get_State(STATE::RIGHT);
+	_vector vUp0 = pTransform->Get_State(STATE::UP);
+	_vector vLook0 = pTransform->Get_State(STATE::LOOK);
+
+	const _float fScaleX = XMVectorGetX(XMVector3Length(vRight0));
+	const _float fScaleY = XMVectorGetX(XMVector3Length(vUp0));
+	const _float fScaleZ = XMVectorGetX(XMVector3Length(vLook0));
+
+	const _float fSin = sinf(fNewYaw);
+	const _float fCos = cosf(fNewYaw);
+
+	_vector vNewRight = XMVectorScale(XMVectorSet(fCos, 0.f, -fSin, 0.f), fScaleX);
+	_vector vNewUp = XMVectorScale(XMVectorSet(0.f, 1.f, 0.f, 0.f), fScaleY);
+	_vector vNewLook = XMVectorScale(XMVectorSet(fSin, 0.f, fCos, 0.f), fScaleZ);
+
+	pTransform->Set_State(STATE::RIGHT, vNewRight);
+	pTransform->Set_State(STATE::UP, vNewUp);
+	pTransform->Set_State(STATE::LOOK, vNewLook);
+
+	// (5) Look 방향 으로 전진 / 속도는 Base(초기 속도) x Coeff
+	const _float fSpeed = pTransform->Get_SpeedPerSec() * m_fSpeedCoeff;
+
+	_vector vDir = XMVector3Normalize(XMVectorSet(fSin, 0.f, fCos, 0.f));
+	_vector vPos = pTransform->Get_State(STATE::POSITION);
+	vPos = XMVectorAdd(vPos, XMVectorScale(vDir, fSpeed * fTimeDelta));
+	pTransform->Set_State(STATE::POSITION, vPos);
+}
+
+_float CPlayer::Query_CameraYaw() const
+{
+	// VIEW 회전부 = 카메라 World 회전부의 Transpose
+	// 카메라 Look (월드) = (View._13, View._23, View._33)
+	const _float4x4* pView = m_pGameInstance->Get_Transform(D3DTS::VIEW);
+	if (nullptr == pView)
+		return 0.f;
+
+	return atan2f(pView->_13, pView->_33);
 }
 
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

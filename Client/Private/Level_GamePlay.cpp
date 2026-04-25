@@ -133,7 +133,7 @@ HRESULT CLevel_GamePlay::Ready_Layer_Player(const _wstring& strLayerTag)
 	Desc.vRotationDeg		= _float3(0.f, 0.f, 0.f);
 	Desc.vScale				= _float3(1.f, 1.f, 1.f);
 	Desc.fSpeedPerSec		= 10.f;
-	Desc.fRotationPerSec	= XMConvertToRadians(180.f);
+	Desc.fRotationPerSec	= XMConvertToRadians(720.f);
 
 	// Prototype_GameObject_Player
 	if (FAILED(m_pGameInstance->Add_GameObject(

@@ -69,6 +69,8 @@ public:
 		m_WorldMatrix = mat;
 	}
 
+	_float					Get_SpeedPerSec() const { return m_fSpeedPerSec; }
+	_float					Get_RotationPerSec() const { return m_fRotationPerSec; }
 
 public:
 	virtual HRESULT			Initialize_Prototype();

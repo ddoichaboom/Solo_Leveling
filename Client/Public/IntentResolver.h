@@ -12,7 +12,7 @@ public:
 	virtual ~CIntentResolver() = default;
 
 public:
-	void Resolve(const PLAYER_RAW_INPUT_FRAME& Raw, PLAYER_INTENT_FRAME* pOutIntent);
+	void Resolve(const PLAYER_RAW_INPUT_FRAME& Raw, _float fCameraYaw, PLAYER_INTENT_FRAME* pOutIntent);
 
 private:
 	_float Compute_Axis(_bool bNegativeHeld, _bool bPositiveHeld) const;

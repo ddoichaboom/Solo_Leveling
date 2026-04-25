@@ -111,6 +111,21 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
         static_cast<CHARACTER_ACTION>(iFrom),
         static_cast<CHARACTER_ACTION>(iTo),
         bInitial);
+
+    switch (static_cast<CHARACTER_ACTION>(iTo))
+    {
+    case CHARACTER_ACTION::WALK:
+        m_pOwner->Set_SpeedCoeff(1.0f);
+        break;
+    case CHARACTER_ACTION::RUN:
+        m_pOwner->Set_SpeedCoeff(1.8f);
+        break;
+    case CHARACTER_ACTION::IDLE:
+        m_pOwner->Set_SpeedCoeff(1.0f);
+        break;
+    default:
+        break;
+    }
 }
 
 CPlayer_StateMachine* CPlayer_StateMachine::Create(const CHARACTER_ANIM_TABLE_DESC* pAnimTable)
