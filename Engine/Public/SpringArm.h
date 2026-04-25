@@ -57,7 +57,13 @@ private:
 	_float				m_fPitchMax = {};
 	_float				m_fMouseSensor = {};
 
+	// 회전의 진짜 상태 - 누적은 여기로만
+	_float				m_fYaw = { 0.f };
+	_float				m_fPitch = { 0.f };
+
+	// m_fYaw / m_fPitch 로 부터 매 프레임 재구성되는 쿼터니언
 	_float4				m_qOrientation = {};
+
 	_float				m_fCurrentDistance = {};
 
 public:

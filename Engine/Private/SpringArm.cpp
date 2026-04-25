@@ -68,54 +68,64 @@ HRESULT CSpringArm::Initialize(void* pArg)
 	m_fPitchMax				= pDesc->fPitchMax;
 	m_fMouseSensor			= pDesc->fMouseSensor;
 
-	// Runtime state 초기화
-	_vector qInit = XMQuaternionRotationRollPitchYaw(
-		pDesc->fInitialPitch, pDesc->fInitialYaw, 0.f);
-	XMStoreFloat4(&m_qOrientation, qInit);
+	m_fYaw					= pDesc->fInitialYaw;
+	m_fPitch				= pDesc->fInitialPitch;
 
-	m_fCurrentDistance = m_fIdealDistance;		// 시작 시 충돌 없다고 가정
+	{
+		_vector qYaw = XMQuaternionRotationAxis(XMVectorSet(0.f, 1.f, 0.f, 0.f), m_fYaw);
+		_vector qPitch = XMQuaternionRotationAxis(XMVectorSet(1.f, 0.f, 0.f, 0.f), m_fPitch);
+		_vector q = XMQuaternionMultiply(qYaw, qPitch);
+		XMStoreFloat4(&m_qOrientation, q);
+	}
+
+	m_fCurrentDistance		= m_fIdealDistance;
 
 	return S_OK;
 }
 
 void CSpringArm::Update_Rotation(_long lMouseDX, _long lMouseDY)
 {
-	const _vector vWorldUp			= XMVectorSet(0.f, 1.f, 0.f, 0.f);
-	const _vector vDefaultForward	= XMVectorSet(0.f, 0.f, 1.f, 0.f);
+	// 1) 누적은 스칼라로만
+	// 쿼터니언 누적 오차 없음
+	m_fYaw += lMouseDX * m_fMouseSensor;
+	m_fPitch += lMouseDY * m_fMouseSensor;
 
-	const _float fYawDelta = lMouseDX * m_fMouseSensor;
-	const _float fPitchDelta = lMouseDY * m_fMouseSensor;		// 아래로 움직일 때 내려다보게
+	if (m_fYaw > XM_PI) 
+		m_fYaw -= XM_2PI;
+	if (m_fYaw < -XM_PI) 
+		m_fYaw += XM_2PI;
 
-	_vector q = XMLoadFloat4(&m_qOrientation);
+	// 2) Pitch 클램프는 스칼라 단계에서 한 줄로 
+	// asinf 역산 불필요
+	if (m_fPitch < m_fPitchMin)
+		m_fPitch = m_fPitchMin;
+	if (m_fPitch > m_fPitchMax)
+		m_fPitch = m_fPitchMax;
 
-	// 1) Yaw 적용 - World Up 축, 항상 허용
-	if (0.f != fYawDelta)
-	{
-		_vector qYaw = XMQuaternionRotationAxis(vWorldUp, fYawDelta);
-		q = XMQuaternionMultiply(qYaw, q);
-	}
+	// 3) 매 프레임 처음부터 재구성 - 이전 q를 읽지 않는다.
+	_vector qYaw = XMQuaternionRotationAxis(XMVectorSet(0.f, 1.f, 0.f, 0.f), m_fYaw);
+	_vector qPitch = XMQuaternionRotationAxis(XMVectorSet(1.f, 0.f, 0.f, 0.f), m_fPitch);
+	_vector q = XMQuaternionMultiply(qYaw, qPitch);
 
-	// 2) Pitch  
-	if (0.f != fPitchDelta)
-	{
-		_vector vLocalRight = XMVector3Rotate(XMVectorSet(1.f, 0.f, 0.f, 0.f), q);
-		_vector qPitch = XMQuaternionRotationAxis(vLocalRight, fPitchDelta);
+	// 4) 캐시에 저장 
+	XMStoreFloat4(&m_qOrientation, XMQuaternionNormalize(q));
 
-		_vector qTentative = XMQuaternionMultiply(qPitch, q);
+	//{
+	//	static _float fLastYaw = 0.f;
+	//	static _float fLastPitch = 0.f;
 
-		// Pitch 추출
-		_vector vForward = XMVector3Rotate(vDefaultForward, qTentative);
-		_float fPitchNow = asinf(XMVectorGetY(vForward));
+	//	if (fabsf(m_fYaw - fLastYaw) > 0.001f || fabsf(m_fPitch - fLastPitch) > 0.001f)
+	//	{
+	//		wchar_t szBuf[256];
+	//		swprintf_s(szBuf, L"[SpringArm] Yaw=%.3f  Pitch=%.3f  qXYZW=(%.3f, %.3f, %.3f, %.3f)\n",
+	//			m_fYaw, m_fPitch,
+	//			m_qOrientation.x, m_qOrientation.y, m_qOrientation.z, m_qOrientation.w);
+	//		OutputDebugStringW(szBuf);
 
-		if (fPitchNow >= m_fPitchMin && fPitchNow <= m_fPitchMax)
-			q = qTentative;
-
-		// 범위 밖이면 Pitch 델타 버림
-	}
-
-	// 3) Drift 방지 
-	q = XMQuaternionNormalize(q);
-	XMStoreFloat4(&m_qOrientation, q);
+	//		fLastYaw = m_fYaw;
+	//		fLastPitch = m_fPitch;
+	//	}
+	//}
 }
 
 void CSpringArm::Update_Arm(_float fTimeDelta)

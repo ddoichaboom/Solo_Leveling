@@ -19,8 +19,8 @@ public:
 		_float				fIdealDistance     = { 5.f };		
 		_float				fInitialYaw = {0.f};
 		_float				fInitialPitch = {-0.3f};
-		_float				fPitchMin = {-0.9f};
-		_float				fPitchMax = {0.6f};
+		_float				fPitchMin = {-1.1f};
+		_float				fPitchMax = {1.0f};
 		_float				fMouseSensor = {0.003f};
 		_float				fArmLerpSpeed = {8.f};
 	}CAMERA_FOLLOW_DESC;

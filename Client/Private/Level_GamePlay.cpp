@@ -92,8 +92,8 @@ HRESULT CLevel_GamePlay::Ready_Layer_Camera(const _wstring& strLayerTag)
 	CameraDesc.fIdealDistance = 5.f;
 	CameraDesc.fInitialYaw = 0.f;
 	CameraDesc.fInitialPitch = -0.3f;
-	CameraDesc.fPitchMin = -0.9f;
-	CameraDesc.fPitchMax = 0.6f;
+	CameraDesc.fPitchMin = -1.1f;
+	CameraDesc.fPitchMax = 1.0f;
 	CameraDesc.fMouseSensor = 0.003f;
 	CameraDesc.fArmLerpSpeed = 8.f;
 
