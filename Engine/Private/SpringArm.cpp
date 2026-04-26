@@ -74,7 +74,7 @@ HRESULT CSpringArm::Initialize(void* pArg)
 	{
 		_vector qYaw = XMQuaternionRotationAxis(XMVectorSet(0.f, 1.f, 0.f, 0.f), m_fYaw);
 		_vector qPitch = XMQuaternionRotationAxis(XMVectorSet(1.f, 0.f, 0.f, 0.f), m_fPitch);
-		_vector q = XMQuaternionMultiply(qYaw, qPitch);
+		_vector q = XMQuaternionMultiply(qPitch, qYaw);
 		XMStoreFloat4(&m_qOrientation, q);
 	}
 
@@ -105,27 +105,10 @@ void CSpringArm::Update_Rotation(_long lMouseDX, _long lMouseDY)
 	// 3) 매 프레임 처음부터 재구성 - 이전 q를 읽지 않는다.
 	_vector qYaw = XMQuaternionRotationAxis(XMVectorSet(0.f, 1.f, 0.f, 0.f), m_fYaw);
 	_vector qPitch = XMQuaternionRotationAxis(XMVectorSet(1.f, 0.f, 0.f, 0.f), m_fPitch);
-	_vector q = XMQuaternionMultiply(qYaw, qPitch);
+	_vector q = XMQuaternionMultiply(qPitch, qYaw);
 
 	// 4) 캐시에 저장 
 	XMStoreFloat4(&m_qOrientation, XMQuaternionNormalize(q));
-
-	//{
-	//	static _float fLastYaw = 0.f;
-	//	static _float fLastPitch = 0.f;
-
-	//	if (fabsf(m_fYaw - fLastYaw) > 0.001f || fabsf(m_fPitch - fLastPitch) > 0.001f)
-	//	{
-	//		wchar_t szBuf[256];
-	//		swprintf_s(szBuf, L"[SpringArm] Yaw=%.3f  Pitch=%.3f  qXYZW=(%.3f, %.3f, %.3f, %.3f)\n",
-	//			m_fYaw, m_fPitch,
-	//			m_qOrientation.x, m_qOrientation.y, m_qOrientation.z, m_qOrientation.w);
-	//		OutputDebugStringW(szBuf);
-
-	//		fLastYaw = m_fYaw;
-	//		fLastPitch = m_fPitch;
-	//	}
-	//}
 }
 
 void CSpringArm::Update_Arm(_float fTimeDelta)

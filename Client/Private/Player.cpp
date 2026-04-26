@@ -135,6 +135,15 @@ void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION e
 	m_pBody->Play_Action(eTo);
 }
 
+void CPlayer::Face_DirectionImmediately(const _float3& vDirWorld)
+{
+	if (nullptr == m_pTransformCom)
+		return;
+
+	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
+	pTransform->Rotate_Toward_XZ(XMLoadFloat3(&vDirWorld), XM_PI);
+}
+
 _bool CPlayer::Consume_DashCharge()
 {
 	if (m_iDashChargeCurent <= 0)
@@ -251,54 +260,18 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 
 	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
 
-	// (1) 목표 Yaw / 현재 Yaw
-	const _float fTargetYaw = atan2f(Intent.vMoveDirWorld.x, Intent.vMoveDirWorld.z);
+	// 카메라 기준 이동 방향으로 부드럽게 회전
+	_vector vDirWorld = XMLoadFloat3(&Intent.vMoveDirWorld);
+	pTransform->Rotate_Toward_XZ(vDirWorld, pTransform->Get_RotationPerSec() * fTimeDelta);
 
-	_vector vLook = pTransform->Get_State(STATE::LOOK);
-	_float fLookX = XMVectorGetX(vLook);
-	_float fLookZ = XMVectorGetZ(vLook);
-	const _float fCurrentYaw = atan2f(fLookX, fLookZ);
+	// 회전 후 갱신된 Look 방향으로 이동
+	_vector vLookXZ = pTransform->Get_State(STATE::LOOK);
+	vLookXZ = XMVectorSetY(vLookXZ, 0.f);
+	vLookXZ = XMVector3Normalize(vLookXZ);
 
-	// 각도차 wrap 
-	_float fDiff = fTargetYaw - fCurrentYaw;
-	while (fDiff > XM_PI) 
-		fDiff -= XM_2PI;
-	while (fDiff < -XM_PI) 
-		fDiff += XM_2PI;
-
-	// (3) 회전 속도 한계 내 클램프
-	const _float fMaxStep = pTransform->Get_RotationPerSec() * fTimeDelta;
-	if (fDiff > fMaxStep) fDiff = fMaxStep;
-	if (fDiff < -fMaxStep) fDiff = -fMaxStep;
-
-	const _float fNewYaw = fCurrentYaw + fDiff;
-
-	// (4) 스케일 보존하며 RIGHT/UP/LOOK 재구성
-	_vector vRight0 = pTransform->Get_State(STATE::RIGHT);
-	_vector vUp0 = pTransform->Get_State(STATE::UP);
-	_vector vLook0 = pTransform->Get_State(STATE::LOOK);
-
-	const _float fScaleX = XMVectorGetX(XMVector3Length(vRight0));
-	const _float fScaleY = XMVectorGetX(XMVector3Length(vUp0));
-	const _float fScaleZ = XMVectorGetX(XMVector3Length(vLook0));
-
-	const _float fSin = sinf(fNewYaw);
-	const _float fCos = cosf(fNewYaw);
-
-	_vector vNewRight = XMVectorScale(XMVectorSet(fCos, 0.f, -fSin, 0.f), fScaleX);
-	_vector vNewUp = XMVectorScale(XMVectorSet(0.f, 1.f, 0.f, 0.f), fScaleY);
-	_vector vNewLook = XMVectorScale(XMVectorSet(fSin, 0.f, fCos, 0.f), fScaleZ);
-
-	pTransform->Set_State(STATE::RIGHT, vNewRight);
-	pTransform->Set_State(STATE::UP, vNewUp);
-	pTransform->Set_State(STATE::LOOK, vNewLook);
-
-	// (5) Look 방향 으로 전진 / 속도는 Base(초기 속도) x Coeff
 	const _float fSpeed = pTransform->Get_SpeedPerSec() * m_fSpeedCoeff;
-
-	_vector vDir = XMVector3Normalize(XMVectorSet(fSin, 0.f, fCos, 0.f));
 	_vector vPos = pTransform->Get_State(STATE::POSITION);
-	vPos = XMVectorAdd(vPos, XMVectorScale(vDir, fSpeed * fTimeDelta));
+	vPos = XMVectorAdd(vPos, XMVectorScale(vLookXZ, fSpeed * fTimeDelta));
 	pTransform->Set_State(STATE::POSITION, vPos);
 }
 

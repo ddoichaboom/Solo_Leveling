@@ -58,22 +58,6 @@ void CCamera_Follow::Late_Update(_float fTimeDelta)
 	// 2) SpringArm 결과를 Transform State 로 적용
 	Apply_SpringArmToTransform();
 
-	//static _float fLastYaw = 999.f;
-	//if (fabsf(m_pSpringArm->Get_Yaw() - fLastYaw) > 0.01f)
-	//{
-	//	_vector vEye = m_pSpringArm->Get_EyePosition();
-	//	_vector vTarget = m_pSpringArm->Get_TargetPoint();
-	//	_vector vLook = m_pSpringArm->Get_LookDirection();
-
-	//	wchar_t szBuf[512];
-	//	swprintf_s(szBuf, L"[Camera] Tgt=(%.2f, %.2f, %.2f)  Eye=(%.2f, %.2f, %.2f)  Look=(%.3f, %.3f, %.3f)\n",
-	//		XMVectorGetX(vTarget), XMVectorGetY(vTarget), XMVectorGetZ(vTarget),
-	//		XMVectorGetX(vEye), XMVectorGetY(vEye), XMVectorGetZ(vEye),
-	//		XMVectorGetX(vLook), XMVectorGetY(vLook), XMVectorGetZ(vLook));
-	//	OutputDebugStringW(szBuf);
-	//	fLastYaw = m_pSpringArm->Get_Yaw();
-	//}
-
 	__super::Update_PipeLine();
 }
 

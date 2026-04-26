@@ -37,6 +37,10 @@ public:
 	_vector				Get_EyePosition() const;
 	_float				Get_Yaw() const;
 
+#ifdef _DEBUG
+	_float				Get_Pitch() const { return m_fPitch; }		// 디버그 용도 
+#endif
+
 	_float				Get_CurrentDistance() const { return m_fCurrentDistance; }
 	_float				Get_IdealDistance() const { return m_fIdealDistance; }
 

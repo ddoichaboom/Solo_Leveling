@@ -37,6 +37,7 @@ public:
 public:
     void                    Apply_RootMotion(const _float3& vLocalDelta);
     void                    Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial);
+    void                    Face_DirectionImmediately(const _float3& vDirWorld);
 
 public:
     _bool                   Can_ConsumeDashCharge() const { return m_iDashChargeCurent > 0; }

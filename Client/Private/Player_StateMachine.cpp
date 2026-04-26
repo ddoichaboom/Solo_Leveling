@@ -37,9 +37,12 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
     {
         if (true == m_pOwner->Can_ConsumeDashCharge())
         {
-            const CHARACTER_ACTION eDashAction = (Intent.vMoveAxis.y < 0.f)
+            const CHARACTER_ACTION eDashAction = (false == Intent.bHasMoveIntent)
                 ? CHARACTER_ACTION::BACK_DASH
                 : CHARACTER_ACTION::DASH;
+
+            if (CHARACTER_ACTION::DASH == eDashAction)
+                m_pOwner->Face_DirectionImmediately(Intent.vMoveDirWorld);
 
             if (true == Try_Transition(ETOUI(eDashAction)))
                 m_pOwner->Consume_DashCharge();
@@ -83,13 +86,15 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
         // (1) 기본 AutoReturn (IDLE) 수행
         __super::On_ActionFinished();
 
-        // Dash 계열 종료 + WASD 홀드 중이면 즉시 RUN
-        if ((CHARACTER_ACTION::DASH == eFinished ||
-            CHARACTER_ACTION::BACK_DASH == eFinished &&
-            true == m_bLastHasMoveIntent))
+        const _bool bDashFinished =
+            (CHARACTER_ACTION::DASH == eFinished) ||
+            (CHARACTER_ACTION::BACK_DASH == eFinished);
+
+        if (bDashFinished && true == m_bLastHasMoveIntent)
         {
             Try_Transition(ETOUI(CHARACTER_ACTION::RUN));
         }
+
         break;
     }
 

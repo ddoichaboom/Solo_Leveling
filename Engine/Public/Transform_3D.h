@@ -24,6 +24,8 @@ public:
 
     void                        LookAt(_fvector vAt);
 
+    void                        Rotate_Toward_XZ(_fvector vDirWorld, _float fMaxRadian);
+
 public:
 	static CTransform_3D*       Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 	virtual CComponent*         Clone(void* pArg) override;
