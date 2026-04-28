@@ -14,7 +14,13 @@
       "Bash(xargs ls:*)",
       "Bash(grep \"\\\\.h$\")",
       "Read(//c/Users/chaho/ddoichaboom/CPP_STUDY_3D/수업 파일/UnZips/9개월차/**)",
-      "Read(//c/Users/chaho/ddoichaboom/CPP_STUDY_3D/수업 파일/UnZips/**)"
+      "Read(//c/Users/chaho/ddoichaboom/CPP_STUDY_3D/수업 파일/UnZips/**)",
+      "Bash(python 명세서/_tmp_slmd_dump.py)",
+      "Bash(python 명세서/_tmp_bone_tree.py)",
+      "Bash(python 명세서/_tmp_bone_tree2.py)",
+      "Bash(python 명세서/_tmp_anim_dump.py)",
+      "Bash(python \"명세서/_tools/parse_slmd.py\" \"Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin\")",
+      "Bash(PYTHONIOENCODING=utf-8 python \"명세서/_tools/find_bones.py\" \"Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin\")"
     ]
   }
 }

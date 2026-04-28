@@ -303,24 +303,24 @@ HRESULT CEditorApp::Ready_TestScene()
 	if (FAILED(m_pGameInstance->Change_Level(iLevel, CLevel_Editor::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
-	// (2) 컴포넌트 프로토타입
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Texture_Terrain"),
-		CTexture::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Tile0.jpg"), 1))))
-		return E_FAIL;
+	//// (2) 컴포넌트 프로토타입
+	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Texture_Terrain"),
+	//	CTexture::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Tile0.jpg"), 1))))
+	//	return E_FAIL;
 
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Shader_VtxNorTex"),
-		CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxNorTex.hlsl"),
-			VTXNORTEX::Elements, VTXNORTEX::iNumElements))))
-		return E_FAIL;
+	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Shader_VtxNorTex"),
+	//	CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxNorTex.hlsl"),
+	//		VTXNORTEX::Elements, VTXNORTEX::iNumElements))))
+	//	return E_FAIL;
 
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_VIBuffer_Terrain"),
-		CVIBuffer_Terrain::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Height.bmp")))))
-		return E_FAIL;
+	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_VIBuffer_Terrain"),
+	//	CVIBuffer_Terrain::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Height.bmp")))))
+	//	return E_FAIL;
 
-	// (3) 오브젝트 프로토타입
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Terrain"),
-		CTerrain::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
+	//// (3) 오브젝트 프로토타입
+	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Terrain"),
+	//	CTerrain::Create(m_pDevice, m_pContext))))
+	//	return E_FAIL;
 
 	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Camera_Free"),
 		CCamera_Free::Create(m_pDevice, m_pContext))))
@@ -372,9 +372,9 @@ HRESULT CEditorApp::Ready_TestScene()
 		return E_FAIL;
 
 	// (8) 모델 프로토타입 (.bin)
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_SungJinWoo"),
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_SungJinWoo_OverDrive"),
 		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/hunter/SungJinWoo_ERank/SungJinWooERank.bin")))))
+			TEXT("../../Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin")))))
 				return E_FAIL;
 	
 	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon01"),
@@ -401,12 +401,8 @@ HRESULT CEditorApp::Ready_TestScene()
 		iLevel, TEXT("Layer_Player"))))
 		return E_FAIL;
 
-	// (11) 맵 모델 프로토타입 (.bin)
-	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Map_Lobby_Static"),
-	//	CModel::Create(m_pDevice, m_pContext,
-	//		TEXT("../../Resources/Models/map/Lobby/Lobby_Static.bin")))))
-	//	return E_FAIL;
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Map_Lobby_Static"),
+
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Map_Hapjung_Station_1F_Static"),
 		CModel::Create(m_pDevice, m_pContext,
 			TEXT("../../Resources/Models/map/Hapjung_Station_1F/Hapjung_Station_1F.bin")))))
 		return E_FAIL;

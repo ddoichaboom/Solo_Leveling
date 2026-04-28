@@ -172,7 +172,7 @@ HRESULT CBody_Player::Ready_Components()
         return E_FAIL;
 
     if (FAILED(__super::Add_Component(ETOUI(LEVEL::GAMEPLAY),
-        TEXT("Prototype_Component_Model_SungJinWoo"),
+        TEXT("Prototype_Component_Model_SungJinWoo_OverDrive"),
         TEXT("Com_Model"), reinterpret_cast<CComponent**>(&m_pModelCom))))
         return E_FAIL;
 
@@ -217,7 +217,7 @@ HRESULT CBody_Player::Bind_ShaderResources()
 
 HRESULT CBody_Player::Ready_AnimationTable()
 {
-    m_pAnimTable = Find_CharacterAnimTable(m_eAnimSet);
+    m_pAnimTable = Find_CharacterAnimTable(m_eCharacterType);
 
     if (nullptr == m_pAnimTable)
         return E_FAIL;
@@ -242,16 +242,16 @@ HRESULT CBody_Player::Register_AnimationClips()
     if (nullptr == m_pAnimTable)
         return E_FAIL;
 
-    for (size_t i = 0; i < m_pAnimTable->iNumClips; i++)
+    for (size_t i = 0; i < m_pAnimTable->iNumBinds; i++)
     {
-        const CHARACTER_ANIM_BIND_DESC& Clip = m_pAnimTable->pClips[i];
+        const CHARACTER_ANIM_BIND_DESC& Bind = m_pAnimTable->pBinds[i];
 
         CAnimController::ANIM_CLIP_DESC Desc{};
-        Desc.pAnimationName = Clip.pAnimationName;
-        Desc.bRestartOnEnter = Clip.bRestartOnEnter;
+        Desc.pAnimationName = Bind.pAnimationName;
+        Desc.bRestartOnEnter = Bind.bRestartOnEnter;
 
         if (FAILED(m_pAnimController->Register_Clip(
-            Make_CharacterAnimKey(Clip.eAction, Clip.eWeapon), Desc)))
+            Make_CharacterAnimKey(Bind.eState, Bind.eAction, Bind.eWeapon), Desc)))
             return E_FAIL;
     }
 
@@ -273,28 +273,45 @@ HRESULT CBody_Player::Play_Action(CHARACTER_ACTION eAction)
     return S_OK;
 }
 
-_bool CBody_Player::Has_Action(CHARACTER_ACTION eAction, CHARACTER_WEAPON_STATE eWeapon) const
+CHARACTER_ACTION CBody_Player::Pick_RunEndAction() const
+{
+    // Foot(발) 본의 모델 로컬 Z값 비교 - 더 작은 z (뒤쪽에 위치) 쪽 발로 멈춤
+    if (nullptr == m_pModelCom)
+        return CHARACTER_ACTION::RUN_END;      // Clip Run_End에 바인딩할지 고민
+
+    const _float4x4* pLFoot = m_pModelCom->Get_BoneMatrixPtr("FX_Point_L_Foot");
+    const _float4x4* pRFoot = m_pModelCom->Get_BoneMatrixPtr("FX_Point_R_Foot");
+
+    if (nullptr == pLFoot || nullptr == pRFoot)
+        return CHARACTER_ACTION::RUN_END;
+
+    return (pLFoot->_43 < pRFoot->_43)
+        ? CHARACTER_ACTION::RUN_END_LEFT
+        : CHARACTER_ACTION::RUN_END_RIGHT;
+}
+
+const CHARACTER_ANIM_BIND_DESC* CBody_Player::Find_Bind(CHARACTER_STATE eState, CHARACTER_ACTION eAction, WEAPON_TYPE eWeapon) const
 {
     if (nullptr == m_pAnimTable)
-        return false;
+        return nullptr;
 
-    for (size_t i = 0; i < m_pAnimTable->iNumClips; i++)
+    for (size_t i = 0; i < m_pAnimTable->iNumBinds; ++i)
     {
-        const CHARACTER_ANIM_BIND_DESC& Clip = m_pAnimTable->pClips[i];
+        const CHARACTER_ANIM_BIND_DESC& Bind = m_pAnimTable->pBinds[i];
 
-        if (Clip.eAction == eAction && Clip.eWeapon == eWeapon)
-            return true;
+        if (Bind.eState == eState && Bind.eAction == eAction && Bind.eWeapon == eWeapon)
+            return &Bind;
     }
 
-    return false;
+    return nullptr;
 }
 
 _uint64 CBody_Player::Resolve_ActionKey(CHARACTER_ACTION eAction) const
 {
-    if (Has_Action(eAction, m_eWeaponState))
-        return Make_CharacterAnimKey(eAction, m_eWeaponState);
+    if (nullptr != Find_Bind(m_eCurrentState, eAction, m_eWeaponState))
+        return Make_CharacterAnimKey(m_eCurrentState, eAction, m_eWeaponState);
 
-    return Make_CharacterAnimKey(eAction, CHARACTER_WEAPON_STATE::COMMON);
+    return Make_CharacterAnimKey(m_eCurrentState, eAction, WEAPON_TYPE::DEFAULT);
 }
 
 const CHARACTER_ACTION_POLICY* CBody_Player::Find_ActionPolicy(CHARACTER_ACTION eAction) const

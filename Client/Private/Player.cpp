@@ -144,6 +144,38 @@ void CPlayer::Face_DirectionImmediately(const _float3& vDirWorld)
 	pTransform->Rotate_Toward_XZ(XMLoadFloat3(&vDirWorld), XM_PI);
 }
 
+CHARACTER_ACTION CPlayer::Pick_RunEndByFoot() const
+{
+	if (nullptr == m_pBody)
+		return CHARACTER_ACTION::RUN_END_LEFT;
+
+	return m_pBody->Pick_RunEndAction();
+}
+
+CHARACTER_ACTION CPlayer::Pick_RunFastVariant(const _float3& vMoveDirWolrd) const
+{
+	if (nullptr == m_pTransformCom)
+		return CHARACTER_ACTION::RUN_FAST;
+
+	_vector vLook = XMVector3Normalize(
+		XMVectorSetY(m_pTransformCom->Get_State(STATE::LOOK), 0.f));
+	_vector vDir = XMVector3Normalize(
+		XMVectorSetY(XMLoadFloat3(&vMoveDirWolrd), 0.f));
+	
+	// dot 으로 각도, cross.y로 좌/우 판단
+	_float fDot = XMVectorGetX(XMVector3Dot(vLook, vDir));
+	_float fCrossY = XMVectorGetY(XMVector3Cross(vLook, vDir));
+
+	constexpr _float fThresholdCos = 0.82f;
+
+	if (fDot >= fThresholdCos)
+		return CHARACTER_ACTION::RUN_FAST;
+
+	return (fCrossY > 0.f)
+		? CHARACTER_ACTION::RUN_FAST_RIGHT
+		: CHARACTER_ACTION::RUN_FAST_LEFT;
+}
+
 _bool CPlayer::Consume_DashCharge()
 {
 	if (m_iDashChargeCurent <= 0)
@@ -186,10 +218,11 @@ HRESULT CPlayer::Ready_PartObjects()
 	// Weapon 
 	CWeapon::WEAPON_DESC WeaponDesc{};
 	WeaponDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
-/*	WeaponDesc.pSocketBoneMatrix =
-		dynamic_cast<CBody_Player*>(m_PartObjects[TEXT("Body")])->Get_BoneMatrixPtr("Point_Weapon_B_Root");*/		// Socket 안되면 다른거로 교체
+
 	WeaponDesc.pSocketBoneMatrix =
 		dynamic_cast<CBody_Player*>(m_PartObjects[TEXT("Body")])->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_R");
+	//WeaponDesc.pSocketBoneMatrix =
+	//	dynamic_cast<CBody_Player*>(m_PartObjects[TEXT("Body")])->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_L");
 	
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
@@ -201,7 +234,7 @@ HRESULT CPlayer::Ready_PartObjects()
 
 HRESULT CPlayer::Ready_StateMachine()
 {
-	const CHARACTER_ANIM_TABLE_DESC* pAnimTable = Find_CharacterAnimTable(CHARACTER_ANIM_SET::SUNGJINWOO_ERANK);
+	const CHARACTER_ANIM_TABLE_DESC* pAnimTable = Find_CharacterAnimTable(CHARACTER_TYPE::SUNGJINWOO_OVERDRIVE);
 	if (nullptr == pAnimTable)
 		return E_FAIL;
 
@@ -248,7 +281,11 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 		const _bool bIsLocomotion =
 			(CHARACTER_ACTION::IDLE == eCurrent) ||
 			(CHARACTER_ACTION::WALK == eCurrent) ||
-			(CHARACTER_ACTION::RUN == eCurrent);
+			(CHARACTER_ACTION::RUN == eCurrent) ||
+			(CHARACTER_ACTION::RUN_FAST == eCurrent) ||
+			(CHARACTER_ACTION::RUN_FAST_LEFT == eCurrent) ||
+			(CHARACTER_ACTION::RUN_FAST_RIGHT == eCurrent);
+
 
 		if (false == bIsLocomotion)
 			return;

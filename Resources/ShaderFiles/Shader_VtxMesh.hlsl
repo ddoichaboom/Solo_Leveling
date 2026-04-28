@@ -86,8 +86,7 @@ PS_OUT PS_MAIN(PS_IN In)
     
     // (1) 텍스처 샘플링 (재질의 Diffuse 색상)
     vector vMtrlDiffuse = g_DiffuseTexture.Sample(LinearSampler, In.vTexcoord);;
-    if (vMtrlDiffuse.a < 0.1f)
-        discard;
+
     
     // (2) Diffuse (Lambert) + Ambient
     vector vShade = max(dot(normalize(g_vLightDir) * -1.f, In.vNormal), 0.f) + (g_vLightAmbient * g_vMtrlAmbient);

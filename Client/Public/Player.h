@@ -38,6 +38,8 @@ public:
     void                    Apply_RootMotion(const _float3& vLocalDelta);
     void                    Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial);
     void                    Face_DirectionImmediately(const _float3& vDirWorld);
+    CHARACTER_ACTION        Pick_RunEndByFoot() const;
+    CHARACTER_ACTION        Pick_RunFastVariant(const _float3& vMoveDirWolrd) const;
 
 public:
     _bool                   Can_ConsumeDashCharge() const { return m_iDashChargeCurent > 0; }

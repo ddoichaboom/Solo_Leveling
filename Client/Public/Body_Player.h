@@ -51,6 +51,7 @@ public:
 public:
     HRESULT                             Play_Action(CHARACTER_ACTION eAction);
     void                                Set_Listener(INotifyListener* pListener) { m_pListener = pListener; }
+    CHARACTER_ACTION                    Pick_RunEndAction() const;
 
 private:
     CShader*                            m_pShaderCom = { nullptr };
@@ -61,8 +62,9 @@ private:
     const _uint*                        m_pParentState = { nullptr };
     const CHARACTER_ANIM_TABLE_DESC*    m_pAnimTable = { nullptr };
 
-    CHARACTER_ANIM_SET                  m_eAnimSet = { CHARACTER_ANIM_SET::SUNGJINWOO_ERANK };
-    CHARACTER_WEAPON_STATE              m_eWeaponState = { CHARACTER_WEAPON_STATE::COMMON };
+    CHARACTER_TYPE                      m_eCharacterType = { CHARACTER_TYPE::SUNGJINWOO_OVERDRIVE };
+    CHARACTER_STATE                     m_eCurrentState = { CHARACTER_STATE::LOCOMOTION };
+    WEAPON_TYPE                         m_eWeaponState = { WEAPON_TYPE::DEFAULT };
     CHARACTER_ACTION                    m_eCurrentAction = { CHARACTER_ACTION::IDLE };
 
     _bool                               m_bPreviewMode = { false };
@@ -76,7 +78,7 @@ private:
     HRESULT                             Ready_AnimationTable();
     HRESULT                             Register_AnimationClips();
 
-    _bool                               Has_Action(CHARACTER_ACTION eAction, CHARACTER_WEAPON_STATE eWeapon) const;
+    const CHARACTER_ANIM_BIND_DESC*     Find_Bind(CHARACTER_STATE eState, CHARACTER_ACTION eAction, WEAPON_TYPE  eWeapon) const;
     _uint64                             Resolve_ActionKey(CHARACTER_ACTION eAction) const;
     const CHARACTER_ACTION_POLICY*      Find_ActionPolicy(CHARACTER_ACTION eAction) const;
 

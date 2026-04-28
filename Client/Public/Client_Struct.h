@@ -5,8 +5,9 @@ namespace Client
 {
 	typedef struct tagCharacterAnimBindDesc
 	{
+		CHARACTER_STATE				eState			= { CHARACTER_STATE::END };
 		CHARACTER_ACTION			eAction			= { CHARACTER_ACTION::END };
-		CHARACTER_WEAPON_STATE		eWeapon			= { CHARACTER_WEAPON_STATE::COMMON };
+		WEAPON_TYPE					eWeapon			= { WEAPON_TYPE::END };
 		const _char*				pAnimationName	= { nullptr };
 		_bool						bRestartOnEnter = { true };
 	}CHARACTER_ANIM_BIND_DESC;
@@ -21,12 +22,12 @@ namespace Client
 
 	typedef struct tagCharacterAnimTableDesc
 	{
-		CHARACTER_ANIM_SET					eAnimSet			= { CHARACTER_ANIM_SET::END };
+		CHARACTER_TYPE						eCharacterType		= { CHARACTER_TYPE::END };
 		const _tchar*						pModelPrototypeTag	= { nullptr };
 		const _char*						pRootBoneName		= { nullptr };
 
-		const CHARACTER_ANIM_BIND_DESC*		pClips				= { nullptr };
-		_uint								iNumClips			= {};
+		const CHARACTER_ANIM_BIND_DESC*		pBinds				= { nullptr };
+		_uint								iNumBinds			= {};
 
 		const CHARACTER_ACTION_POLICY*		pPolicies			= { nullptr };
 		_uint								iNumPolicies		= {};

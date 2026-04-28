@@ -86,8 +86,8 @@ PS_OUT PS_MAIN(PS_IN In)
     
     vector vMtrlDiffuse = g_DiffuseTexture.Sample(LinearSampler, In.vTexcoord);
     
-    if (vMtrlDiffuse.a < 0.1f)
-        discard;
+    //if (vMtrlDiffuse.a < 0.1f)
+    //    discard;
     
     /* 빛을 많이 받으면1, 안받으면0) */
     vector vShade = max(dot(normalize(g_vLightDir) * -1.f, In.vNormal), 0.f) + (g_vLightAmbient * g_vMtrlAmbient);
@@ -128,3 +128,4 @@ technique11 DefaultTechnique
         PixelShader = compile ps_5_0 PS_MAIN();
     }
 }
+
