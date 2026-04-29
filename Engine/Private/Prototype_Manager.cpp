@@ -40,7 +40,12 @@ CBase* CPrototype_Manager::Clone_Prototype(PROTOTYPE eType, _uint iLevelIndex, c
 	CBase* pInstance = { nullptr };
 
 	if (PROTOTYPE::GAMEOBJECT == eType)
-		pInstance = dynamic_cast<CGameObject*>(pPrototype)->Clone(pArg);
+	{
+		CGameObject* pGameObject = dynamic_cast<CGameObject*>(pPrototype)->Clone(pArg);
+		if (nullptr != pGameObject)
+			pGameObject->Set_PrototypeTag(strPrototypeTag);
+		pInstance = pGameObject;
+	}
 	else
 		pInstance = dynamic_cast<CComponent*>(pPrototype)->Clone(pArg);
 
@@ -56,6 +61,26 @@ void CPrototype_Manager::Clear(_uint iLevelIndex)
 		Safe_Release(Pair.second);
 
 	m_pPrototypes[iLevelIndex].clear();
+}
+
+HRESULT CPrototype_Manager::Enum_Prototypes(_uint iLevelIndex, vector<PROTOTYPE_INFO>& out) const
+{
+	if (iLevelIndex >= m_iNumLevels)
+		return E_FAIL;
+
+	out.clear();
+	out.reserve(m_pPrototypes[iLevelIndex].size());
+
+	for (auto& Pair : m_pPrototypes[iLevelIndex])
+	{
+		PROTOTYPE eType = (nullptr != dynamic_cast<class CGameObject*>(Pair.second))
+			? PROTOTYPE::GAMEOBJECT
+			: PROTOTYPE::COMPONENT;
+
+		out.push_back({ Pair.first, eType, Pair.second });
+	}
+
+	return S_OK;
 }
 
 CBase* CPrototype_Manager::Find_Prototype(_uint iLevelIndex, const _wstring& strPrototypeTag)

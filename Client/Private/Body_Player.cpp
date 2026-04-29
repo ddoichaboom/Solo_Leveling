@@ -24,12 +24,6 @@ const _float4x4* CBody_Player::Get_BoneMatrixPtr(const _char* pBoneName) const
 
 _float3   CBody_Player::Get_LastRootMotionDelta() const
 {
-    if (nullptr == m_pModelCom)
-        return _float3{};
-
-    if (true == m_bPreviewMode)
-        return _float3{};
-
     return m_pModelCom->Get_LastRootMotionDelta();
 }
 

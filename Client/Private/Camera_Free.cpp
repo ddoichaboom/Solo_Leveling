@@ -34,6 +34,13 @@ HRESULT CCamera_Free::Initialize(void* pArg)
 
 void CCamera_Free::Priority_Update(_float fTimeDelta)
 {
+
+	if (false == m_pGameInstance->Is_GameLogic_Frozen())
+	{
+		__super::Priority_Update(fTimeDelta);
+		return;
+	}
+
 	if (m_pGameInstance->Get_MouseBtnState(MOUSEBTN::RBUTTON) & 0x80)
 	{
 		// WASD 이동
@@ -81,8 +88,6 @@ void CCamera_Free::Priority_Update(_float fTimeDelta)
 				fTimeDelta * lWheel * m_fMouseSensor);
 		}
 	}
-
-
 
 	// 부모 (CCamera)의 Priority_Update 호출
 	__super::Priority_Update(fTimeDelta);

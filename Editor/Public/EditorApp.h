@@ -46,16 +46,26 @@ private:
 
 private:
 	HRESULT					Render_Scene(); 
-	HRESULT					Ready_TestScene();
+	HRESULT					Ready_BootScene();
 
 #pragma endregion 
 private:
-	ID3D11Device*			m_pDevice			= { nullptr };
-	ID3D11DeviceContext*	m_pContext			= { nullptr };
-	CGameInstance*			m_pGameInstance		= { nullptr };
+	ID3D11Device*			m_pDevice				= { nullptr };
+	ID3D11DeviceContext*	m_pContext				= { nullptr };
+	CGameInstance*			m_pGameInstance			= { nullptr };
 
-	CPanel_Manager*			m_pPanel_Manager	= { nullptr };
-	CPanel_Viewport*		m_pViewport			= { nullptr };
+	CPanel_Manager*			m_pPanel_Manager		= { nullptr };
+	CPanel_Viewport*		m_pViewport				= { nullptr };
+
+private:
+	_bool					m_bEditMode				= { true };
+	_bool					m_bSceneBootstrapped	= { false };
+
+private:
+	void					Bootstrap_EditScene();
+	void					Toggle_Mode();
+	void					Apply_Mode();
+	
 
 public:
 	static CEditorApp*		Create(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY);

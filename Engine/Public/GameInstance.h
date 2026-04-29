@@ -49,6 +49,7 @@ public:
 #pragma region PROTOTYPE_MANAGER
 	HRESULT						Add_Prototype(_uint iLevelIndex, const _wstring& strPrototypeTag, CBase* pPrototype);
 	CBase*						Clone_Prototype(PROTOTYPE eType, _uint iLevelIndex, const _wstring& strPrototypeTag, void* pArg = nullptr); 
+	HRESULT						Enum_Prototypes(_uint iLevelIndex, vector<PROTOTYPE_INFO>& out) const;
 #pragma endregion
 
 #pragma region OBJECT_MANAGER
@@ -85,6 +86,11 @@ public:
 	_bool						Is_CursorLocked() const;
 #pragma endregion
 
+#pragma region GAME_LOGIC
+	void					Set_GameLogic_Frozen(_bool bFrozen) { m_bLogicFrozen = bFrozen; }
+	_bool					Is_GameLogic_Frozen() const { return m_bLogicFrozen; }
+#pragma endregion
+
 #pragma region LIGHT_MANAGER
 	const LIGHT_DESC*			Get_LightDesc(_uint iIndex);
 	HRESULT						Add_Light(const LIGHT_DESC& LightDesc);
@@ -100,8 +106,9 @@ private:
 	class CPipeLine*			m_pPipeLine = { nullptr };
 	class CInput_Device*		m_pInput_Device = { nullptr };
 	class CLight_Manager*		m_pLight_Manager = { nullptr };
-	
+
 private:
+	_bool						m_bLogicFrozen = { false };
 	HWND						m_hWnd;
 	_uint						m_iWinSizeX;
 	_uint						m_iWinSizeY;

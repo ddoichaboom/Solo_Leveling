@@ -24,9 +24,12 @@ HRESULT CLevel_Loading::Initialize(LEVEL eNextLevelID)
 
 void CLevel_Loading::Update(_float fTimeDelta)
 {
+	// 나중에 로딩바 구현 + 멀티 스레딩
+
 	if (m_pGameInstance->Get_KeyState(VK_SPACE) & 0x80 &&
 		true == m_pLoader->isFinished())
 	{
+
 		CLevel* pNextLevel = { nullptr };
 
 		switch (m_eNextLevelID)

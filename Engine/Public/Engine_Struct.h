@@ -219,6 +219,13 @@ namespace Engine
 		const void* pData = { nullptr };
 
 	}NOTIFY_EVENT;
+
+	typedef struct tagPrototypeInfo
+	{
+		wstring		strTag;
+		PROTOTYPE		eType;
+		class CBase*	pPrototype;
+	}PROTOTYPE_INFO;
 }
 
 #endif // Engine_Struct_h__

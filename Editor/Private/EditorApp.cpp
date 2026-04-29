@@ -2,18 +2,10 @@
 #include "GameInstance.h"
 #include "Panel_Manager.h"
 
-// 임시 TestScene을 위해 추가
-#include "Terrain.h"
-#include "Camera_Free.h"
-#include "Level_Editor.h"
-#include "Model.h"
-#include "Player.h"
-#include "Body_Player.h"
-#include "Weapon.h"
-#include "MapObject.h"
-#include "MapStaticObject.h"
 #include "AnimController.h"
-
+#include "Level_Loading.h"
+#include "Camera_Free.h"
+#include "SpringArm.h"
 
 
 CEditorApp::CEditorApp()
@@ -53,7 +45,7 @@ HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, 
 		return E_FAIL;
 	}
 
-	if (FAILED(Ready_TestScene()))
+	if (FAILED(Ready_BootScene()))
 	{
 		MSG_BOX("Failed to Initialize : TestScene");
 		return E_FAIL;
@@ -65,6 +57,19 @@ HRESULT	CEditorApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, 
 void	CEditorApp::Update(_float fTimeDelta)
 {
 	m_pGameInstance->Update_Engine(fTimeDelta);
+
+	// GAMEPLAY 도달 직후 한 번 - Camera_Free 인스턴스 + 초기 모드 적용
+	if (false == m_bSceneBootstrapped &&
+		ETOUI(LEVEL::GAMEPLAY) == m_pGameInstance->Get_CurrentLevelIndex())
+	{
+		Bootstrap_EditScene();
+		m_bSceneBootstrapped = true;
+	}
+
+	// F5 토글 
+	if (m_bSceneBootstrapped && m_pGameInstance->Get_KeyDown(VK_F5))
+		Toggle_Mode();
+
 	m_pPanel_Manager->Update_Panels(fTimeDelta);
 }
 
@@ -288,131 +293,73 @@ HRESULT CEditorApp::Render_Scene()
 	return S_OK;
 }
 
-HRESULT CEditorApp::Ready_TestScene()
+HRESULT CEditorApp::Ready_BootScene()
 {
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC),
+		TEXT("Prototype_Component_VIBuffer_Rect"),
+		CVIBuffer_Rect::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC),
+		TEXT("Prototype_Component_Shader_VtxTex"),
+		CShader::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/ShaderFiles/Shader_VtxTex.hlsl"),
+			VTXTEX::Elements, VTXTEX::iNumElements))))
+		return E_FAIL;
+
 	if (FAILED(m_pGameInstance->Add_Prototype(
 		ETOUI(LEVEL::STATIC),
 		TEXT("Prototype_Component_AnimController"),
 		CAnimController::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
-
-	_uint iLevel = 3;    // LEVEL::GAMEPLAY
-
-	// (1) 빈 레벨 활성화
-	if (FAILED(m_pGameInstance->Change_Level(iLevel, CLevel_Editor::Create(m_pDevice, m_pContext))))
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC),
+		TEXT("Prototype_Component_SpringArm"),
+		CSpringArm::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Camera_Free"),
-		CCamera_Free::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
-
-	// (4) 카메라
-	CCamera_Free::CAMERA_FREE_DESC CameraDesc{};
-	CameraDesc.vEye = _float3(0.f, 10.f, -7.f);
-	CameraDesc.vAt = _float3(0.f, 0.f, 0.f);
-	CameraDesc.fFovy = XMConvertToRadians(60.f);
-	CameraDesc.fNear = 0.1f;
-	CameraDesc.fFar = 500.f;
-	CameraDesc.fSpeedPerSec = 10.f;
-	CameraDesc.fRotationPerSec = XMConvertToRadians(180.f);
-	CameraDesc.fMouseSensor = 0.05f;
-
-	m_pViewport->Begin_RT();
-
-	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Camera_Free"),
-		iLevel, TEXT("Layer_Camera"), &CameraDesc)))
-		return E_FAIL;
-
-	m_pViewport->End_RT();
-
-	// (6) 라이트
-	LIGHT_DESC LightDesc{};
-	LightDesc.eType = LIGHT::DIRECTIONAL;
-	LightDesc.vDiffuse = _float4(1.f, 1.f, 1.f, 1.f);
-	LightDesc.vAmbient = _float4(1.f, 1.f, 1.f, 1.f);
-	LightDesc.vSpecular = _float4(1.f, 1.f, 1.f, 1.f);
-	LightDesc.vDirection = _float4(1.f, -1.f, 1.f, 0.f);
-
-	if (FAILED(m_pGameInstance->Add_Light(LightDesc)))
-		return E_FAIL;
-
-	// (7) 모델 셰이더 프로토타입
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel,
-		TEXT("Prototype_Component_Shader_VtxMesh"),
-		CShader::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/ShaderFiles/Shader_VtxMesh.hlsl"),
-			VTXMESH::Elements, VTXMESH::iNumElements))))
-		return E_FAIL;
-
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel,
-		TEXT("Prototype_Component_Shader_VtxAnimMesh"),
-		CShader::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/ShaderFiles/Shader_VtxAnimMesh.hlsl"),
-			VTXANIMMESH::Elements, VTXANIMMESH::iNumElements))))
-		return E_FAIL;
-
-	// (8) 모델 프로토타입 (.bin)
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_SungJinWoo_OverDrive"),
-		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin")))))
-				return E_FAIL;
-	
-	// Prototype_Component_Model_Weapon_KnightKiller
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon_KnightKiller"),
-		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/weapons/KnightKiller/Weapon_Dualwield (merge).bin")))))
-		return E_FAIL;
-
-	// Prototype_Component_Model_Weapon_KasakaVenomFang
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang"),
-		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/weapons/KasakaVenomFang/Default/Weapon_Dualwield_02.bin")))))
-		return E_FAIL;
-
-
-	// (9) 게임오브젝트 프로토타입
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Player"),
-		CPlayer::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
-
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Body_Player"),
-		CBody_Player::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
-
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Weapon"),
-		CWeapon::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
-
-	// (10) Player 인스턴스 배치
-	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_Player"),
-		iLevel, TEXT("Layer_Player"))))
-		return E_FAIL;
-
-
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Map_Hapjung_Station_1F_Static"),
-		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/map/Hapjung_Station_1F/Hapjung_Station_1F.bin")))))
-		return E_FAIL;
-
-	// (12) 맵 게임오브젝트 프로토타입
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_MapObject"),
-		CMapObject::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
-
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_MapStaticObject"),
-		CMapStaticObject::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
-	
-	// (13) 맵 인스턴스 배치
-	if (FAILED(m_pGameInstance->Add_GameObject(iLevel, TEXT("Prototype_GameObject_MapObject"),
-		iLevel, TEXT("Layer_Map"))))
+	// Client Loader 가 GAMEPLAY 리소스를 로드하고, Level_Loading이 완료 시 Level_GamePlay로 자동 전이
+	if (FAILED(m_pGameInstance->Change_Level(
+		ETOUI(LEVEL::LOADING),
+		CLevel_Loading::Create(m_pDevice, m_pContext, LEVEL::GAMEPLAY))))
 		return E_FAIL;
 
 	return S_OK;
 }
 
 #pragma endregion
+
+void CEditorApp::Bootstrap_EditScene()
+{
+	// Camera_Free 인스턴스 
+	CCamera_Free::CAMERA_FREE_DESC Desc{};
+	Desc.vEye				= _float3(0.f, 10.f, -7.f);
+	Desc.vAt				= _float3(0.f, 0.f, 0.f);
+	Desc.fFovy				= XMConvertToRadians(60.f);
+	Desc.fNear				= 0.1f;
+	Desc.fFar				= 500.f;
+	Desc.fSpeedPerSec		= 10.f;
+	Desc.fRotationPerSec	= XMConvertToRadians(180.f);
+	Desc.fMouseSensor		= 0.05f;
+
+	m_pGameInstance->Add_GameObject(
+		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Camera_Free"),
+		ETOUI(LEVEL::GAMEPLAY), TEXT("Layer_Camera"), &Desc);
+
+	Apply_Mode();
+}
+
+void CEditorApp::Toggle_Mode()
+{
+	m_bEditMode = !m_bEditMode;
+	Apply_Mode();
+}
+
+void CEditorApp::Apply_Mode()
+{
+	m_pGameInstance->Set_GameLogic_Frozen(m_bEditMode);
+	m_pGameInstance->Set_CursorLocked(!m_bEditMode);
+}
 
 CEditorApp* CEditorApp::Create(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _uint iWinSizeY)
 {

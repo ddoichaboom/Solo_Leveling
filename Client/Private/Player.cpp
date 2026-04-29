@@ -95,35 +95,50 @@ void CPlayer::Priority_Update(_float fTimeDelta)
 
 void CPlayer::Update(_float fTimeDelta)
 {
-	Tick_DashRegen(fTimeDelta);
-	Tick_WeaponHideTimer(fTimeDelta);
-
-	PLAYER_RAW_INPUT_FRAME Raw{};
-	PLAYER_INTENT_FRAME Intent{};
-
-	Gather_RawInput(&Raw);
-
-	const _float fCameraYaw = Query_CameraYaw();
-
-	if (nullptr != m_pIntentResolver)
-		m_pIntentResolver->Resolve(Raw, fCameraYaw, &Intent);
-
-	if (nullptr != m_pStateMachine)
+	if (false == m_pGameInstance->Is_GameLogic_Frozen())
 	{
-		m_pStateMachine->Update_LocoMotion(Intent);
-		m_pStateMachine->Update(fTimeDelta);
+		Tick_DashRegen(fTimeDelta);
+		Tick_WeaponHideTimer(fTimeDelta);
+
+		PLAYER_RAW_INPUT_FRAME Raw{};
+		PLAYER_INTENT_FRAME Intent{};
+
+		Gather_RawInput(&Raw);
+
+		const _float fCameraYaw = Query_CameraYaw();
+
+		if (nullptr != m_pIntentResolver)
+			m_pIntentResolver->Resolve(Raw, fCameraYaw, &Intent);
+
+		if (nullptr != m_pStateMachine)
+		{
+			m_pStateMachine->Update_LocoMotion(Intent);
+			m_pStateMachine->Update(fTimeDelta);
+		}
+
+		for (auto& Pair : m_PartObjects)
+		{
+			if (nullptr != Pair.second)
+				Pair.second->Update(fTimeDelta);
+		}
+
+		if (nullptr != m_pBody)
+			Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
+
+		Apply_MoveIntent(Intent, fTimeDelta);
+	}
+	else
+	{
+		for (auto& Pair : m_PartObjects)
+		{
+			if (nullptr != Pair.second)
+				Pair.second->Update(fTimeDelta);
+		}
+
+		if (nullptr != m_pBody)
+			Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
 	}
 
-	for (auto& Pair : m_PartObjects)
-	{
-		if (nullptr != Pair.second)
-			Pair.second->Update(fTimeDelta);
-	}
-
-	if (nullptr != m_pBody)
-		Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
-
-	Apply_MoveIntent(Intent, fTimeDelta);
 }
 
 void CPlayer::Late_Update(_float fTimeDelta)

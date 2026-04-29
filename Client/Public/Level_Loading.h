@@ -9,7 +9,7 @@
 
 NS_BEGIN(Client)
 
-class CLevel_Loading final : public CLevel
+class CLIENT_DLL CLevel_Loading final : public CLevel
 {
 private:
 	CLevel_Loading(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

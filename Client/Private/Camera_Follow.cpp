@@ -48,6 +48,9 @@ void CCamera_Follow::Update(_float fTimeDelta)
 
 void CCamera_Follow::Late_Update(_float fTimeDelta)
 {
+	if (m_pGameInstance->Is_GameLogic_Frozen())
+		return;
+
 	// (1) 입력 수집 & SpringArm에 전달
 	_long lDX = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::X);
 	_long lDY = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::Y);

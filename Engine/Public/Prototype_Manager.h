@@ -22,6 +22,7 @@ public:
 	HRESULT										Add_Prototype(_uint iLevelIndex, const _wstring& strPrototypeTag, CBase* pPrototype);
 	CBase*										Clone_Prototype(PROTOTYPE eType, _uint iLevelIndex, const _wstring& strPrototypeTag, void* pArg);
 	void										Clear(_uint iLevelIndex);
+	HRESULT										Enum_Prototypes(_uint iLevelIndex, vector<PROTOTYPE_INFO>& out) const;
 
 private:
 	size_t										m_iNumLevels = {};

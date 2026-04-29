@@ -5,7 +5,7 @@
 
 NS_BEGIN(Client)
 
-class CLevel_GamePlay final : public CLevel
+class CLIENT_DLL CLevel_GamePlay final : public CLevel
 {
 private:
 	CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

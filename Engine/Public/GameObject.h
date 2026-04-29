@@ -29,6 +29,8 @@ public:
 	void									Set_Name(const _wstring& strName) { m_strName = strName; }
 	const _wstring&							Get_Tag() const { return m_strTag; }
 	void									Set_Tag(const _wstring& strTag) { m_strTag = strTag; }
+	const _wstring&							Get_PrototypeTag() const { return m_strPrototypeTag; }
+	void									Set_PrototypeTag(const _wstring& strTag) { m_strPrototypeTag = strTag; }
 
 public:
 	virtual HRESULT							Initialize_Prototype();
@@ -49,6 +51,7 @@ protected:
 
 	_wstring								m_strName;
 	_wstring								m_strTag;
+	_wstring								m_strPrototypeTag;
 
 	CVIBuffer*								m_pVIBufferCom = { nullptr };
 

@@ -172,6 +172,11 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 		CCamera_Follow::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
+	// Prototype_GameObject_Camera_Free 
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Camera_Free"),
+		CCamera_Free::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
 	// Prototype_GameObject_Player
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Player"),
 		CPlayer::Create(m_pDevice, m_pContext))))

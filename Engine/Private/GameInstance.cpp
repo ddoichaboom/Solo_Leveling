@@ -185,6 +185,11 @@ CBase* CGameInstance::Clone_Prototype(PROTOTYPE eType, _uint iLevelIndex, const 
 	return m_pPrototype_Manager->Clone_Prototype(eType, iLevelIndex, strPrototypeTag, pArg);
 }
 
+HRESULT CGameInstance::Enum_Prototypes(_uint iLevelIndex, vector<PROTOTYPE_INFO>& out) const
+{
+	return m_pPrototype_Manager->Enum_Prototypes(iLevelIndex, out);
+}
+
 #pragma endregion
 
 #pragma region OBJECT_MANAGER
