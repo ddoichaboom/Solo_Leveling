@@ -6,6 +6,38 @@
 #include "IntentResolver.h"
 #include "Player_StateMachine.h"
 
+namespace
+{
+	typedef struct tagWeaponInfo
+	{
+		EQUIPPED_WEAPON_ID	eId;
+		WEAPON_TYPE			eCategory;
+		const _tchar*		pModelTag;
+	}WEAPON_INFO;
+
+	static const WEAPON_INFO s_WeaponInfo[] = {
+		{EQUIPPED_WEAPON_ID::NONE, WEAPON_TYPE::DEFAULT, nullptr },
+		{EQUIPPED_WEAPON_ID::KNIGHT_KILLER, WEAPON_TYPE::DAGGER, TEXT("Prototype_Component_Model_Weapon_KnightKiller") },
+		{EQUIPPED_WEAPON_ID::KASAKA_VENOM_FANG, WEAPON_TYPE::DAGGER, TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang") },
+	};
+
+	// 양손 단검 디폴트 풀 - DEFAULT/DAGGER 장착 시 보조 손에 사용
+	static const _tchar* DAGGER_POOL[] = {
+		TEXT("Prototype_Component_Model_Weapon_KnightKiller"),
+		TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang"),
+	};
+
+	const WEAPON_INFO* Find_WeaponInfo(EQUIPPED_WEAPON_ID eId)
+	{
+		for (const auto& Info : s_WeaponInfo)
+		{
+			if (Info.eId == eId)
+				return &Info;
+		}
+		return nullptr;
+	}
+}
+
 CPlayer::CPlayer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CContainerObject{ pDevice, pContext }
 {
@@ -47,6 +79,8 @@ HRESULT CPlayer::Initialize(void* pArg)
 	if (FAILED(Ready_StateMachine()))
 		return E_FAIL;
 
+	//Set_EquippedWeapon(EQUIPPED_WEAPON_ID::KASAKA_VENOM_FANG);
+
 	return S_OK;
 }
 
@@ -62,6 +96,7 @@ void CPlayer::Priority_Update(_float fTimeDelta)
 void CPlayer::Update(_float fTimeDelta)
 {
 	Tick_DashRegen(fTimeDelta);
+	Tick_WeaponHideTimer(fTimeDelta);
 
 	PLAYER_RAW_INPUT_FRAME Raw{};
 	PLAYER_INTENT_FRAME Intent{};
@@ -166,7 +201,7 @@ CHARACTER_ACTION CPlayer::Pick_RunFastVariant(const _float3& vMoveDirWolrd) cons
 	_float fDot = XMVectorGetX(XMVector3Dot(vLook, vDir));
 	_float fCrossY = XMVectorGetY(XMVector3Cross(vLook, vDir));
 
-	constexpr _float fThresholdCos = 0.82f;
+	constexpr _float fThresholdCos = 0.9f;
 
 	if (fDot >= fThresholdCos)
 		return CHARACTER_ACTION::RUN_FAST;
@@ -174,6 +209,15 @@ CHARACTER_ACTION CPlayer::Pick_RunFastVariant(const _float3& vMoveDirWolrd) cons
 	return (fCrossY > 0.f)
 		? CHARACTER_ACTION::RUN_FAST_RIGHT
 		: CHARACTER_ACTION::RUN_FAST_LEFT;
+}
+
+void CPlayer::Set_EquippedWeapon(EQUIPPED_WEAPON_ID eId)
+{
+	if (m_eEquippedWeapon == eId)
+		return;
+
+	m_eEquippedWeapon = eId;
+	Apply_Loadout();
 }
 
 _bool CPlayer::Consume_DashCharge()
@@ -184,6 +228,19 @@ _bool CPlayer::Consume_DashCharge()
 	--m_iDashChargeCurent;
 
 	return true;
+}
+
+void CPlayer::Set_WeaponsVisible(_bool bVisible)
+{
+	if (m_bWeaponsVisible == bVisible)
+		return;
+
+	m_bWeaponsVisible = bVisible;
+
+	if (true == bVisible)
+		m_fIdleTimer = 0.f;
+
+	Refresh_WeaponVisibility();
 }
 
 void CPlayer::Tick_DashRegen(_float fTimeDelta)
@@ -197,6 +254,29 @@ void CPlayer::Tick_DashRegen(_float fTimeDelta)
 
 		if (m_iDashChargeCurent < m_iDashChargeMax)
 			++m_iDashChargeCurent;
+	}
+}
+
+void CPlayer::Tick_WeaponHideTimer(_float fTimeDelta)
+{
+	if (false == m_bWeaponsVisible || nullptr == m_pStateMachine)
+	{
+		m_fIdleTimer = 0.f;
+		return;
+	}
+
+	if (CHARACTER_ACTION::IDLE != m_pStateMachine->Get_CurrentCharacterAction())
+	{
+		m_fIdleTimer = 0.f;
+		return;
+	}
+
+	m_fIdleTimer += fTimeDelta;
+
+	if (m_fIdleTimer >= m_fIdleThreshold)
+	{
+		m_fIdleTimer = 0.f;
+		m_pStateMachine->Try_Transition(ETOUI(CHARACTER_ACTION::UNDRAW));
 	}
 }
 
@@ -215,19 +295,35 @@ HRESULT CPlayer::Ready_PartObjects()
 	m_pBody = dynamic_cast<CBody_Player*>(m_PartObjects[TEXT("Body")]);
 	Safe_AddRef(m_pBody);
 
-	// Weapon 
-	CWeapon::WEAPON_DESC WeaponDesc{};
-	WeaponDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
-
-	WeaponDesc.pSocketBoneMatrix =
-		dynamic_cast<CBody_Player*>(m_PartObjects[TEXT("Body")])->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_R");
-	//WeaponDesc.pSocketBoneMatrix =
-	//	dynamic_cast<CBody_Player*>(m_PartObjects[TEXT("Body")])->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_L");
+	// Weapon Right
+	CWeapon::WEAPON_DESC WeaponRDesc{};
+	WeaponRDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
+	WeaponRDesc.pSocketBoneMatrix =	m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_R");
+	WeaponRDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KnightKiller");
+	WeaponRDesc.bInitiallyVisible = true;
 	
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
-		TEXT("Weapon"), &WeaponDesc)))
+		TEXT("Weapon_R"), &WeaponRDesc)))
 		return E_FAIL;
+
+	m_pWeaponR = dynamic_cast<CWeapon*>(m_PartObjects[TEXT("Weapon_R")]);
+	Safe_AddRef(m_pWeaponR);
+
+	// Weapon Left
+	CWeapon::WEAPON_DESC WeaponLDesc{};
+	WeaponLDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
+	WeaponLDesc.pSocketBoneMatrix = m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_L");
+	WeaponLDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang");
+	WeaponLDesc.bInitiallyVisible = true;
+
+	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
+		TEXT("Prototype_GameObject_Weapon"),
+		TEXT("Weapon_L"), &WeaponLDesc)))
+		return E_FAIL;
+
+	m_pWeaponL = dynamic_cast<CWeapon*>(m_PartObjects[TEXT("Weapon_L")]);
+	Safe_AddRef(m_pWeaponL);
 
 	return S_OK;
 }
@@ -323,6 +419,63 @@ _float CPlayer::Query_CameraYaw() const
 	return atan2f(pView->_13, pView->_33);
 }
 
+void CPlayer::Apply_Loadout()
+{
+	if (nullptr == m_pWeaponR || nullptr == m_pWeaponL)
+		return;
+
+	const WEAPON_INFO* pInfo = Find_WeaponInfo(m_eEquippedWeapon);
+	if (nullptr == pInfo)
+		return;
+
+	const _tchar* pRightModel = nullptr;
+	const _tchar* pLeftModel = nullptr;
+	_bool bLeftVisible = true;
+
+	if (EQUIPPED_WEAPON_ID::NONE == m_eEquippedWeapon)
+	{
+		// DEFAULT - 양손 디폴트 단검 풀
+		pRightModel = DAGGER_POOL[0];		// KnightKiller
+		pLeftModel = DAGGER_POOL[1];		// KasakaVenomFang
+	}
+	else if (WEAPON_TYPE::DAGGER == pInfo->eCategory)
+	{
+		// 단검 장착
+		pRightModel = pInfo->pModelTag;
+		for (const _tchar* pCandidate : DAGGER_POOL)
+		{
+			if (0 != lstrcmpW(pCandidate, pRightModel))
+			{
+				pLeftModel = pCandidate;
+				break;
+			}
+		}
+	}
+	else
+	{
+		// DAGGER 무기 아닌 단일 무기 경우
+		pRightModel = pInfo->pModelTag;
+		bLeftVisible = false;
+	}
+
+	if (nullptr != pRightModel)
+		m_pWeaponR->Set_Model(pRightModel);
+
+	if (nullptr != pLeftModel)
+		m_pWeaponL->Set_Model(pLeftModel);
+
+	m_bLeftVisibleFromLoadOut = bLeftVisible;
+	Refresh_WeaponVisibility();
+}
+
+void CPlayer::Refresh_WeaponVisibility()
+{
+	if (nullptr != m_pWeaponR)
+		m_pWeaponR->Set_Visible(m_bWeaponsVisible);
+	if (nullptr != m_pWeaponL)
+		m_pWeaponL->Set_Visible(m_bWeaponsVisible && m_bLeftVisibleFromLoadOut);
+}
+
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	CPlayer* pInstance = new CPlayer(pDevice, pContext);
@@ -356,5 +509,7 @@ void CPlayer::Free()
 
 	Safe_Release(m_pStateMachine);
 	Safe_Release(m_pIntentResolver);
+	Safe_Release(m_pWeaponL);
+	Safe_Release(m_pWeaponR);
 	Safe_Release(m_pBody);
 }

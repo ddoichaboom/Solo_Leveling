@@ -6,6 +6,7 @@
 NS_BEGIN(Client)
 
 class CBody_Player;
+class CWeapon;
 class CIntentResolver;
 class CPlayer_StateMachine;
 
@@ -41,19 +42,31 @@ public:
     CHARACTER_ACTION        Pick_RunEndByFoot() const;
     CHARACTER_ACTION        Pick_RunFastVariant(const _float3& vMoveDirWolrd) const;
 
+    void                    Set_EquippedWeapon(EQUIPPED_WEAPON_ID eId);
+    EQUIPPED_WEAPON_ID      Get_EquippedWeapon() const { return m_eEquippedWeapon; }
+    _bool                   Can_UseWeaponSkill() const { return m_eEquippedWeapon != EQUIPPED_WEAPON_ID::NONE; }
+
 public:
     _bool                   Can_ConsumeDashCharge() const { return m_iDashChargeCurent > 0; }
     _bool                   Consume_DashCharge();
     _int                    Get_DashCharge() const { return m_iDashChargeCurent; }
     _int                    Get_DashChargeMax() const { return m_iDashChargeMax; }
 
+    void                    Set_WeaponsVisible(_bool bVisible);
+    _bool                   Is_WeaponsVisible() const { return m_bWeaponsVisible; }
+
     void                    Tick_DashRegen(_float fTimeDelta);
+    void                    Tick_WeaponHideTimer(_float fTimeDelta);
 
 private:
     _uint                   m_iState = {};
     CBody_Player*           m_pBody = { nullptr };
+    CWeapon*                m_pWeaponR = { nullptr };
+    CWeapon*                m_pWeaponL = { nullptr };
     CIntentResolver*        m_pIntentResolver = { nullptr };
     CPlayer_StateMachine*   m_pStateMachine = { nullptr };
+
+    EQUIPPED_WEAPON_ID      m_eEquippedWeapon = { EQUIPPED_WEAPON_ID::NONE };
 
 private:
     HRESULT                 Ready_PartObjects();
@@ -62,8 +75,17 @@ private:
     void                    Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDelta);
 
     _float                  Query_CameraYaw() const;
+    void                    Apply_Loadout();
+
+    void                    Refresh_WeaponVisibility();
 
 private:
+    _bool                   m_bWeaponsVisible = { true };
+    _bool                   m_bLeftVisibleFromLoadOut = { true };
+
+    _float                  m_fIdleTimer = { 0.f };
+    _float                  m_fIdleThreshold = { 3.f };
+
     _int                    m_iDashChargeMax = { 3 };
     _int                    m_iDashChargeCurent = { 3 };
     _float                  m_fDashRegenInterval = { 3.f }; //  ∏Æ¡® ¡÷±‚

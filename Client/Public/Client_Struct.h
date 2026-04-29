@@ -18,6 +18,7 @@ namespace Client
 		_uint						iPriority = {};
 		_bool						bAutoReturn = { false };
 		CHARACTER_ACTION			eReturnAction = { CHARACTER_ACTION::IDLE };
+		_float						fEnterBlendTime = { 0.f };
 	} CHARACTER_ACTION_POLICY;
 
 	typedef struct tagCharacterAnimTableDesc

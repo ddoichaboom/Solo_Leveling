@@ -28,7 +28,7 @@ public:
 	HRESULT							Bind_Model(class CModel* pModel);
 
 	HRESULT							Register_Clip(_uint64 iKey, const ANIM_CLIP_DESC& Desc);
-	HRESULT							Play(_uint64 iKey);
+	HRESULT							Play(_uint64 iKey, _float fBlendTime = 0.f);
 	_bool							Update(_float fTimeDelta);
 	void							Restart();
 

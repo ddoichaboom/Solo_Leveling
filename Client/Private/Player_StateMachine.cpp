@@ -20,7 +20,7 @@ HRESULT	CPlayer_StateMachine::Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimT
         DstPolicy.bAutoReturn = SrcPolicy.bAutoReturn;
         DstPolicy.iReturnAction = ETOUI(SrcPolicy.eReturnAction);
         DstPolicy.fCooldown = 0.f;
-        DstPolicy.fEnterBlendTime = 0.f;
+        DstPolicy.fEnterBlendTime = SrcPolicy.fEnterBlendTime;;
 
         if (FAILED(Register_Policy(DstPolicy)))
             return E_FAIL;
@@ -52,6 +52,16 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
     }
 
     const CHARACTER_ACTION eCurrent = Get_CurrentCharacterAction();
+
+    if (CHARACTER_ACTION::UNDRAW == eCurrent)
+    {
+        if (true == Intent.bHasMoveIntent && nullptr != m_pOwner)
+        {
+            m_pOwner->Set_WeaponsVisible(false);
+            __super::On_ActionFinished();
+        }
+        return;
+    }
 
     const _bool bIsRunAction =
         (CHARACTER_ACTION::RUN == eCurrent) ||
@@ -146,6 +156,14 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
             break;
         }
 
+        // UNDRAW ¿Ï·á -> HIDDEN
+        if (CHARACTER_ACTION::UNDRAW == eFinished)
+        {
+            if (nullptr != m_pOwner)
+                m_pOwner->Set_WeaponsVisible(false);
+            break;
+        }
+
         break;
     }
     case NOTIFY_TYPE::ANIM_EVENT:
@@ -166,18 +184,20 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
         static_cast<CHARACTER_ACTION>(iTo),
         bInitial);
 
-    switch (static_cast<CHARACTER_ACTION>(iTo))
+    const CHARACTER_ACTION eTo = static_cast<CHARACTER_ACTION>(iTo);
+
+    switch (eTo)
     {
     case CHARACTER_ACTION::WALK:
         m_pOwner->Set_SpeedCoeff(1.0f);
         break;
     case CHARACTER_ACTION::RUN:
-        m_pOwner->Set_SpeedCoeff(1.8f);
+        m_pOwner->Set_SpeedCoeff(1.5f);
         break;
     case CHARACTER_ACTION::RUN_FAST:
     case CHARACTER_ACTION::RUN_FAST_LEFT:
     case CHARACTER_ACTION::RUN_FAST_RIGHT:
-        m_pOwner->Set_SpeedCoeff(2.4f);
+        m_pOwner->Set_SpeedCoeff(2.0f);
         break;
     case CHARACTER_ACTION::IDLE:
     case CHARACTER_ACTION::RUN_END:
@@ -185,6 +205,29 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     case CHARACTER_ACTION::RUN_END_RIGHT:
         m_pOwner->Set_SpeedCoeff(0.f);
         break;
+    default:
+        break;
+    }
+
+    switch (eTo)
+    {
+    case CHARACTER_ACTION::WALK:
+    case CHARACTER_ACTION::RUN:
+    case CHARACTER_ACTION::RUN_FAST:
+    case CHARACTER_ACTION::RUN_FAST_LEFT:
+    case CHARACTER_ACTION::RUN_FAST_RIGHT:
+    case CHARACTER_ACTION::RUN_END:
+    case CHARACTER_ACTION::RUN_END_LEFT:
+    case CHARACTER_ACTION::RUN_END_RIGHT:
+    case CHARACTER_ACTION::DASH:
+    case CHARACTER_ACTION::BACK_DASH:
+        m_pOwner->Set_WeaponsVisible(false);
+        break;
+    
+    case CHARACTER_ACTION::IDLE:
+    case CHARACTER_ACTION::UNDRAW:
+        break;
+
     default:
         break;
     }

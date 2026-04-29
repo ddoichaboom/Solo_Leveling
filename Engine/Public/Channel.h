@@ -18,6 +18,7 @@ public:
 	HRESULT					Initialize(const CHANNEL_DESC& Desc);
 	void					Update_TransformationMatrix(const vector<class CBone*>& Bones,
 														_float fCurrentTrackPosition, _uint* pCurrentKeyFrameIndex);
+	void					Evaluate_Pose(_float fCurrentTrackPosition, _uint* pCurrentKeyFrameIndex, BONE_POSE* pOutPose);
 
 private:
 	_uint					m_iBoneIndex = {};

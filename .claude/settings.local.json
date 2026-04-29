@@ -20,7 +20,8 @@
       "Bash(python 명세서/_tmp_bone_tree2.py)",
       "Bash(python 명세서/_tmp_anim_dump.py)",
       "Bash(python \"명세서/_tools/parse_slmd.py\" \"Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin\")",
-      "Bash(PYTHONIOENCODING=utf-8 python \"명세서/_tools/find_bones.py\" \"Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin\")"
+      "Bash(PYTHONIOENCODING=utf-8 python \"명세서/_tools/find_bones.py\" \"Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin\")",
+      "Bash(xargs grep *)"
     ]
   }
 }

@@ -88,6 +88,12 @@ CModel::CModel(const CModel& Prototype)
 	m_Animations.reserve(m_iNumAnimations);
 	for (auto& pAnim : Prototype.m_Animations)
 		m_Animations.push_back(pAnim->Clone());
+
+	m_PoseFrom.resize(m_iNumBones);
+	m_PoseTo.resize(m_iNumBones);
+	m_PoseOut.resize(m_iNumBones);
+	m_bHasPoseFrom.resize(m_iNumBones, 0);
+	m_bHasPoseTo.resize(m_iNumBones, 0);
 }
 
 const _char* CModel::Get_AnimationName(_uint iIndex) const
@@ -426,6 +432,9 @@ _bool CModel::Play_Animation(_float fTimeDelta)
 	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
 		return false;
 
+	if (true == m_bIsBlending)
+		return Play_Animation_Blended(fTimeDelta);
+
 	// 루프 감지용 : 업데이트 전 트랙 위치 캐시
 	_float fPrevTrackPos = m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
 
@@ -450,6 +459,9 @@ void CModel::Set_AnimationIndex(_uint iIndex)
 	if (iIndex == m_iCurrentAnimationIndex)
 		return;
 	
+	m_bIsBlending = false;
+	m_bFromIsStatic = false;
+
 	if (m_iCurrentAnimationIndex < m_iNumAnimations)
 		m_Animations[m_iCurrentAnimationIndex]->Reset_TrackPosition();
 
@@ -459,6 +471,102 @@ void CModel::Set_AnimationIndex(_uint iIndex)
 	m_isAnimLoop = m_Animations[iIndex]->Get_IsLoop();
 
 	Set_RootMotionEnabled(m_Animations[m_iCurrentAnimationIndex]->Get_UseRootMotion());	
+}
+
+void CModel::Set_AnimationIndex_WithBlend(_uint iIndex, _float fBlendTime, _bool bRestartTo)
+{
+	if (iIndex >= m_iNumAnimations)
+		return;
+
+	if (false == m_bIsBlending && iIndex == m_iCurrentAnimationIndex)
+		return;
+	if (true == m_bIsBlending && iIndex == m_iBlendToIndex)
+		return;
+
+	// BlendTime 0 이하 -> 즉시 전환
+	if (fBlendTime <= 0.f)
+	{
+		m_bIsBlending = false;
+		m_bFromIsStatic = false;
+		Set_AnimationIndex(iIndex);
+		return;
+	}
+
+	// 블렌딩 중 재요청 : 현재 보간된 Pose를 정적 From으로 캡처
+	if (true == m_bIsBlending)
+	{
+		m_PoseFrom = m_PoseOut;
+
+		for (size_t i = 0; i < m_iNumBones; i++)
+			m_bHasPoseFrom[i] = (m_bHasPoseFrom[i] || m_bHasPoseTo[i]);
+
+		m_bFromIsStatic = true;
+	}
+	// 정상 블렌딩 시작
+	else
+	{
+		m_iBlendFromIndex = m_iCurrentAnimationIndex;
+		m_bFromIsStatic = false;
+	}
+
+	m_iBlendToIndex = iIndex;
+
+	if (true == bRestartTo)
+		m_Animations[m_iBlendToIndex]->Reset_TrackPosition();
+
+	m_fBlendTime = 0.f;
+	m_fBlendDuration = fBlendTime;
+	m_bIsBlending = true;
+
+	m_bBlendRMInitialized_From = false;
+	m_bBlendRMInitialized_To = false;
+
+	if (m_iRootBoneIndex >= 0 && static_cast<_uint>(m_iRootBoneIndex) < m_iNumBones)
+	{
+		const _float4x4* pRootMat = m_Bones[m_iRootBoneIndex]->Get_TransformationMatrixPtr();
+		m_vBindRootTranslation = { pRootMat->_41, pRootMat->_42, pRootMat->_43 };
+	}
+
+	// 블렌드 시작 지점에서 From / To의 Prev root Translation 미리 캡처 -> 첫 프레임 1틱 누락 방지
+	const _uint iRoot = (m_iRootBoneIndex >= 0) ? static_cast<_uint>(m_iRootBoneIndex) : 0u;
+	if (m_iRootBoneIndex >= 0 && iRoot < m_iNumBones)
+	{
+		if (false == m_bFromIsStatic && m_Animations[m_iBlendFromIndex]->Get_UseRootMotion())
+		{
+			BONE_POSE FromPose{};
+			_ubyte hasFrom = {};
+
+			for (auto& p : m_PoseFrom)
+			{
+				p.vScale = { 1.f, 1.f , 1.f };
+				p.vRotation = { 0.f, 0.f, 0.f, 1.f };
+				p.vTranslation = { 0.f, 0.f, 0.f };
+			}
+			fill(m_bHasPoseFrom.begin(), m_bHasPoseFrom.end(), 0);
+			m_Animations[m_iBlendFromIndex]->Evaluate_Pose(m_PoseFrom.data(), m_bHasPoseFrom.data());
+			if (0 != m_bHasPoseFrom[iRoot])
+			{
+				m_vPrevRootTranslation_From = m_PoseFrom[iRoot].vTranslation;
+				m_bBlendRMInitialized_From = true;
+			}
+		}
+		if (m_Animations[m_iBlendToIndex]->Get_UseRootMotion())
+		{
+			for (auto& p : m_PoseTo)
+			{
+				p.vScale = { 1.f, 1.f , 1.f };
+				p.vRotation = { 0.f, 0.f, 0.f, 1.f };
+				p.vTranslation = { 0.f, 0.f, 0.f };
+			}
+			fill(m_bHasPoseTo.begin(), m_bHasPoseTo.end(), 0);
+			m_Animations[m_iBlendToIndex]->Evaluate_Pose(m_PoseTo.data(), m_bHasPoseTo.data());
+			if (0 != m_bHasPoseTo[iRoot])
+			{
+				m_vPrevRootTranslation_To = m_PoseTo[iRoot].vTranslation;
+				m_bBlendRMInitialized_To = true;
+			}
+		}
+	}
 }
 
 HRESULT CModel::Set_Animation(const _char* pAnimationName)
@@ -479,6 +587,16 @@ void CModel::Set_AnimationLoop(_bool bLoop)
 
 	m_isAnimLoop = bLoop;
 	m_Animations[m_iCurrentAnimationIndex]->Set_IsLoop(bLoop);
+}
+
+_float CModel::Get_BlendWeight() const
+{
+	if (false == m_bIsBlending || m_fBlendDuration <= 0.f) 
+		return 1.f;
+
+	_float w = m_fBlendTime / m_fBlendDuration;
+
+	return (w < 0.f) ? 0.f : ((w > 1.f) ? 1.f : w);
 }
 
 HRESULT CModel::Save_Binary() const
@@ -593,7 +711,13 @@ HRESULT CModel::Ready_Bones(const MODEL_DESC& Desc)
 
 		m_Bones.push_back(pBone);
 	}
-	
+
+	m_PoseFrom.resize(m_iNumBones);
+	m_PoseTo.resize(m_iNumBones);
+	m_PoseOut.resize(m_iNumBones);
+	m_bHasPoseFrom.resize(m_iNumBones, 0);
+	m_bHasPoseTo.resize(m_iNumBones, 0);
+
 	return S_OK;
 }
 
@@ -618,28 +742,13 @@ HRESULT CModel::Ready_Animations(const MODEL_DESC& Desc)
 }
 
 void CModel::Extract_RootMotion(_float fPrevTrackPos)
-{
-	// 비활성 또는 루트 본 미지정 -> delta 0으로 정리
-	if (!m_bRootMotionEnabled || m_iRootBoneIndex < 0 )
+{	
+	// root 본 인덱스 검증 (모든 경로에서 사용)
+	if (m_iRootBoneIndex < 0 || static_cast<_uint>(m_iRootBoneIndex) >= m_iNumBones)
 	{
 		m_vLastRootMotionDelta = {};
 		return;
 	}
-
-	if (static_cast<_uint>(m_iRootBoneIndex) >= m_iNumBones)
-	{
-		m_vLastRootMotionDelta = {};
-		return;
-	}
-
-	if (m_iCurrentAnimationIndex >= m_iNumAnimations ||
-		!m_Animations[m_iCurrentAnimationIndex]->Get_UseRootMotion())
-	{
-		m_vLastRootMotionDelta = {};
-		m_bRootMotionInitialized = false;
-		return;
-	}
-
 
 	CBone* pRootBone = m_Bones[m_iRootBoneIndex];
 	if (nullptr == pRootBone)
@@ -648,52 +757,64 @@ void CModel::Extract_RootMotion(_float fPrevTrackPos)
 		return;
 	}
 
-	// 현재 루트 본 로컬 translation 
 	const _float4x4* pMatrix = pRootBone->Get_TransformationMatrixPtr();
 	_float3 T_cur = { pMatrix->_41, pMatrix->_42, pMatrix->_43 };
 
-	// 루프 wrap 감지
-	_float fCurrTrackPos = m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
-	_bool bWrapped = (fCurrTrackPos < fPrevTrackPos);
+	_bool bClipUseRM = (m_iCurrentAnimationIndex < m_iNumAnimations) &&
+		m_Animations[m_iCurrentAnimationIndex]->Get_UseRootMotion();
 
-	if (!m_bRootMotionInitialized)
+	if (m_bRootMotionEnabled && bClipUseRM)
 	{
-		// 첫 프레임 / 애니메이션 전환 직후 
-		m_vBindRootTranslation = T_cur;
-		m_vPrevRootTranslation = T_cur;
-		m_vLastRootMotionDelta = {};
-		m_bRootMotionInitialized = true;
-	}
-	else if (bWrapped)
-	{
-		// 루프 wrap : 현재 delta  무시 ( 이전 프레임이 끝이고 키프레임 0으로 돌아가면 delta가 큰 값이 들어감 )
-		m_vLastRootMotionDelta = {};
-		m_vPrevRootTranslation = T_cur;
+		_float fCurrTrackPos = m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
+		_bool bWrapped = (fCurrTrackPos < fPrevTrackPos);
+
+		if (!m_bRootMotionInitialized)
+		{
+			m_vBindRootTranslation = T_cur;
+			m_vPrevRootTranslation = T_cur;
+			m_vLastRootMotionDelta = {};
+			m_bRootMotionInitialized = true;
+		}
+		else if (bWrapped)
+		{
+			m_vLastRootMotionDelta = {};
+			m_vPrevRootTranslation = T_cur;
+		}
+		else
+		{
+			_float3 vLocalDelta{};
+			vLocalDelta.x = T_cur.x - m_vPrevRootTranslation.x;
+			vLocalDelta.y = T_cur.y - m_vPrevRootTranslation.y;
+			vLocalDelta.z = T_cur.z - m_vPrevRootTranslation.z;
+
+			m_vPrevRootTranslation = T_cur;
+
+			_matrix matPre = XMLoadFloat4x4(&m_PreTransformMatrix);
+			matPre.r[0] = XMVectorSetW(XMVector3Normalize(matPre.r[0]), 0.f);
+			matPre.r[1] = XMVectorSetW(XMVector3Normalize(matPre.r[1]), 0.f);
+			matPre.r[2] = XMVectorSetW(XMVector3Normalize(matPre.r[2]), 0.f);
+			matPre.r[3] = XMVectorSet(0.f, 0.f, 0.f, 1.f);
+
+			_vector vDelta = XMVectorSet(vLocalDelta.x, vLocalDelta.y, vLocalDelta.z, 0.f);
+			vDelta = XMVector3TransformNormal(vDelta, matPre);
+			XMStoreFloat3(&m_vLastRootMotionDelta, vDelta);
+		}
 	}
 	else
 	{
-		// local root delta
-		_float3 vLocalDelta{};
-		vLocalDelta.x = T_cur.x - m_vPrevRootTranslation.x;
-		vLocalDelta.y = T_cur.y - m_vPrevRootTranslation.y;
-		vLocalDelta.z = T_cur.z - m_vPrevRootTranslation.z;
+		m_vLastRootMotionDelta = {};
+		m_bRootMotionInitialized = false;
 
-		m_vPrevRootTranslation = T_cur;
 
-		// Translation 성분은 제외하고, 축 보정용 회전만 사용한다.
-		_matrix matPre = XMLoadFloat4x4(&m_PreTransformMatrix);
-		matPre.r[0] = XMVectorSetW(XMVector3Normalize(matPre.r[0]), 0.f);
-		matPre.r[1] = XMVectorSetW(XMVector3Normalize(matPre.r[1]), 0.f);
-		matPre.r[2] = XMVectorSetW(XMVector3Normalize(matPre.r[2]), 0.f);
-		matPre.r[3] = XMVectorSet(0.f, 0.f, 0.f, 1.f);
-
-		_vector vDelta = XMVectorSet(vLocalDelta.x, vLocalDelta.y, vLocalDelta.z, 0.f);
-		vDelta = XMVector3TransformNormal(vDelta, matPre);
-
-		XMStoreFloat3(&m_vLastRootMotionDelta, vDelta);
+		if (0.f == m_vBindRootTranslation.x &&
+			0.f == m_vBindRootTranslation.y &&
+			0.f == m_vBindRootTranslation.z)
+		{
+			m_vBindRootTranslation = T_cur;
+		}
 	}
 
-	// 루트 본 로컬 translation을 T_bind로 고정 -> Mesh는 CTransform 기준 제자리
+	// 모든 경로에서 root 본을 bind 로 fix → 메쉬는 항상 같은 위치
 	_float4x4 matFixed = *pMatrix;
 	matFixed._41 = m_vBindRootTranslation.x;
 	matFixed._42 = m_vBindRootTranslation.y;
@@ -707,6 +828,214 @@ void CModel::Reset_RootMotionState()
 	m_vPrevRootTranslation = {};
 	m_vBindRootTranslation = {};
 	m_vLastRootMotionDelta = {};
+}
+
+_bool CModel::Play_Animation_Blended(_float fTimeDelta)
+{
+	// (1) Pose 작업 버퍼 reset
+	auto ResetPose = [](BONE_POSE& p) {
+		p.vScale = { 1.f, 1.f, 1.f };
+		p.vRotation = { 0.f, 0.f, 0.f, 1.f };
+		p.vTranslation = { 0.f, 0.f, 0.f };
+	};
+
+	// (2)  From 진행
+	if (false == m_bFromIsStatic)
+	{
+		_bool bLoopFrom = m_Animations[m_iBlendFromIndex]->Get_IsLoop();
+		m_Animations[m_iBlendFromIndex]->Advance_Time(fTimeDelta, bLoopFrom);
+
+		fill(m_bHasPoseFrom.begin(), m_bHasPoseFrom.end(), 0);
+		for (auto& p : m_PoseFrom) ResetPose(p);
+		m_Animations[m_iBlendFromIndex]->Evaluate_Pose(m_PoseFrom.data(), m_bHasPoseFrom.data());
+	}
+
+	// (3) To 진행
+	{
+		_bool bLoopTo = m_Animations[m_iBlendToIndex]->Get_IsLoop();
+		m_Animations[m_iBlendToIndex]->Advance_Time(fTimeDelta, bLoopTo);
+
+		fill(m_bHasPoseTo.begin(), m_bHasPoseTo.end(), 0);
+		for (auto& p : m_PoseTo) ResetPose(p);
+		m_Animations[m_iBlendToIndex]->Evaluate_Pose(m_PoseTo.data(), m_bHasPoseTo.data());
+	}
+
+	// (4) Weight 갱신
+	m_fBlendTime += fTimeDelta;
+	_float w = (m_fBlendDuration > 0.f) ? (m_fBlendTime / m_fBlendDuration) : 1.f;
+	if (w > 1.f)
+		w = 1.f;
+
+	// (5) Pose Lerp 
+	for (size_t i = 0; i < m_iNumBones; i++)
+	{
+		_bool bF = (m_bHasPoseFrom[i] == 0) ? false : true;
+		_bool bT = (m_bHasPoseTo[i] == 0) ? false : true;
+
+		if (!bF && !bT)
+			continue;
+
+		const BONE_POSE& F = bF ? m_PoseFrom[i] : m_PoseTo[i];
+		const BONE_POSE& T = bT ? m_PoseTo[i] : m_PoseFrom[i];
+
+		_vector vS_F = XMLoadFloat3(&F.vScale);
+		_vector vS_T = XMLoadFloat3(&T.vScale);
+		_vector vR_F = XMLoadFloat4(&F.vRotation);
+		_vector vR_T = XMLoadFloat4(&T.vRotation);
+		_vector vT_F = XMLoadFloat3(&F.vTranslation);
+		_vector vT_T = XMLoadFloat3(&T.vTranslation);
+
+		_vector vS = XMVectorLerp(vS_F, vS_T, w);
+		_vector vR = XMQuaternionSlerp(vR_F, vR_T, w);
+		_vector vTr = XMVectorLerp(vT_F, vT_T, w);
+
+		XMStoreFloat3(&m_PoseOut[i].vScale, vS);
+		XMStoreFloat4(&m_PoseOut[i].vRotation, vR);
+		XMStoreFloat3(&m_PoseOut[i].vTranslation, vTr);
+
+		_matrix matLocal = XMMatrixAffineTransformation(vS, XMQuaternionIdentity(), vR, vTr);
+		m_Bones[i]->Set_TransformationMatrix(matLocal);
+	}
+
+	// (6) RM Lerp 추출 + root 본 fix
+	Extract_RootMotion_Blended(w);
+
+	// (7) Combined Matrix 갱신
+	_matrix PreTransformMatrix = XMLoadFloat4x4(&m_PreTransformMatrix);
+	for (auto& pBone : m_Bones)
+		pBone->Update_CombinedTransformationMatrix(m_Bones, PreTransformMatrix);
+
+	// (8) 블렌드 완료 처리
+	if (w >= 1.f)
+	{
+		//m_iCurrentAnimationIndex = m_iBlendToIndex;
+		//m_isAnimLoop = m_Animations[m_iCurrentAnimationIndex]->Get_IsLoop();
+		//Set_RootMotionEnabled(m_Animations[m_iCurrentAnimationIndex]->Get_UseRootMotion());
+
+		//m_bIsBlending = false;
+		//m_bFromIsStatic = false;
+		//m_bBlendRMInitialized_From = false;
+		//m_bBlendRMInitialized_To = false;
+
+		m_iCurrentAnimationIndex = m_iBlendToIndex;
+		m_isAnimLoop = m_Animations[m_iCurrentAnimationIndex]->Get_IsLoop();
+
+		_bool bToUseRM = m_Animations[m_iCurrentAnimationIndex]->Get_UseRootMotion();
+
+		_float3 vPrevTo_Backup = m_vPrevRootTranslation_To;
+		_bool bInitTo_Backup = m_bBlendRMInitialized_To;
+		_float3 vBind_Backup = m_vBindRootTranslation;
+
+		Set_RootMotionEnabled(bToUseRM);
+
+		if (bToUseRM && bInitTo_Backup)
+      {
+          m_vPrevRootTranslation = vPrevTo_Backup;
+          m_vBindRootTranslation = vBind_Backup;
+          m_bRootMotionInitialized = true;
+      }
+
+      m_bIsBlending = false;
+      m_bFromIsStatic = false;
+      m_bBlendRMInitialized_From = false;
+      m_bBlendRMInitialized_To = false;
+	}
+
+	return false;
+}
+
+void CModel::Extract_RootMotion_Blended(_float fWeight)
+{
+	if (m_iRootBoneIndex < 0 || static_cast<_uint>(m_iRootBoneIndex) >= m_iNumBones)
+	{
+		m_vLastRootMotionDelta = {};
+		return;
+	}
+
+	const _uint iRoot = static_cast<_uint>(m_iRootBoneIndex);
+
+	_bool bUseFromRM = (false == m_bFromIsStatic)
+					&& m_Animations[m_iBlendFromIndex]->Get_UseRootMotion();
+	_bool bUseToRM = m_Animations[m_iBlendToIndex]->Get_UseRootMotion();
+
+	// From Delta
+	_float3 vDeltaFrom{};
+
+	if (bUseFromRM && (0 != m_bHasPoseFrom[iRoot]))
+	{
+		const _float3 T_cur = m_PoseFrom[iRoot].vTranslation;
+		CAnimation* pAnimFrom = m_Animations[m_iBlendFromIndex];
+		_bool bWrap = (pAnimFrom->Get_CurrentTrackPosition() < pAnimFrom->Get_PrevTrackPosition());
+
+		if (false == m_bBlendRMInitialized_From)
+		{
+			m_vPrevRootTranslation_From = T_cur;
+			m_bBlendRMInitialized_From = true;
+		}
+		else if (bWrap)
+		{
+			m_vPrevRootTranslation_From = T_cur;
+		}
+		else
+		{
+			vDeltaFrom.x = T_cur.x - m_vPrevRootTranslation_From.x;
+			vDeltaFrom.y = T_cur.y - m_vPrevRootTranslation_From.y;
+			vDeltaFrom.z = T_cur.z - m_vPrevRootTranslation_From.z;
+			m_vPrevRootTranslation_From = T_cur;
+		}
+	}
+
+	// To - Delta
+	_float3 vDeltaTo{};
+	if (bUseToRM && (0 != m_bHasPoseTo[iRoot]))
+	{
+		const _float3 T_cur = m_PoseTo[iRoot].vTranslation;
+		CAnimation* pAnimTo = m_Animations[m_iBlendToIndex];
+		_bool bWrap = (pAnimTo->Get_CurrentTrackPosition() < pAnimTo->Get_PrevTrackPosition());
+
+		if (false == m_bBlendRMInitialized_To)
+		{
+			m_vPrevRootTranslation_To = T_cur;
+			m_bBlendRMInitialized_To = true;
+		}
+		else if (bWrap)
+		{
+			m_vPrevRootTranslation_To = T_cur;
+		}
+		else
+		{
+			vDeltaTo.x = T_cur.x - m_vPrevRootTranslation_To.x;
+			vDeltaTo.y = T_cur.y - m_vPrevRootTranslation_To.y;
+			vDeltaTo.z = T_cur.z - m_vPrevRootTranslation_To.z;
+			m_vPrevRootTranslation_To = T_cur;
+		}
+	}
+
+	// 두 Delta Lerp
+	_float3 vLerped{};
+	vLerped.x = vDeltaFrom.x * (1.f - fWeight) + vDeltaTo.x * fWeight;
+	vLerped.y = vDeltaFrom.y * (1.f - fWeight) + vDeltaTo.y * fWeight;
+	vLerped.z = vDeltaFrom.z * (1.f - fWeight) + vDeltaTo.z * fWeight;
+
+	// PreTransform 회전 적용
+	_matrix matPre = XMLoadFloat4x4(&m_PreTransformMatrix);
+	matPre.r[0] = XMVectorSetW(XMVector3Normalize(matPre.r[0]), 0.f);
+	matPre.r[1] = XMVectorSetW(XMVector3Normalize(matPre.r[1]), 0.f);
+	matPre.r[2] = XMVectorSetW(XMVector3Normalize(matPre.r[2]), 0.f);
+	matPre.r[3] = XMVectorSet(0.f, 0.f, 0.f, 1.f);
+
+	_vector vDelta = XMVectorSet(vLerped.x, vLerped.y, vLerped.z, 0.f);
+	vDelta = XMVector3TransformNormal(vDelta, matPre);
+	XMStoreFloat3(&m_vLastRootMotionDelta, vDelta);
+
+	// root 본을 bind 위치로 fix 
+	CBone* pRootBone = m_Bones[iRoot];
+	const _float4x4* pMatrix = pRootBone->Get_TransformationMatrixPtr();
+	_float4x4 matFixed = *pMatrix;
+	matFixed._41 = m_vBindRootTranslation.x;
+	matFixed._42 = m_vBindRootTranslation.y;
+	matFixed._43 = m_vBindRootTranslation.z;
+	pRootBone->Set_TransformationMatrix(XMLoadFloat4x4(&matFixed));
 }
 
 HRESULT CModel::Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc)

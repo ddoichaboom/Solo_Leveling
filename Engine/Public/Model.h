@@ -77,8 +77,12 @@ public:
 	_bool							Play_Animation(_float fTimeDelta);
 
 	void							Set_AnimationIndex(_uint iIndex);
+	void							Set_AnimationIndex_WithBlend(_uint iIndex, _float fBlendTime, _bool bRestartTo = true);
 	HRESULT							Set_Animation(const _char* pAnimationName);
 	void							Set_AnimationLoop(_bool bLoop);
+
+	_bool                           Is_Blending() const { return m_bIsBlending; }
+	_float                          Get_BlendWeight() const;
 
 	HRESULT							Save_Binary() const;
 	HRESULT							Save_Binary(const _tchar* pBinaryPath) const;
@@ -94,6 +98,10 @@ private:
 
 	void							Extract_RootMotion(_float fPrevTrackPos);
 	void							Reset_RootMotionState();
+
+	_bool							Play_Animation_Blended(_float fTimeDelta);
+	void							Extract_RootMotion_Blended(_float fWeight);
+
 
 private:
 	static HRESULT					Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc);
@@ -122,7 +130,21 @@ private:
 	_bool							m_isAnimLoop = { false };
 	_bool							m_isAnimPlaying = { true };
 
+	_bool							m_bIsBlending = { false };
+	_bool							m_bFromIsStatic = { false };
+	_uint							m_iBlendFromIndex = {};
+	_uint                           m_iBlendToIndex = {};
+	_float                          m_fBlendTime = { 0.f };
+	_float                          m_fBlendDuration = { 0.f };
+
+	vector<BONE_POSE>               m_PoseFrom;
+	vector<BONE_POSE>               m_PoseTo;
+	vector<BONE_POSE>               m_PoseOut;
+	vector<_ubyte>					m_bHasPoseFrom;
+	vector<_ubyte>					m_bHasPoseTo;
+
 	_int							m_iRootBoneIndex = { -1 };
+
 	_char							m_szRootBoneName[MAX_PATH] = {};
 	_float3							m_vPrevRootTranslation = {};
 	_float3							m_vBindRootTranslation = {};
@@ -130,8 +152,12 @@ private:
 	_bool							m_bRootMotionEnabled = { false };
 	_bool							m_bRootMotionInitialized = { false };
 
-	_tchar							m_szBinaryPath[MAX_PATH] = {};
+	_float3                         m_vPrevRootTranslation_From = {};
+	_float3                         m_vPrevRootTranslation_To = {};
+	_bool                           m_bBlendRMInitialized_From = { false };
+	_bool                           m_bBlendRMInitialized_To = { false };
 
+	_tchar							m_szBinaryPath[MAX_PATH] = {};
 
 public:
 	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,const MODEL_DESC& Desc);

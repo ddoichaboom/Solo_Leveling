@@ -79,6 +79,51 @@ void CChannel::Update_TransformationMatrix(const vector<class CBone*>& Bones, _f
     Bones[m_iBoneIndex]->Set_TransformationMatrix(TransformationMatrix);
 }
 
+void CChannel::Evaluate_Pose(_float fCurrentTrackPosition, _uint* pCurrentKeyFrameIndex, BONE_POSE* pOutPose)
+{
+    if (0 == m_iNumKeyFrames || nullptr == pOutPose)
+        return;
+
+    if (0.f == fCurrentTrackPosition)
+        *pCurrentKeyFrameIndex = 0;
+
+    const KEYFRAME& LastKeyFrameDesc = m_KeyFrames.back();
+
+    _vector vScale, vRotation, vTranslation;
+
+    if (fCurrentTrackPosition >= LastKeyFrameDesc.fTrackPosition)
+    {
+        vScale          = XMLoadFloat3(&LastKeyFrameDesc.vScale);
+        vRotation       = XMLoadFloat4(&LastKeyFrameDesc.vRotation);
+        vTranslation    = XMLoadFloat3(&LastKeyFrameDesc.vTranslation);
+    }
+    else
+    {
+        while (fCurrentTrackPosition >= m_KeyFrames[*pCurrentKeyFrameIndex + 1].fTrackPosition)
+            ++(*pCurrentKeyFrameIndex);
+
+        _uint iCur = *pCurrentKeyFrameIndex;
+        _uint iNext = iCur + 1;
+        _float fRatio = (fCurrentTrackPosition - m_KeyFrames[iCur].fTrackPosition)
+            / (m_KeyFrames[iNext].fTrackPosition - m_KeyFrames[iCur].fTrackPosition);
+
+        _vector vSrcS = XMLoadFloat3(&m_KeyFrames[iCur].vScale);
+        _vector vDstS = XMLoadFloat3(&m_KeyFrames[iNext].vScale);
+        _vector vSrcR = XMLoadFloat4(&m_KeyFrames[iCur].vRotation);
+        _vector vDstR = XMLoadFloat4(&m_KeyFrames[iNext].vRotation);
+        _vector vSrcT = XMLoadFloat3(&m_KeyFrames[iCur].vTranslation);
+        _vector vDstT = XMLoadFloat3(&m_KeyFrames[iNext].vTranslation);
+
+        vScale = XMVectorLerp(vSrcS, vDstS, fRatio);
+        vRotation = XMQuaternionSlerp(vSrcR, vDstR, fRatio);
+        vTranslation = XMVectorLerp(vSrcT, vDstT, fRatio);
+    }
+
+    XMStoreFloat3(&pOutPose->vScale, vScale);
+    XMStoreFloat4(&pOutPose->vRotation, vRotation);
+    XMStoreFloat3(&pOutPose->vTranslation, vTranslation);
+}
+
 CChannel* CChannel::Create(const CHANNEL_DESC& Desc)
 {
     CChannel* pInstance = new CChannel();

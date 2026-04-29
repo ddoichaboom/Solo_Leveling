@@ -137,13 +137,6 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 
 	lstrcpy(m_szLoadingText, TEXT("¸ðµ¨ ·Îµå Áß"));
 
-	//// Prototype_Component_Model_SungJinWoo
-	//if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
-	//	TEXT("Prototype_Component_Model_SungJinWoo"),
-	//	CModel::Create(m_pDevice, m_pContext,
-	//		TEXT("../../Resources/Models/hunter/SungJinWoo_ERank/SungJinWooERank.bin")))))
-	//	return E_FAIL;
-
 	// Prototype_Component_Model_SungJinWoo
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
 		TEXT("Prototype_Component_Model_SungJinWoo_OverDrive"),
@@ -151,11 +144,18 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 			TEXT("../../Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin")))))
 		return E_FAIL;
 
-	// Prototype_Component_Model_Weapon01
+	// Prototype_Component_Model_Weapon_KnightKiller
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
-		TEXT("Prototype_Component_Model_Weapon01"),
+		TEXT("Prototype_Component_Model_Weapon_KnightKiller"),
 		CModel::Create(m_pDevice, m_pContext,
 			TEXT("../../Resources/Models/weapons/KnightKiller/Weapon_Dualwield (merge).bin")))))
+		return E_FAIL;
+
+	// Prototype_Component_Model_Weapon_KasakaVenomFang
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/weapons/KasakaVenomFang/Default/Weapon_Dualwield_02.bin")))))
 		return E_FAIL;
 
 	// Prototype_Component_Model_Map_Hapjung_Station_1F_Static

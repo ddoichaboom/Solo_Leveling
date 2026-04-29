@@ -10,6 +10,7 @@ CAnimation::CAnimation(const CAnimation& Prototype)
 	: m_fDuration { Prototype.m_fDuration }
 	, m_fTickPerSecond { Prototype.m_fTickPerSecond }
 	, m_fCurrentTrackPosition { Prototype.m_fCurrentTrackPosition }
+	, m_fPrevTrackPosition{ Prototype.m_fPrevTrackPosition }
 	, m_iNumChannels { Prototype.m_iNumChannels }
 	, m_Channels { Prototype.m_Channels }
 	, m_CurrentKeyFrameIndices { Prototype.m_CurrentKeyFrameIndices }
@@ -25,6 +26,7 @@ CAnimation::CAnimation(const CAnimation& Prototype)
 void CAnimation::Reset_TrackPosition()
 {
 	m_fCurrentTrackPosition = 0.f;
+	m_fPrevTrackPosition = 0.f;
 
 	for (auto& iKeyFrameIndex : m_CurrentKeyFrameIndices)
 		iKeyFrameIndex = 0;
@@ -84,6 +86,47 @@ _bool CAnimation::Update_TransformationMatrix(const vector<class CBone*>& Bones,
 
 
 	return bFinished;
+}
+
+_bool CAnimation::Advance_Time(_float fTimeDelta, _bool isLoop)
+{
+	m_fPrevTrackPosition = m_fCurrentTrackPosition;
+	m_fCurrentTrackPosition += m_fTickPerSecond * fTimeDelta;
+
+	_bool bFinished = false;
+
+	if (m_fCurrentTrackPosition >= m_fDuration)
+	{
+		if (false == isLoop)
+		{
+			m_fCurrentTrackPosition = m_fDuration;
+			bFinished = true;
+		}
+		else
+		{
+			m_fCurrentTrackPosition -= m_fDuration;
+			for (auto& iKeyFrameIndex : m_CurrentKeyFrameIndices)
+				iKeyFrameIndex = 0;
+		}
+	}
+
+	return bFinished;
+}
+
+void CAnimation::Evaluate_Pose(BONE_POSE* pOutPoses, _ubyte* pOutHasPose)
+{
+	if (nullptr == pOutPoses || nullptr == pOutHasPose)
+		return;
+
+	_uint iChannelIndex = 0;
+	for (auto& pChannel : m_Channels)
+	{
+		const _uint iBoneIndex = pChannel->Get_BoneIndex();
+		pChannel->Evaluate_Pose(m_fCurrentTrackPosition,
+			&m_CurrentKeyFrameIndices[iChannelIndex++],
+			&pOutPoses[iBoneIndex]);
+		pOutHasPose[iBoneIndex] = 1;
+	}
 }
 
 CAnimation* CAnimation::Create(const ANIMATION_DESC& Desc)

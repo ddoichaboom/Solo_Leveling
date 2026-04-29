@@ -9,6 +9,19 @@ namespace Client
 	enum class CHARACTER_STATE { LOCOMOTION, COMBAT, GUARD, HIT_STAGGER, AIRBORNE, DOWN, STUN, ACTION_LOCKED, DEAD, END };
 
 	enum class WEAPON_TYPE { DEFAULT, DAGGER, SWORD, BOW, PISTOL, POLE_WEAPON, MAGICAL_WEAPON, TWO_HANDED_WEAPON, END };
+	
+	enum class EQUIPPED_WEAPON_ID
+	{
+		NONE,					// 미장착 ( DEFAULT 양손 )
+
+		// DAGGER
+		KNIGHT_KILLER,			
+		KASAKA_VENOM_FANG,
+
+
+		// 향후 추가
+		END
+	};
 
 	enum class CHARACTER_ACTION
 	{
@@ -24,6 +37,7 @@ namespace Client
 		RUN_END,		// 애니메이션이 LEFT랑 비슷하지만 클립이 존재하므로 발 비교가 불가능할 때 분기하기 위해 바인딩
 		RUN_END_LEFT,
 		RUN_END_RIGHT,
+		UNDRAW,
 		END
 	};
 

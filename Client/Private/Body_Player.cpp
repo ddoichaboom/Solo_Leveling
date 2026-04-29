@@ -265,7 +265,10 @@ HRESULT CBody_Player::Play_Action(CHARACTER_ACTION eAction)
 
     const _uint64 iKey = Resolve_ActionKey(eAction);
 
-    if (FAILED(m_pAnimController->Play(iKey)))
+    const CHARACTER_ACTION_POLICY* pPolicy = Find_ActionPolicy(eAction);
+    const _float fBlendTime = (nullptr != pPolicy) ? pPolicy->fEnterBlendTime : 0.f;
+
+    if (FAILED(m_pAnimController->Play(iKey, fBlendTime)))
         return E_FAIL;
 
     m_eCurrentAction = eAction;

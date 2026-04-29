@@ -21,16 +21,22 @@ public:
 	void					Reset_TrackPosition();
 	void					Set_IsLoop(_bool bLoop) { m_isLoop = bLoop; }
 	void					Set_UseRootMotion(_bool bUse) { m_bUseRootMotion = bUse; }
+	_float					Get_PrevTrackPosition() const { return m_fPrevTrackPosition; }
 
 public:
 	HRESULT					Initialize(const ANIMATION_DESC& Desc);
 	_bool					Update_TransformationMatrix(const vector<class CBone*>& Bones,
 														_float fTimeDelta, _bool isLoop);
+	_bool					Advance_Time(_float fTimeDelta, _bool isLoop);
+	void					Evaluate_Pose(BONE_POSE* pOutPoses, _ubyte* pOutHasPose);
+
+
 private:
 	_char					m_szName[MAX_PATH] = {};
 	_float					m_fDuration = {};
 	_float					m_fTickPerSecond = {};
 	_float					m_fCurrentTrackPosition = {};
+	_float					m_fPrevTrackPosition = {};
 	_bool					m_isLoop = { false };
 	_bool					m_bUseRootMotion = { false };
 

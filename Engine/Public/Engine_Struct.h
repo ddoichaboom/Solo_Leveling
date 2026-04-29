@@ -111,6 +111,12 @@ namespace Engine
 		float		fTrackPosition;
 	}KEYFRAME;
 
+	typedef struct tagBonePose
+	{
+		XMFLOAT3	vScale = { 1.f, 1.f, 1.f };
+		XMFLOAT4	vRotation = { 0.f, 0.f, 0.f, 1.f };
+		XMFLOAT3	vTranslation = { 0.f, 0.f, 0.f };
+	}BONE_POSE;
 	typedef struct tagMeshDesc
 	{
 		char			szName[MAX_PATH] = {};

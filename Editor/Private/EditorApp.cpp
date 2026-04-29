@@ -303,25 +303,6 @@ HRESULT CEditorApp::Ready_TestScene()
 	if (FAILED(m_pGameInstance->Change_Level(iLevel, CLevel_Editor::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
-	//// (2) 컴포넌트 프로토타입
-	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Texture_Terrain"),
-	//	CTexture::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Tile0.jpg"), 1))))
-	//	return E_FAIL;
-
-	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Shader_VtxNorTex"),
-	//	CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxNorTex.hlsl"),
-	//		VTXNORTEX::Elements, VTXNORTEX::iNumElements))))
-	//	return E_FAIL;
-
-	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_VIBuffer_Terrain"),
-	//	CVIBuffer_Terrain::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Terrain/Height.bmp")))))
-	//	return E_FAIL;
-
-	//// (3) 오브젝트 프로토타입
-	//if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Terrain"),
-	//	CTerrain::Create(m_pDevice, m_pContext))))
-	//	return E_FAIL;
-
 	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_GameObject_Camera_Free"),
 		CCamera_Free::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
@@ -377,9 +358,16 @@ HRESULT CEditorApp::Ready_TestScene()
 			TEXT("../../Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin")))))
 				return E_FAIL;
 	
-	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon01"),
+	// Prototype_Component_Model_Weapon_KnightKiller
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon_KnightKiller"),
 		CModel::Create(m_pDevice, m_pContext,
-			TEXT("../../Resources/Models/weapons/Weapon01/SungJinWoo_ERank_Weapon01.bin")))))
+			TEXT("../../Resources/Models/weapons/KnightKiller/Weapon_Dualwield (merge).bin")))))
+		return E_FAIL;
+
+	// Prototype_Component_Model_Weapon_KasakaVenomFang
+	if (FAILED(m_pGameInstance->Add_Prototype(iLevel, TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/weapons/KasakaVenomFang/Default/Weapon_Dualwield_02.bin")))))
 		return E_FAIL;
 
 

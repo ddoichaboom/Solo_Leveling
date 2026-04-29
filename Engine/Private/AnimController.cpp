@@ -55,7 +55,7 @@ HRESULT CAnimController::Register_Clip(_uint64 iKey, const ANIM_CLIP_DESC& Desc)
 	return S_OK;
 }
 
-HRESULT CAnimController::Play(_uint64 iKey)
+HRESULT CAnimController::Play(_uint64 iKey, _float fBlendTime)
 {
 	if (nullptr == m_pModel)
 		return E_FAIL;
@@ -77,11 +77,16 @@ HRESULT CAnimController::Play(_uint64 iKey)
 		return S_OK;
 	}
 
-	m_pModel->Set_AnimationIndex(Clip.iAnimationIndex);
+	// 다른 클립으로 요청 ( BlendTime > 0 이면 cross-fade, 아니면 즉시 전환
+	if (false == m_bHasCurrentClip || fBlendTime <= 0.f)
+		m_pModel->Set_AnimationIndex(Clip.iAnimationIndex);
+	else
+		m_pModel->Set_AnimationIndex_WithBlend(Clip.iAnimationIndex, fBlendTime, Clip.bRestartOnEnter);
 
 	m_iCurrentKey		= iKey;
 	m_bHasCurrentClip	= true;
 	m_bFinished			= false;
+
 
 	return S_OK;
 }

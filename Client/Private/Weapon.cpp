@@ -23,6 +23,8 @@ HRESULT CWeapon::Initialize(void* pArg)
     auto pDesc = static_cast<WEAPON_DESC*>(pArg);
 
     m_pSocketBoneMatrix = pDesc->pSocketBoneMatrix;
+    m_pModelPrototypeTag = pDesc->pModelPrototypeTag;
+    m_bVisible = pDesc->bInitiallyVisible;
 
     if (FAILED(__super::Initialize(pArg)))
         return E_FAIL;
@@ -53,6 +55,9 @@ void CWeapon::Late_Update(_float fTimeDelta)
 
     Compute_CombinedWorldMatrix(XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr()) * SocketMatrix);
 
+    if (false == m_bVisible)
+        return;
+
     m_pGameInstance->Add_RenderGroup(RENDERID::NONBLEND, this);
 }
 
@@ -78,6 +83,46 @@ HRESULT CWeapon::Render()
     return S_OK;
 }
 
+HRESULT CWeapon::Set_Model(const _tchar* pModelPrototypeTag)
+{
+    if (nullptr == pModelPrototypeTag)
+        return E_FAIL;
+
+    // 동일 모델이면 스킵
+    if (nullptr != pModelPrototypeTag && 0 == lstrcmpW(m_pModelPrototypeTag, pModelPrototypeTag))
+        return S_OK;
+
+    // 새 모델 Clone
+    CModel* pNewModel = dynamic_cast<CModel*>(
+        m_pGameInstance->Clone_Prototype(
+            PROTOTYPE::COMPONENT,
+            ETOUI(LEVEL::GAMEPLAY),
+            pModelPrototypeTag,
+            nullptr));
+    if (nullptr == pNewModel)
+        return E_FAIL;
+
+    // 기존 모델 components map에서 제거 + 해제
+    auto iter = m_Components.find(TEXT("Com_Model"));
+    if (iter != m_Components.end())
+    {
+        Safe_Release(iter->second);
+        m_Components.erase(iter);
+    }
+
+    // 멤버 포인터의 ref도 해제
+    Safe_Release(m_pModelCom);
+
+    // 새 모델 등록
+    m_Components.emplace(TEXT("Com_Model"), pNewModel);
+    m_pModelCom = pNewModel;
+    Safe_AddRef(m_pModelCom);
+
+    m_pModelPrototypeTag = pModelPrototypeTag;
+
+    return S_OK;
+}
+
 HRESULT CWeapon::Ready_Components()
 {
     if (FAILED(__super::Add_Component(ETOUI(LEVEL::GAMEPLAY),
@@ -85,8 +130,11 @@ HRESULT CWeapon::Ready_Components()
         TEXT("Com_Shader"), reinterpret_cast<CComponent**>(&m_pShaderCom))))
         return E_FAIL;
 
+    if (nullptr == m_pModelPrototypeTag)
+        return E_FAIL;
+
     if (FAILED(__super::Add_Component(ETOUI(LEVEL::GAMEPLAY),
-        TEXT("Prototype_Component_Model_Weapon01"),
+        m_pModelPrototypeTag,
         TEXT("Com_Model"), reinterpret_cast<CComponent**>(&m_pModelCom))))
         return E_FAIL;
 
