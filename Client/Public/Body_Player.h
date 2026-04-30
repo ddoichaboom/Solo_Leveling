@@ -30,16 +30,6 @@ public:
     const _float4x4*                    Get_BoneMatrixPtr(const _char* pBoneName) const;
     _float3                             Get_LastRootMotionDelta() const;
 
-#pragma region PREVIEW BLOCK
-public:
-    HRESULT                             Begin_Preview(_uint iAnimationIndex);
-    HRESULT                             Restart_Preview();
-    HRESULT                             End_Preview();
-
-    _bool                               Is_Previewing() const { return m_bPreviewMode; }
-    _uint                               Get_PreviewAnimationIndex() const { return m_iPreviewAnimationIndex; }
-
-#pragma endregion
 public:
     virtual HRESULT                     Initialize_Prototype() override;
     virtual HRESULT                     Initialize(void* pArg) override;
@@ -67,8 +57,6 @@ private:
     WEAPON_TYPE                         m_eWeaponState = { WEAPON_TYPE::DEFAULT };
     CHARACTER_ACTION                    m_eCurrentAction = { CHARACTER_ACTION::IDLE };
 
-    _bool                               m_bPreviewMode = { false };
-    _uint                               m_iPreviewAnimationIndex = { static_cast<_uint>(-1) };
     INotifyListener*                    m_pListener = { nullptr };
 
 private:

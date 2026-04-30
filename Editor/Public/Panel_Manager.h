@@ -38,8 +38,6 @@ public:
 	void					Update_Panels(_float fTimeDelta);
 	void					Render_Panels();
 
-	void					End_Preview_If_Needed(CGameObject* pObject);
-
 	void					Clear_Selection();
 	void					Set_SelectedObject(CGameObject* pObject);
 	void					Release_Panels();

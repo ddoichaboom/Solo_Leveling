@@ -36,10 +36,7 @@ void CCamera_Free::Priority_Update(_float fTimeDelta)
 {
 
 	if (false == m_pGameInstance->Is_GameLogic_Frozen())
-	{
-		__super::Priority_Update(fTimeDelta);
 		return;
-	}
 
 	if (m_pGameInstance->Get_MouseBtnState(MOUSEBTN::RBUTTON) & 0x80)
 	{
@@ -95,11 +92,17 @@ void CCamera_Free::Priority_Update(_float fTimeDelta)
 
 void CCamera_Free::Update(_float fTimeDelta)
 {
+	if (false == m_pGameInstance->Is_GameLogic_Frozen())
+		return;
+
 	__super::Update(fTimeDelta);
 }
 
 void CCamera_Free::Late_Update(_float fTimeDelta)
 {
+	if (false == m_pGameInstance->Is_GameLogic_Frozen())
+		return;
+
 	__super::Late_Update(fTimeDelta);
 }
 
