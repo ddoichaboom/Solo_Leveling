@@ -34,6 +34,9 @@ HRESULT CBody_Player::Initialize_Prototype()
 
 HRESULT CBody_Player::Initialize(void* pArg)
 {
+    m_strName = TEXT("Body_Player");
+    m_strTag = TEXT("Body_Player");
+
     auto pDesc = static_cast<BODY_PLAYER_DESC*>(pArg);
 
     m_pParentState = pDesc->pParentState;

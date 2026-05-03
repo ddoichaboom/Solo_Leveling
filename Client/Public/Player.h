@@ -40,7 +40,7 @@ public:
     void                    Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial);
     void                    Face_DirectionImmediately(const _float3& vDirWorld);
     CHARACTER_ACTION        Pick_RunEndByFoot() const;
-    CHARACTER_ACTION        Pick_RunFastVariant(const _float3& vMoveDirWolrd) const;
+    CHARACTER_ACTION        Pick_RunFastVariant(const _float3& vMoveDirWorld, CHARACTER_ACTION eCurrent) const;
 
     void                    Set_EquippedWeapon(EQUIPPED_WEAPON_ID eId);
     EQUIPPED_WEAPON_ID      Get_EquippedWeapon() const { return m_eEquippedWeapon; }
@@ -91,7 +91,7 @@ private:
     _float                  m_fDashRegenInterval = { 3.f }; //  ∏Æ¡® ¡÷±‚
     _float                  m_fDashRegenTimer = { 0.f };
 
-    _float                  m_fSpeedCoeff = { 1.f };
+    _float                  m_fSpeedCoeff = { 0.f };
 
 public:
     static CPlayer*         Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

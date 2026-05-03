@@ -20,6 +20,9 @@ HRESULT CWeapon::Initialize_Prototype()
 
 HRESULT CWeapon::Initialize(void* pArg)
 {
+    m_strName = TEXT("Weapon");
+    m_strTag = TEXT("");
+
     auto pDesc = static_cast<WEAPON_DESC*>(pArg);
 
     m_pSocketBoneMatrix = pDesc->pSocketBoneMatrix;

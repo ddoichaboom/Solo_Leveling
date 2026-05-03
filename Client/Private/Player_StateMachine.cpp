@@ -81,7 +81,7 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
         
         if (CHARACTER_ACTION::RUN != eCurrent && nullptr != m_pOwner)
         {
-            const CHARACTER_ACTION eVariant = m_pOwner->Pick_RunFastVariant(Intent.vMoveDirWorld);
+            const CHARACTER_ACTION eVariant = m_pOwner->Pick_RunFastVariant(Intent.vMoveDirWorld, eCurrent);
             if (eVariant != eCurrent)
                 Try_Transition(ETOUI(eVariant));
         }
@@ -205,7 +205,15 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     case CHARACTER_ACTION::RUN_END_RIGHT:
         m_pOwner->Set_SpeedCoeff(0.f);
         break;
+    case CHARACTER_ACTION::DASH:
+    case CHARACTER_ACTION::BACK_DASH:
+        m_pOwner->Set_SpeedCoeff(0.f);
+        break;
+    case CHARACTER_ACTION::UNDRAW:
+        m_pOwner->Set_SpeedCoeff(0.f);
+        break;
     default:
+        m_pOwner->Set_SpeedCoeff(0.f);
         break;
     }
 

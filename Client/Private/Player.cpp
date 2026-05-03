@@ -55,6 +55,9 @@ HRESULT CPlayer::Initialize_Prototype()
 
 HRESULT CPlayer::Initialize(void* pArg)
 {
+	m_strName = TEXT("Player");
+	m_strTag = TEXT("SungJinWoo");
+
 	GAMEOBJECT_DESC Desc{};
 
 	if (nullptr != pArg)
@@ -202,7 +205,7 @@ CHARACTER_ACTION CPlayer::Pick_RunEndByFoot() const
 	return m_pBody->Pick_RunEndAction();
 }
 
-CHARACTER_ACTION CPlayer::Pick_RunFastVariant(const _float3& vMoveDirWolrd) const
+CHARACTER_ACTION CPlayer::Pick_RunFastVariant(const _float3& vMoveDirWorld, CHARACTER_ACTION eCurrent) const
 {
 	if (nullptr == m_pTransformCom)
 		return CHARACTER_ACTION::RUN_FAST;
@@ -210,15 +213,22 @@ CHARACTER_ACTION CPlayer::Pick_RunFastVariant(const _float3& vMoveDirWolrd) cons
 	_vector vLook = XMVector3Normalize(
 		XMVectorSetY(m_pTransformCom->Get_State(STATE::LOOK), 0.f));
 	_vector vDir = XMVector3Normalize(
-		XMVectorSetY(XMLoadFloat3(&vMoveDirWolrd), 0.f));
-	
-	// dot 으로 각도, cross.y로 좌/우 판단
+		XMVectorSetY(XMLoadFloat3(&vMoveDirWorld), 0.f));
+
 	_float fDot = XMVectorGetX(XMVector3Dot(vLook, vDir));
 	_float fCrossY = XMVectorGetY(XMVector3Cross(vLook, vDir));
 
-	constexpr _float fThresholdCos = 0.9f;
+	// Hysteresis: 진입 임계는 느슨, 이탈 임계는 빡빡 → 경계 토글링 방지
+	constexpr _float fEnterCos = 0.866f;  // 30°  (FAST → LEFT/RIGHT)
+	constexpr _float fExitCos = 0.966f;  // 15°  (LEFT/RIGHT → FAST)
 
-	if (fDot >= fThresholdCos)
+	const _bool bInLean =
+		(CHARACTER_ACTION::RUN_FAST_LEFT == eCurrent) ||
+		(CHARACTER_ACTION::RUN_FAST_RIGHT == eCurrent);
+
+	const _float fThreshold = bInLean ? fExitCos : fEnterCos;
+
+	if (fDot >= fThreshold)
 		return CHARACTER_ACTION::RUN_FAST;
 
 	return (fCrossY > 0.f)
@@ -408,15 +418,37 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 
 	CTransform_3D* pTransform = static_cast<CTransform_3D*>(m_pTransformCom);
 
-	// 카메라 기준 이동 방향으로 부드럽게 회전
 	_vector vDirWorld = XMLoadFloat3(&Intent.vMoveDirWorld);
-	pTransform->Rotate_Toward_XZ(vDirWorld, pTransform->Get_RotationPerSec() * fTimeDelta);
 
-	// 회전 후 갱신된 Look 방향으로 이동
-	_vector vLookXZ = pTransform->Get_State(STATE::LOOK);
-	vLookXZ = XMVectorSetY(vLookXZ, 0.f);
-	vLookXZ = XMVector3Normalize(vLookXZ);
+	// 현재 Look (XZ) 와 목표 방향 사이 각도 차이 계산
+	_vector vLookXZ = XMVector3Normalize(XMVectorSetY(pTransform->Get_State(STATE::LOOK), 0.f));
+	_vector vTargetXZ = XMVector3Normalize(XMVectorSetY(vDirWorld, 0.f));
+	_float fDot = XMVectorGetX(XMVector3Dot(vLookXZ, vTargetXZ));
+	fDot = max(-1.f, min(1.f, fDot));
+	const _float fAngleDeg = XMConvertToDegrees(acosf(fDot));
 
+	// 각도 의존 회전 속도: 작은 각=느림(lean 가시), 큰 각=빠름(스냅)
+	constexpr _float fSlowDeg = 30.f;        // 이하: 느린 회전
+	constexpr _float fSnapDeg = 135.f;       // 이상: 최대 회전 (스냅)
+	constexpr _float fSlowRotDeg = 540.f;    // 느린 회전 속도
+	const _float fMaxRotDeg = XMConvertToDegrees(pTransform->Get_RotationPerSec()); // Desc 값 (1440 권장)
+
+	_float fRotDeg = fSlowRotDeg;
+	if (fAngleDeg >= fSnapDeg)
+	{
+		fRotDeg = fMaxRotDeg;
+	}
+	else if (fAngleDeg > fSlowDeg)
+	{
+		const _float t = (fAngleDeg - fSlowDeg) / (fSnapDeg - fSlowDeg);
+		fRotDeg = fSlowRotDeg + (fMaxRotDeg - fSlowRotDeg) * t;
+	}
+
+	const _float fStepRad = XMConvertToRadians(fRotDeg) * fTimeDelta;
+	pTransform->Rotate_Toward_XZ(vDirWorld, fStepRad);
+
+	// 회전 후 갱신된 Look 으로 이동
+	vLookXZ = XMVector3Normalize(XMVectorSetY(pTransform->Get_State(STATE::LOOK), 0.f));
 	const _float fSpeed = pTransform->Get_SpeedPerSec() * m_fSpeedCoeff;
 	_vector vPos = pTransform->Get_State(STATE::POSITION);
 	vPos = XMVectorAdd(vPos, XMVectorScale(vLookXZ, fSpeed * fTimeDelta));

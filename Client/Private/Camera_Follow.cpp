@@ -20,7 +20,7 @@ HRESULT CCamera_Follow::Initialize_Prototype()
 
 HRESULT CCamera_Follow::Initialize(void* pArg)
 {
-	m_strName = TEXT("Camera");
+	m_strName = TEXT("Camera_");
 	m_strTag = TEXT("Follow");
 
 	if (nullptr == pArg)

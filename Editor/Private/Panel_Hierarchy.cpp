@@ -3,6 +3,8 @@
 #include "GameInstance.h"
 #include "Layer.h"
 #include "GameObject.h"
+#include "ContainerObject.h"
+#include "PartObject.h"
 
 namespace
 {
@@ -124,10 +126,25 @@ void CPanel_Hierarchy::Render()
 
 				const _bool bIsSelected = (pObject == pSelected);
 
-				if (ImGui::Selectable(strDisplay.c_str(), bIsSelected))
+				// ContainerObject 자식 보유 여부
+				auto* pContainer = dynamic_cast<CContainerObject*>(pObject);
+				const _bool bHasChildren = (nullptr != pContainer && !pContainer->Get_PartObjects().empty());
+
+				ImGuiTreeNodeFlags nodeFlags =
+					ImGuiTreeNodeFlags_OpenOnArrow |
+					ImGuiTreeNodeFlags_OpenOnDoubleClick |
+					ImGuiTreeNodeFlags_SpanAvailWidth;
+				if (bIsSelected)   nodeFlags |= ImGuiTreeNodeFlags_Selected;
+				if (!bHasChildren) nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+				const _bool bNodeOpen = ImGui::TreeNodeEx(
+					reinterpret_cast<void*>(pObject), nodeFlags, "%s", strDisplay.c_str());
+
+				// 라벨 클릭 → 선택 (화살표 토글 클릭은 제외)
+				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 					m_pPanel_Manager->Set_SelectedObject(pObject);
 
-				// DnD source
+				// DnD source — 최상위 GameObject 만
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 				{
 					DND_OBJECT Payload{ pObject, &strLayerKey };
@@ -136,7 +153,7 @@ void CPanel_Hierarchy::Render()
 					ImGui::EndDragDropSource();
 				}
 
-				// DnD target on item: "이 아이템 *앞에* 삽입"
+				// DnD target on item — 최상위 GameObject 만 ("이 아이템 앞에 삽입")
 				if (ImGui::BeginDragDropTarget())
 				{
 					if (const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload(DND_PAYLOAD_TYPE))
@@ -156,7 +173,7 @@ void CPanel_Hierarchy::Render()
 					ImGui::EndDragDropTarget();
 				}
 
-				// 우클릭 컨텍스트 메뉴
+				// 우클릭 컨텍스트 — 최상위 GameObject 만
 				if (ImGui::BeginPopupContextItem())
 				{
 					if (ImGui::MenuItem("Delete"))
@@ -166,6 +183,40 @@ void CPanel_Hierarchy::Render()
 						m_PendingCmd.strSrcLayer = strLayerKey;
 					}
 					ImGui::EndPopup();
+				}
+
+				// 자식 PartObject 트리 (Container 인 경우만)
+				if (bNodeOpen && bHasChildren)
+				{
+					for (const auto& PartPair : pContainer->Get_PartObjects())
+					{
+						CGameObject* pPart = static_cast<CGameObject*>(PartPair.second);
+						if (nullptr == pPart)
+							continue;
+
+						ImGui::PushID(reinterpret_cast<void*>(pPart));
+
+						const string strPartLabel = WTOA(PartPair.first);
+						const _bool bPartSelected = (pPart == pSelected);
+
+						ImGuiTreeNodeFlags partFlags =
+							ImGuiTreeNodeFlags_Leaf |
+							ImGuiTreeNodeFlags_NoTreePushOnOpen |
+							ImGuiTreeNodeFlags_SpanAvailWidth;
+						if (bPartSelected) partFlags |= ImGuiTreeNodeFlags_Selected;
+
+						ImGui::TreeNodeEx(reinterpret_cast<void*>(pPart), partFlags,
+							"%s", strPartLabel.c_str());
+
+						if (ImGui::IsItemClicked())
+							m_pPanel_Manager->Set_SelectedObject(pPart);
+
+						// PartObject 에는 DnD source/target/context 미부여
+						// (Layer 에 속하지 않으므로 Move/Reorder/Delete 의미 없음)
+
+						ImGui::PopID();
+					}
+					ImGui::TreePop();
 				}
 
 				ImGui::PopID();
