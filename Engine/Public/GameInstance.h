@@ -56,6 +56,13 @@ public:
 	HRESULT						Add_GameObject(_uint iPrototypeLevelIndex, const _wstring& strPrototypeTag,
 												_uint iLayerLevelIndex, const _wstring& strLayerTag, void* pArg = nullptr);
 	const map<const _wstring, class CLayer*>* Get_Layers(_uint iLevelIndex) const;
+	HRESULT						Move_GameObject(_uint iSrcLevel, const _wstring& strSrcLayer,
+												_uint iDstLevel, const _wstring& strDstLayer,
+												class CGameObject* pObject);
+	HRESULT						Reorder_GameObject(_uint iLevel, const _wstring& strLayer,
+												class CGameObject* pObject, _uint iNewIndex);
+	HRESULT						Remove_GameObject(_uint iLevel, const _wstring& strLayer,
+												class CGameObject* pObject);
 #pragma endregion
 
 #pragma region RENDERER

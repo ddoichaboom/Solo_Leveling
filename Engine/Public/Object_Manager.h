@@ -11,6 +11,7 @@
 NS_BEGIN(Engine)
 
 class CLayer;
+class CGameObject;
 
 class CObject_Manager final : public CBase
 {
@@ -26,6 +27,15 @@ public:
 	//HRESULT									Add_GameObject(_uint iLevelIndex, const _wstring& strLayerTag, class CGameObject* pGameObject);
 	HRESULT										Add_GameObject(_uint iPrototypeLevelIndex, const _wstring& strPrototypeTag,
 																_uint iLayerLevelIndex, const _wstring& strLayerTag, void* pArg);
+	HRESULT										Move_GameObject(_uint iSrcLevel, const _wstring& strSrcLayer,
+																		_uint iDstLevel, const _wstring& strDstLayer,
+																		CGameObject* pObject);
+	HRESULT										Reorder_GameObject(_uint iLevel, const _wstring& strLayer,
+																		CGameObject* pObject, _uint iNewIndex);
+	HRESULT										Remove_GameObject(_uint iLevel, const _wstring& strLayer,
+																		CGameObject* pObject);
+
+
 	void										Priority_Update(_float fTimeDelta);
 	void										Update(_float fTimeDelta);
 	void										Late_Update(_float fTimeDelta);

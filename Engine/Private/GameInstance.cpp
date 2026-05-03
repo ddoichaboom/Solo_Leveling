@@ -205,6 +205,24 @@ const map<const _wstring, CLayer*>* CGameInstance::Get_Layers(_uint iLevelIndex)
 	return m_pObject_Manager->Get_Layers(iLevelIndex);
 }
 
+HRESULT		CGameInstance::Move_GameObject(_uint iSrcLevel, const _wstring& strSrcLayer,
+	_uint iDstLevel, const _wstring& strDstLayer,
+	CGameObject* pObject)
+{
+	return m_pObject_Manager->Move_GameObject(iSrcLevel, strSrcLayer, iDstLevel, strDstLayer, pObject);
+}
+
+HRESULT		CGameInstance::Reorder_GameObject(_uint iLevel, const _wstring& strLayer,
+	CGameObject* pObject, _uint iNewIndex)
+{
+	return m_pObject_Manager->Reorder_GameObject(iLevel, strLayer, pObject, iNewIndex);
+}
+
+HRESULT		CGameInstance::Remove_GameObject(_uint iLevel, const _wstring& strLayer,
+	CGameObject* pObject)
+{
+	return m_pObject_Manager->Remove_GameObject(iLevel, strLayer, pObject);
+}
 #pragma endregion
 
 #pragma region RENDERER

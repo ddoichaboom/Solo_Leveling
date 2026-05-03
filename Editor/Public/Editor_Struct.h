@@ -8,6 +8,7 @@ namespace Editor
 		LOG_LEVEL		eLevel		= { LOG_LEVEL::INFO };
 		std::string		strMessage	= {};
 	}LOG_DESC;
+
 }
 
 #endif // Editor_Struct_h__

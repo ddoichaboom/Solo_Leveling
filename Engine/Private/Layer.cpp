@@ -15,6 +15,54 @@ HRESULT CLayer::Add_GameObject(CGameObject* pGameObject)
 	return S_OK;
 }
 
+HRESULT CLayer::Detach_GameObject(CGameObject* pObject)
+{
+	if (nullptr == pObject)
+		return E_FAIL;
+
+	auto iter = find(m_GameObjects.begin(), m_GameObjects.end(), pObject);
+	if (iter == m_GameObjects.end())
+		return E_FAIL;
+
+	m_GameObjects.erase(iter);
+
+	return S_OK;
+}
+
+HRESULT CLayer::Attach_GameObject(CGameObject* pObject)
+{
+	if (nullptr == pObject)
+		return E_FAIL;
+
+	m_GameObjects.push_back(pObject);
+
+	return S_OK;
+}
+
+HRESULT CLayer::Reorder_GameObject(CGameObject* pObject, _uint iNewIndex)
+{
+	if (nullptr == pObject)
+		return E_FAIL;
+
+	auto itSrc = find(m_GameObjects.begin(), m_GameObjects.end(), pObject);
+	if (itSrc == m_GameObjects.end())
+		return E_FAIL;
+
+	// 인덱스가 size 이상이면 끝으로
+	auto itDst = m_GameObjects.begin();
+	_uint i = 0;
+	while (itDst != m_GameObjects.end() && i < iNewIndex)
+	{
+		++itDst;
+		++i;
+	}
+
+	// splice는 같은 list 내에서 노드만 옮김 
+	m_GameObjects.splice(itDst, m_GameObjects, itSrc);
+
+	return S_OK;
+}
+
 void CLayer::Priority_Update(_float fTimeDelta)
 {
 	for (auto& pGameObject : m_GameObjects)

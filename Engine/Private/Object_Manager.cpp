@@ -54,6 +54,61 @@ HRESULT CObject_Manager::Add_GameObject(_uint iPrototypeLevelIndex, const _wstri
 	return S_OK;
 }
 
+HRESULT CObject_Manager::Move_GameObject(_uint iSrcLevel, const _wstring& strSrcLayer, _uint iDstLevel, const _wstring& strDstLayer, CGameObject* pObject)
+{
+	if (iSrcLevel >= m_iNumLevels || iDstLevel >= m_iNumLevels || nullptr == pObject)
+		return E_FAIL;
+
+	CLayer* pSrcLayer = Find_Layer(iSrcLevel, strSrcLayer);
+	if (nullptr == pSrcLayer)
+		return E_FAIL;
+
+	// 같은 레이어 내 이동이면 no-op
+	if (iSrcLevel == iDstLevel && strSrcLayer == strDstLayer)
+		return S_OK;
+
+	if (FAILED(pSrcLayer->Detach_GameObject(pObject)))
+		return E_FAIL;
+
+	CLayer* pDstLayer = Find_Layer(iDstLevel, strDstLayer);
+	if (nullptr == pDstLayer)
+	{
+		pDstLayer = CLayer::Create();
+		m_pLayers[iDstLevel].emplace(strDstLayer, pDstLayer);
+	}
+	
+	return pDstLayer->Attach_GameObject(pObject);
+}
+
+HRESULT CObject_Manager::Reorder_GameObject(_uint iLevel, const _wstring& strLayer, CGameObject* pObject, _uint iNewIndex)
+{
+	if (iLevel >= m_iNumLevels || nullptr == pObject)
+		return E_FAIL;
+
+	CLayer* pLayer = Find_Layer(iLevel, strLayer);
+	if (nullptr == pLayer)
+		return E_FAIL;
+
+	return pLayer->Reorder_GameObject(pObject, iNewIndex);
+}
+
+HRESULT CObject_Manager::Remove_GameObject(_uint iLevel, const _wstring& strLayer, CGameObject* pObject)
+{
+	if (iLevel >= m_iNumLevels || nullptr == pObject)
+		return E_FAIL;
+
+	CLayer* pLayer = Find_Layer(iLevel, strLayer);
+	if (pLayer == nullptr)
+		return E_FAIL;
+
+	if (FAILED(pLayer->Detach_GameObject(pObject)))
+		return E_FAIL;
+
+	Safe_Release(pObject);
+
+	return S_OK;
+}
+
 void CObject_Manager::Priority_Update(_float fTimeDelta)
 {
 	for (size_t i = 0; i < m_iNumLevels; i++)

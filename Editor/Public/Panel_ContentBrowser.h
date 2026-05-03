@@ -22,6 +22,9 @@ private:
     // 디렉토리 내용 캐싱 (매 프레임 filesystem 순회 방지)
     void                            Refresh();
 
+    void                            Render_Files();
+    void                            Render_Prototypes();
+
     // UI 헬퍼 
     void                            Render_Breadcrumb();
     void                            Render_Contents();
