@@ -247,10 +247,10 @@ void CPlayer::Set_EquippedWeapon(EQUIPPED_WEAPON_ID eId)
 
 _bool CPlayer::Consume_DashCharge()
 {
-	if (m_iDashChargeCurent <= 0)
+	if (m_iDashChargeCurrent <= 0)
 		return false;
 
-	--m_iDashChargeCurent;
+	--m_iDashChargeCurrent;
 
 	return true;
 }
@@ -277,8 +277,8 @@ void CPlayer::Tick_DashRegen(_float fTimeDelta)
 	{
 		m_fDashRegenTimer -= m_fDashRegenInterval;
 
-		if (m_iDashChargeCurent < m_iDashChargeMax)
-			++m_iDashChargeCurent;
+		if (m_iDashChargeCurrent < m_iDashChargeMax)
+			++m_iDashChargeCurrent;
 	}
 }
 

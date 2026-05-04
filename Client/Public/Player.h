@@ -47,9 +47,9 @@ public:
     _bool                   Can_UseWeaponSkill() const { return m_eEquippedWeapon != EQUIPPED_WEAPON_ID::NONE; }
 
 public:
-    _bool                   Can_ConsumeDashCharge() const { return m_iDashChargeCurent > 0; }
+    _bool                   Can_ConsumeDashCharge() const { return m_iDashChargeCurrent > 0; }
     _bool                   Consume_DashCharge();
-    _int                    Get_DashCharge() const { return m_iDashChargeCurent; }
+    _int                    Get_DashCharge() const { return m_iDashChargeCurrent; }
     _int                    Get_DashChargeMax() const { return m_iDashChargeMax; }
 
     void                    Set_WeaponsVisible(_bool bVisible);
@@ -87,7 +87,7 @@ private:
     _float                  m_fIdleThreshold = { 3.f };
 
     _int                    m_iDashChargeMax = { 3 };
-    _int                    m_iDashChargeCurent = { 3 };
+    _int                    m_iDashChargeCurrent = { 3 };
     _float                  m_fDashRegenInterval = { 3.f }; //  ∏Æ¡® ¡÷±‚
     _float                  m_fDashRegenTimer = { 0.f };
 
