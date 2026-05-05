@@ -41,26 +41,30 @@ void CCamera_Free::Priority_Update(_float fTimeDelta)
 	if (false == m_pGameInstance->Is_GameLogic_Frozen())
 		return;
 
+	const _bool bFastMove = (m_pGameInstance->Get_KeyState(VK_SHIFT) & 0x80) != 0;
+
+	const _float fMoveTimeDelta = fTimeDelta * (bFastMove ? 2.f : 1.f);
+
 	if (m_pGameInstance->Get_MouseBtnState(MOUSEBTN::RBUTTON) & 0x80)
 	{
 		// WASD 이동
 		if (m_pGameInstance->Get_KeyState('W') & 0x80)
-			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Straight(fTimeDelta);
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Straight(fMoveTimeDelta);
 
 		if (m_pGameInstance->Get_KeyState('S') & 0x80)
-			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Backward(fTimeDelta);
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Backward(fMoveTimeDelta);
 
 		if (m_pGameInstance->Get_KeyState('A') & 0x80)
-			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Left(fTimeDelta);
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Left(fMoveTimeDelta);
 
 		if (m_pGameInstance->Get_KeyState('D') & 0x80)
-			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Right(fTimeDelta);
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Right(fMoveTimeDelta);
 
 		if (m_pGameInstance->Get_KeyState('Q') & 0x80)
-			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Down(fTimeDelta);
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Down(fMoveTimeDelta);
 
 		if (m_pGameInstance->Get_KeyState('E') & 0x80)
-			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Up(fTimeDelta);
+			static_cast<CTransform_3D*>(m_pTransformCom)->Go_Up(fMoveTimeDelta);
 
 		// 마우스 회전
 		_long MouseMove = {};
