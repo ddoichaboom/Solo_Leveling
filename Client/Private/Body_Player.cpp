@@ -185,6 +185,9 @@ HRESULT CBody_Player::Ready_AnimationTable()
     if (FAILED(Register_AnimationClips()))
         return E_FAIL;
 
+    if (nullptr != m_pListener)
+        m_pAnimController->Set_Listener(m_pListener);
+
     return S_OK;
 }
 
@@ -227,6 +230,14 @@ HRESULT CBody_Player::Play_Action(CHARACTER_ACTION eAction)
     return S_OK;
 }
 
+void    CBody_Player::Set_Listener(INotifyListener* pListener)
+{
+    m_pListener = pListener;
+
+    if (nullptr != m_pAnimController)
+        m_pAnimController->Set_Listener(pListener);
+}
+
 CHARACTER_ACTION CBody_Player::Pick_RunEndAction() const
 {
     // Foot(발) 본의 모델 로컬 Z값 비교 - 더 작은 z (뒤쪽에 위치) 쪽 발로 멈춤
@@ -260,12 +271,47 @@ const CHARACTER_ANIM_BIND_DESC* CBody_Player::Find_Bind(CHARACTER_STATE eState, 
     return nullptr;
 }
 
-_uint64 CBody_Player::Resolve_ActionKey(CHARACTER_ACTION eAction) const
+_uint64 CBody_Player::Resolve_ActionKey(CHARACTER_ACTION eAction)
 {
-    if (nullptr != Find_Bind(m_eCurrentState, eAction, m_eWeaponState))
-        return Make_CharacterAnimKey(m_eCurrentState, eAction, m_eWeaponState);
+    if (nullptr == m_pAnimTable)
+        return 0;
+    
+    auto try_match = [&](CHARACTER_STATE eState, WEAPON_TYPE eWeapon) -> const CHARACTER_ANIM_BIND_DESC*
+        {
+            for (size_t i = 0; i < m_pAnimTable->iNumBinds; i++)
+            {
+                const CHARACTER_ANIM_BIND_DESC& bindDesc = m_pAnimTable->pBinds[i];
+                if (bindDesc.eState == eState && bindDesc.eAction == eAction && bindDesc.eWeapon == eWeapon)
+                    return &bindDesc;
+            }
+            return nullptr;
+        };
 
-    return Make_CharacterAnimKey(m_eCurrentState, eAction, WEAPON_TYPE::DEFAULT);
+    auto try_match_anystate = [&](WEAPON_TYPE eWeapon) -> const CHARACTER_ANIM_BIND_DESC*
+        {
+            for (size_t i = 0; i < m_pAnimTable->iNumBinds; i++)
+            {
+                const CHARACTER_ANIM_BIND_DESC& bindDesc = m_pAnimTable->pBinds[i];
+                if (bindDesc.eAction == eAction && bindDesc.eWeapon == eWeapon)
+                    return &bindDesc;
+            }
+            return nullptr;
+        };
+
+    const CHARACTER_ANIM_BIND_DESC* pBind = try_match(m_eCurrentState, m_eWeaponState);
+    if (nullptr == pBind)
+        pBind = try_match(m_eCurrentState, WEAPON_TYPE::DEFAULT);
+    if (nullptr == pBind)
+        pBind = try_match_anystate(m_eWeaponState);
+    if (nullptr == pBind)
+        pBind = try_match_anystate(WEAPON_TYPE::DEFAULT);
+
+    if (nullptr == pBind)
+        return 0;
+
+    m_eCurrentState = pBind->eState;
+
+    return Make_CharacterAnimKey(pBind->eState, eAction, pBind->eWeapon);
 }
 
 const CHARACTER_ACTION_POLICY* CBody_Player::Find_ActionPolicy(CHARACTER_ACTION eAction) const

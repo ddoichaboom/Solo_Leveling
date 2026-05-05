@@ -46,6 +46,11 @@ public:
 
 	const _tchar*					Get_BinaryPath() const { return m_szBinaryPath; }
 
+	_float							Get_TickPerSecond() const;
+
+	_uint                           Get_NumNotifies(_uint iAnimIndex) const;
+	ANIM_NOTIFY                     Get_Notify(_uint iAnimIndex, _uint iNotifyIndex) const;
+
 
 #pragma endregion
 
@@ -58,6 +63,12 @@ public:
 	void							Set_RootMotionEnabled(_bool bEnabled);
 	void							Set_AnimationLoop(_uint iIndex, _bool bLoop);
 	void							Set_AnimationUseRootMotion(_uint iIndex, _bool bUse);
+
+	void                            Set_NotifyTick(_uint iAnimIndex, _uint iNotifyIndex, _float fTick);
+	void                            Set_NotifyType(_uint iAnimIndex, _uint iNotifyIndex, ANIM_NOTIFY_TYPE eType);
+	void                            Add_Notify(_uint iAnimIndex, const ANIM_NOTIFY& Notify);
+	void                            Remove_Notify(_uint iAnimIndex, _uint iNotifyIndex);
+	void                            Sort_Notifies(_uint iAnimIndex);
 #pragma endregion
 
 public:
@@ -74,7 +85,7 @@ public:
 
 	_bool							Pick(_fvector vRayOrigin, _fvector vRayDir, _fmatrix matWorld, _float& fDist);
 
-	_bool							Play_Animation(_float fTimeDelta);
+	_bool							Play_Animation(_float fTimeDelta, class INotifyListener* pListener = nullptr);
 
 	void							Set_AnimationIndex(_uint iIndex);
 	void							Set_AnimationIndex_WithBlend(_uint iIndex, _float fBlendTime, _bool bRestartTo = true);

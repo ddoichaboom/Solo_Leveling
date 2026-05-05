@@ -509,9 +509,16 @@ Try_Transition(eNext):
 - 같은 `BASIC_ATTACK_01` Intent 도 WeaponState 가 다르면 다른 Clip 재생 (v2 예시: `Fighter_Attack_01` vs `Dualwield_Attack_01`)
 - 이 부분은 이미 `CharacterAnimTable + CAnimController` 레벨에서 지원됨 — CPlayer 는 단순히 Action + WeaponState 쌍을 넘기기만 하면 됨
 
-### 6.3 결정 대기
+### 6.3 콤보 윈도우 길이 (2026-05-04 결정)
 
-- 콤보 윈도우 구현 방식 (§4.3 후보 A/B)
+- **OPEN 위치**: 임팩트 모션 끝 직후 (`ATTACK_HIT` 직후)
+- **CLOSE 위치**: 애니메이션 자연 종료 시점까지 살아있음 — 즉 임팩트 이후 ~ duration 끝까지가 모두 콤보 입력 수용 구간
+- 입력 미수용 시 `AutoReturn=true` 로 IDLE 복귀, 수용 시 다음 콤보 단계로 cross-fade 전이
+- 마커상 표현: `COMBO_WINDOW_CLOSE` 를 `duration` 직전 (예: duration - 0.01s) 에 배치하거나, 아예 생략 후 자연 종료가 곧 close 의미로 처리하는 단순화도 가능 (구현 시 결정)
+- 결과적으로 BASIC_ATTACK_03 (피니셔) 만 OPEN/CLOSE 둘 다 생략 — 다음 콤보 없음
+
+### 6.4 결정 대기
+
 - 콤보 중 이동 입력 해석 (제자리 콤보 / 이동 중단 / 경량 이동 허용)
 
 ---
@@ -841,26 +848,48 @@ Step E. 블렌딩 접점 반영 (§8).
 - §10 체크리스트 "이동/대시" + "Dash/콤보" 의 대시 부분 + "Walk/Run 전이" 블록 실측
 - 커밋: `Step B: AutoReturn 이관 + Dash/Run + Grace 타이머`
 
-#### Step C — 공격/가드/콤보 + AnimNotify 인프라 (⬜ 대기)
+#### Step C — 공격/가드/콤보 + AnimNotify 인프라 (🟡 부분 완료)
 
-**선행 Engine 확장**:
-- `CAnimController::Play(_uint64 key, _float fBlendTime = 0.f)` 시그니처 확장 (실 블렌드 로직은 0 일 때 하드컷 유지)
-- SLMD v3 포맷 확장 + v2 폴백 로드 (`CModel::Load_Binary_Desc` 에서 version 분기)
-- `CModel_Converter` v3 쓰기로 전환
-- `CAnimController` 에 Notify 리스너 구독/해제 + Update 시 Notify 발화
-- `IActionNotifyListener::OnNotify(name, payload)` 실제 구현
-- Inspector 에 Notify 최소 저작 UI (§4.3 N-2)
-- `CStateMachine` 에 Pending Enqueue API (콤보 윈도우 버퍼링용)
+**완료된 선행 Engine 확장 (C-1~C-5, 2026-05-05)**:
+- ✅ SLMD v3 포맷 확장 + v2 폴백 로드 (`CModel::Load_Binary_Desc` version 분기, 빈 notify 배열 폴백)
+- ✅ `CModel_Converter` v3 쓰기 전환 (Inspector 에서 Notify 편집 → SLMD .bin 저장)
+- ✅ `CAnimController` Notify 발화 (Listener pass-through 체인: Body → AnimController → Model → Animation::Tick_Notifies, wrap-aware (fLow, fHigh] 발화)
+- ✅ `INotifyListener::OnNotify(NOTIFY_EVENT)` 실제 구현 (CPlayer_StateMachine, eType: ACTION_FINISHED / ANIM_EVENT 라우팅)
+- ✅ Inspector Notify 최소 저작 UI (Animation List BeginChild 스크롤 + Notify Add/Remove/Tick DragFloat + Type Combo + tick→sec 환산)
+- ✅ `CAnimController::Play(_uint64 key, _float fBlendTime)` 블렌드 시그니처 (Policy.fEnterBlendTime 사용)
 
-**작업**:
-- `ComboWindow_Open` / `ComboWindow_Close` Notify 소비 (StateMachine)
-- `BASIC_ATTACK_01 → 02 → 03` 콤보 체이닝
-- `LINK_ATTACK` / `CHAIN_SMASH` (DASH+LMB, LINK+LMB)
-- `GUARD_START/LOOP/END` + **Reject 리스트 (DASH→GUARD, BACK_DASH→GUARD) 등록**
-- IntentResolver LMB / RMB Edge + 문맥 재해석 완성
+**완료된 작업 (C-6, 2026-05-05) — BASIC_ATTACK 콤보 체이닝**:
+- ✅ ANIM_NOTIFY_TYPE: FOOTSTEP_L/R, ATTACK_HIT, COMBO_WINDOW_OPEN/CLOSE
+- ✅ CharacterAnimTable: BASIC_ATTACK_01/02/03 × (DEFAULT, DAGGER) bind 6개 + Policy 3개 (priority 600, AutoReturn IDLE, fEnterBlendTime 0.10s)
+- ✅ Player 입력 확장: `bAttackPressed` (RAW) / `bAttackRequested` (Intent), Down|Held + 입력 버퍼 0.18s
+- ✅ `Update_Combat` Early-Cancel 방식 (큐잉 X, OPEN 시점에 즉시 다음 액션으로 Try_Transition)
+  - _01 OPEN + LMB → _02
+  - _02 OPEN + LMB → _03
+  - _03 OPEN + LMB → _01 (콤보 루프)
+  - OPEN + W (LMB 없음) → 즉시 IDLE 캔슬
+  - OPEN + W + LMB 동시 → 콤보 우선 (`bAttackRequested` 가드)
+- ✅ `Is_AttackLocked()` — bIsAttacking && !bComboWindowOpen 일 때 Update_LocoMotion 차단
+- ✅ OnNotify ANIM_EVENT: COMBO_WINDOW_OPEN/CLOSE → m_bComboWindowOpen 토글
+- ✅ OnNotify ACTION_FINISHED: bAttackFinished → IDLE 폴백 (Early-Cancel 모드라 콤보 진행은 이미 분기 (3) 에서 처리됨)
+- ✅ 마커 저작 완료: BaseAttack_01/02/03 에 HIT + OPEN 박고 SLMD v3 로 저장 검증
 
-**검증**:
-- §10 체크리스트 공격/가드/콤보 블록 실측
+**완료된 작업 (C-7, 2026-05-05) — GUARD_START/LOOP/END + Reject + 인프라 개편**:
+- ✅ CHARACTER_ACTION: `GUARD_START / GUARD_LOOP / GUARD_END` 활성화
+- ✅ PLAYER_INTENT_FRAME: `bGuardHeld` 추가 (Held 기반, Edge 검출 폐기)
+- ✅ Player.cpp: RMB input flicker 디바운스 0.10s (`m_fGuardHoldGraceTimer`)
+- ✅ CharacterAnimTable: state 의미 분류 (LOCOMOTION/COMBAT/GUARD), GUARD Bind 6 + Policy 3 (priority 4, AutoReturn 차등)
+- ✅ Body_Player::Resolve_ActionKey: 4단계 폴백 + `m_eCurrentState` 자동 갱신 (CHARACTER_STATE 가 실제 의미를 가지는 시스템)
+- ✅ Player_StateMachine: `Update_Guard` (Held 기반 + GUARD_END 재진입 가드) / `Is_GuardLocked` / OnNotify GUARD 분기 / On_Transition GUARD_* SpeedCoeff·WeaponsVisible
+- ✅ Reject 등록: `(DASH, GUARD_START)` + `(BACK_DASH, GUARD_START)`
+- ✅ SLMD: Guard_Dagger_Loop.bin `bIsLoop=true` 저장
+- ✅ §10 체크리스트 가드 블록 실측 통과 (Hold→START→LOOP 무한 / Release→END→IDLE / DASH 중 RMB 거부 / 공격 중 RMB 캔슬 진입 / flicker 흡수)
+
+**잔여 작업 (C-8)**:
+- ⏳ `LINK_ATTACK` / `CHAIN_SMASH` (DASH+LMB → LINK_ATTACK, LINK_ATTACK + LMB(OPEN) → CHAIN_SMASH)
+- ⏳ Step C 종료 커밋
+
+**알려진 후속 (Step C 마감 후 처리)**:
+- ⏳ Guard_Dagger 클립 무기 회전 시각 이슈 (memory: project_guard_dagger_visual). 클립 자체 캘리브레이션 미스매치. 클립 재변환 또는 LocalOffset 도입 검토
 
 #### Step D — 무기 스왑 + 쿨다운 (⬜ 대기)
 

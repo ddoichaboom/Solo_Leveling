@@ -4,6 +4,7 @@
 #include "Material.h"
 #include "Bone.h"
 #include "Animation.h"
+#include "NotifyListener.h"
 
 /* ============================================================================
    * Solo Leveling Model Data (.bin) 포맷 v1
@@ -49,7 +50,7 @@
 namespace
 {
 	constexpr char SLMD_MAGIC[4]			= { 'S', 'L', 'M', 'D' };
-	constexpr _uint SLMD_VERSION_LATEST		= 2;
+	constexpr _uint SLMD_VERSION_LATEST		= 3;
 	constexpr _uint SLMD_VERSION_MIN		= 1;
 }
 
@@ -424,7 +425,7 @@ _bool CModel::Pick(_fvector vRayOrigin, _fvector vRayDir, _fmatrix matWorld, _fl
 }
 
 
-_bool CModel::Play_Animation(_float fTimeDelta)
+_bool CModel::Play_Animation(_float fTimeDelta, INotifyListener* pListener)
 {
 	if (!m_isAnimPlaying)
 		return false;
@@ -438,7 +439,7 @@ _bool CModel::Play_Animation(_float fTimeDelta)
 	// 루프 감지용 : 업데이트 전 트랙 위치 캐시
 	_float fPrevTrackPos = m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
 
-	_bool isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(m_Bones, fTimeDelta, m_isAnimLoop);
+	_bool isFinished = m_Animations[m_iCurrentAnimationIndex]->Update_TransformationMatrix(m_Bones, fTimeDelta, m_isAnimLoop, pListener);
 
 	Extract_RootMotion(fPrevTrackPos);
 
@@ -599,6 +600,65 @@ _float CModel::Get_BlendWeight() const
 	return (w < 0.f) ? 0.f : ((w > 1.f) ? 1.f : w);
 }
 
+_float CModel::Get_TickPerSecond() const
+{
+	if (m_iCurrentAnimationIndex >= m_iNumAnimations)
+		return 30.f;        // SLMD 기본치, div/0 방지
+	return m_Animations[m_iCurrentAnimationIndex]->Get_TickPerSecond();
+}
+
+_uint CModel::Get_NumNotifies(_uint iAnimIndex) const
+{
+	if (iAnimIndex >= m_iNumAnimations)
+		return 0;
+	return m_Animations[iAnimIndex]->Get_NumNotifies();
+}
+
+ANIM_NOTIFY CModel::Get_Notify(_uint iAnimIndex, _uint iNotifyIndex) const
+{
+	ANIM_NOTIFY Empty{};        // {fTick=0, eType=NONE}
+	if (iAnimIndex >= m_iNumAnimations)
+		return Empty;
+	if (iNotifyIndex >= m_Animations[iAnimIndex]->Get_NumNotifies())
+		return Empty;
+	return m_Animations[iAnimIndex]->Get_Notify(iNotifyIndex);
+}
+
+void CModel::Set_NotifyTick(_uint iAnimIndex, _uint iNotifyIndex, _float fTick)
+{
+	if (iAnimIndex >= m_iNumAnimations)
+		return;
+	m_Animations[iAnimIndex]->Set_NotifyTick(iNotifyIndex, fTick);
+}
+
+void CModel::Set_NotifyType(_uint iAnimIndex, _uint iNotifyIndex, ANIM_NOTIFY_TYPE eType)
+{
+	if (iAnimIndex >= m_iNumAnimations)
+		return;
+	m_Animations[iAnimIndex]->Set_NotifyType(iNotifyIndex, eType);
+}
+
+void CModel::Add_Notify(_uint iAnimIndex, const ANIM_NOTIFY& Notify)
+{
+	if (iAnimIndex >= m_iNumAnimations)
+		return;
+	m_Animations[iAnimIndex]->Add_Notify(Notify);
+}
+
+void CModel::Remove_Notify(_uint iAnimIndex, _uint iNotifyIndex)
+{
+	if (iAnimIndex >= m_iNumAnimations)
+		return;
+	m_Animations[iAnimIndex]->Remove_Notify(iNotifyIndex);
+}
+
+void CModel::Sort_Notifies(_uint iAnimIndex)
+{
+	if (iAnimIndex >= m_iNumAnimations)
+		return;
+	m_Animations[iAnimIndex]->Sort_Notifies();
+}
+
 HRESULT CModel::Save_Binary() const
 {
 	if ('\0' == m_szBinaryPath[0])
@@ -633,6 +693,19 @@ HRESULT CModel::Save_Binary(const _tchar* pBinaryPath) const
 	{
 		Desc.pAnimations[i].bIsLoop = m_Animations[i]->Get_IsLoop();
 		Desc.pAnimations[i].bUseRootMotion = m_Animations[i]->Get_UseRootMotion();
+
+		// C-5: 런타임 Notify 를 Desc 로 머지
+		// Load_Binary_Desc 가 이미 채운 pNotifies 를 런타임 상태로 교체.
+		// Safe_Delete_Array 는 nullptr-safe 이고 v2 폴백(빈 배열) 케이스도 안전 처리.
+		Safe_Delete_Array(Desc.pAnimations[i].pNotifies);
+		Desc.pAnimations[i].iNumNotifies = m_Animations[i]->Get_NumNotifies();
+
+		if (Desc.pAnimations[i].iNumNotifies > 0)
+		{
+			Desc.pAnimations[i].pNotifies = new ANIM_NOTIFY[Desc.pAnimations[i].iNumNotifies]{};
+			for (_uint k = 0; k < Desc.pAnimations[i].iNumNotifies; ++k)
+				Desc.pAnimations[i].pNotifies[k] = m_Animations[i]->Get_Notify(k);
+		}
 	}
 
 	// 4) v2 포맷으로 기록
@@ -1180,6 +1253,23 @@ HRESULT CModel::Load_Binary_Desc(const _tchar* pBinaryPath, MODEL_DESC* pOutDesc
 				Ch.pKeyFrames = new KEYFRAME[Ch.iNumKeyFrames]{};
 				fread(Ch.pKeyFrames, sizeof(KEYFRAME), Ch.iNumKeyFrames, fp);
 			}
+
+			if (iVersion >= 3)
+			{
+				fread(&Anim.iNumNotifies, sizeof(_uint), 1, fp);
+				if (Anim.iNumNotifies > 0)
+				{
+					Anim.pNotifies = new ANIM_NOTIFY[Anim.iNumNotifies]{};
+					for (_uint k = 0; k < Anim.iNumNotifies; ++k)
+					{
+						fread(&Anim.pNotifies[k].fTick, sizeof(_float), 1, fp);
+
+						_uint iType = 0;
+						fread(&iType, sizeof(_uint), 1, fp);
+						Anim.pNotifies[k].eType = static_cast<ANIM_NOTIFY_TYPE>(iType);
+					}
+				}
+			}
 		}
 	}
 
@@ -1202,6 +1292,7 @@ void CModel::Free_Binary_Desc(MODEL_DESC* pDesc)
 
 				Safe_Delete_Array(Anim.pChannels);
 			}
+			Safe_Delete_Array(Anim.pNotifies);
 		}
 		Safe_Delete_Array(pDesc->pAnimations);
 	}
@@ -1337,6 +1428,14 @@ HRESULT CModel::Save_Binary_Desc(const _tchar* pBinaryPath, const MODEL_DESC& De
 			fwrite(&Ch.iBoneIndex, sizeof(_uint), 1, fp);
 			fwrite(&Ch.iNumKeyFrames, sizeof(_uint), 1, fp);
 			fwrite(Ch.pKeyFrames, sizeof(KEYFRAME), Ch.iNumKeyFrames, fp);
+		}
+
+		fwrite(&Anim.iNumNotifies, sizeof(_uint), 1, fp);
+		for (_uint k = 0; k < Anim.iNumNotifies; ++k)
+		{
+			fwrite(&Anim.pNotifies[k].fTick, sizeof(_float), 1, fp);
+			_uint iType = static_cast<_uint>(Anim.pNotifies[k].eType);
+			fwrite(&iType, sizeof(_uint), 1, fp);
 		}
 	}
 

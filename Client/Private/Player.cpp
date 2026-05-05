@@ -104,9 +104,23 @@ void CPlayer::Update(_float fTimeDelta)
 		Tick_WeaponHideTimer(fTimeDelta);
 
 		PLAYER_RAW_INPUT_FRAME Raw{};
-		PLAYER_INTENT_FRAME Intent{};
-
 		Gather_RawInput(&Raw);
+
+		if (true == Raw.bRButtonHeld)
+			m_fGuardHoldGraceTimer = GUARD_HOLD_GRACE;
+		else
+			m_fGuardHoldGraceTimer = max(0.f, m_fGuardHoldGraceTimer - fTimeDelta);
+
+		Raw.bRButtonHeld = (m_fGuardHoldGraceTimer > 0.f);
+
+		if (true == Raw.bLButtonPressed)
+			m_fAttackBufferTimer = ATTACK_BUFFER_DURATION;
+		else
+			m_fAttackBufferTimer = max(0.f, m_fAttackBufferTimer - fTimeDelta);
+
+		Raw.bLButtonPressed = (m_fAttackBufferTimer > 0.f);
+
+		PLAYER_INTENT_FRAME Intent{};
 
 		const _float fCameraYaw = Query_CameraYaw();
 
@@ -115,7 +129,13 @@ void CPlayer::Update(_float fTimeDelta)
 
 		if (nullptr != m_pStateMachine)
 		{
-			m_pStateMachine->Update_LocoMotion(Intent);
+			m_pStateMachine->Update_Guard(Intent);
+			m_pStateMachine->Update_Combat(Intent);
+
+			if(false == m_pStateMachine->Is_AttackLocked() && 
+				false == m_pStateMachine->Is_GuardLocked())
+				m_pStateMachine->Update_LocoMotion(Intent);
+
 			m_pStateMachine->Update(fTimeDelta);
 		}
 
@@ -325,7 +345,7 @@ HRESULT CPlayer::Ready_PartObjects()
 	WeaponRDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
 	WeaponRDesc.pSocketBoneMatrix =	m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_R");
 	WeaponRDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KnightKiller");
-	WeaponRDesc.bInitiallyVisible = true;
+	WeaponRDesc.bInitiallyVisible = false;
 	
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
@@ -340,7 +360,7 @@ HRESULT CPlayer::Ready_PartObjects()
 	WeaponLDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
 	WeaponLDesc.pSocketBoneMatrix = m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_L");
 	WeaponLDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang");
-	WeaponLDesc.bInitiallyVisible = true;
+	WeaponLDesc.bInitiallyVisible = false;
 
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
@@ -388,6 +408,10 @@ void CPlayer::Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw)
 		pOutRaw->bMoveRightHeld = (m_pGameInstance->Get_KeyState('D') & 0x80) != 0;
 	}
 	pOutRaw->bDashPressed = m_pGameInstance->Get_KeyDown(VK_SPACE);
+
+	const _bool bMouseLBtnDown = m_pGameInstance->Get_MouseBtnDown(MOUSEBTN::LBUTTON);
+	const _bool bMouseLBtnHeld = m_pGameInstance->Get_MouseBtnState(MOUSEBTN::LBUTTON);
+	pOutRaw->bLButtonPressed = bMouseLBtnDown || bMouseLBtnHeld;
 
 	pOutRaw->lMouseDeltaX = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::X);
 	pOutRaw->lMouseDeltaY = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::Y);

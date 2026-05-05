@@ -32,6 +32,8 @@ public:
 	_bool							Update(_float fTimeDelta);
 	void							Restart();
 
+	void							Set_Listener(class INotifyListener* pListener) { m_pListener = pListener; }
+
 public:
 	_bool							Has_CurrentClip() const { return m_bHasCurrentClip; }
 	_uint64							Get_CurrentKey() const { return m_iCurrentKey; }
@@ -39,6 +41,7 @@ public:
 
 private:
 	class CModel*					m_pModel = { nullptr };
+	class INotifyListener*			m_pListener = { nullptr };
 
 	unordered_map<_uint64, ANIM_CLIP> m_Clips;
 

@@ -24,6 +24,11 @@ public:
 
 public:
 	void							Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent);
+	void							Update_Combat(const PLAYER_INTENT_FRAME& Intent);
+	void							Update_Guard(const PLAYER_INTENT_FRAME& Intent);
+
+	_bool							Is_GuardLocked() const;
+	_bool							Is_AttackLocked() const;
 	void							Bind_Owner(CPlayer* pOwner);
 	_bool							Enter_InitialState(CHARACTER_ACTION eInitialAction = CHARACTER_ACTION::IDLE);
 	virtual void					OnNotify(const NOTIFY_EVENT& Event) override;
@@ -32,8 +37,11 @@ protected:
 	virtual void					On_Transition(_uint iFrom, _uint iTo, _bool bInitial) override;
 
 private:
-	CPlayer*						m_pOwner = { nullptr };
+	CPlayer* m_pOwner = { nullptr };
 	_bool							m_bLastHasMoveIntent = { false };
+	_bool							m_bComboWindowOpen = { false };
+	_int							m_iComboStep = { 0 };
+	_bool							m_bLastGuardHeld = { false };
 
 
 public:

@@ -41,7 +41,7 @@ HRESULT CModel_Converter::Convert(const _tchar* pFbxPath, const _tchar* pBinPath
     // 6. Header (80 bytes)
     {
         const char szMagic[4] = { 'S','L','M','D' };
-        _uint iVersion = 2u;
+        _uint iVersion = 3u;
         _uint iModelType = static_cast<_uint>(eModelType);
         _uint iReserved = 0u;
         fwrite(szMagic, sizeof(char), 4, fp);
@@ -466,6 +466,8 @@ HRESULT CModel_Converter::Write_Animations(FILE* fp, const aiScene* pScene, cons
             }
             fwrite(KeyFrames.data(), sizeof(KEYFRAME), iNumKeys, fp);
         }
+        _uint iNumNotifies = 0u;
+        fwrite(&iNumNotifies, sizeof(_uint), 1, fp);
     }
 
     return S_OK;

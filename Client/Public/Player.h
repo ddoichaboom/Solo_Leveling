@@ -80,11 +80,17 @@ private:
     void                    Refresh_WeaponVisibility();
 
 private:
-    _bool                   m_bWeaponsVisible = { true };
+    _float                  m_fIdleThreshold = { 3.f };
+
+    _bool                   m_bWeaponsVisible = { false };
     _bool                   m_bLeftVisibleFromLoadOut = { true };
 
+    _float                  m_fAttackBufferTimer = { 0.f };
     _float                  m_fIdleTimer = { 0.f };
-    _float                  m_fIdleThreshold = { 3.f };
+    static constexpr _float ATTACK_BUFFER_DURATION = { 0.18f };
+
+    _float                  m_fGuardHoldGraceTimer = { 0.f };
+    static constexpr _float GUARD_HOLD_GRACE = { 0.10f };
 
     _int                    m_iDashChargeMax = { 3 };
     _int                    m_iDashChargeCurrent = { 3 };

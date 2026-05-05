@@ -26,6 +26,11 @@ HRESULT	CPlayer_StateMachine::Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimT
             return E_FAIL;
     }
 
+    if (FAILED(Register_Reject(ETOUI(CHARACTER_ACTION::DASH), ETOUI(CHARACTER_ACTION::GUARD_START))))
+        return E_FAIL;
+    if (FAILED(Register_Reject(ETOUI(CHARACTER_ACTION::BACK_DASH), ETOUI(CHARACTER_ACTION::GUARD_START))))
+        return E_FAIL;
+
     return S_OK;
 }
 
@@ -105,6 +110,113 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
         Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
 }
 
+void CPlayer_StateMachine::Update_Combat(const PLAYER_INTENT_FRAME& Intent)
+{
+    const CHARACTER_ACTION eCur = Get_CurrentCharacterAction();
+
+    const _bool bIsAttacking =
+        (CHARACTER_ACTION::BASIC_ATTACK_01 == eCur) ||
+        (CHARACTER_ACTION::BASIC_ATTACK_02 == eCur) ||
+        (CHARACTER_ACTION::BASIC_ATTACK_03 == eCur);
+    
+    // 1) 공격 진행 중
+    if (true == bIsAttacking
+        && true == m_bComboWindowOpen
+        && true == Intent.bHasMoveIntent
+        && false == Intent.bAttackRequested)
+    {
+        __super::On_ActionFinished();
+        Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+        m_iComboStep = 0;
+        m_bComboWindowOpen = false;
+        return;
+    }
+
+    // 2) LMB 미 입력 시 종료
+    if (false == Intent.bAttackRequested)
+        return;
+
+    // 3) 콤보 진행 중
+    if (true == bIsAttacking)
+    {
+        if (false == m_bComboWindowOpen) return;
+
+        const CHARACTER_ACTION eNext =
+            (CHARACTER_ACTION::BASIC_ATTACK_01 == eCur) ? CHARACTER_ACTION::BASIC_ATTACK_02 :
+            (CHARACTER_ACTION::BASIC_ATTACK_02 == eCur) ? CHARACTER_ACTION::BASIC_ATTACK_03 :
+            CHARACTER_ACTION::BASIC_ATTACK_01; 
+
+        __super::On_ActionFinished();
+        if (true == Try_Transition(ETOUI(eNext)))
+        {
+            m_iComboStep =
+                (CHARACTER_ACTION::BASIC_ATTACK_02 == eNext) ? 2 :
+                (CHARACTER_ACTION::BASIC_ATTACK_03 == eNext) ? 3 : 1;
+            m_bComboWindowOpen = false;
+        }
+        return;
+    }
+
+    // 4) 비공격 상태
+    if (true == Try_Transition(ETOUI(CHARACTER_ACTION::BASIC_ATTACK_01)))
+    {
+        m_iComboStep = 1;
+        m_bComboWindowOpen = false;
+    }
+}
+
+void CPlayer_StateMachine::Update_Guard(const PLAYER_INTENT_FRAME& Intent)
+{
+    m_bLastGuardHeld = Intent.bGuardHeld;
+
+    const CHARACTER_ACTION eCur = Get_CurrentCharacterAction();
+
+    const _bool bIsGuarding =
+        (CHARACTER_ACTION::GUARD_START == eCur) ||
+        (CHARACTER_ACTION::GUARD_LOOP == eCur);
+
+    // 가드 진입
+    if (false == bIsGuarding && true == Intent.bGuardHeld)
+    {
+        if (CHARACTER_ACTION::GUARD_END == eCur)
+            return;
+
+        Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_START));
+        return;
+    }
+
+    // 가드 해제
+    if (true == bIsGuarding && false == Intent.bGuardHeld)
+    {
+        __super::On_ActionFinished();
+        Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_END));
+        return;
+    }
+}
+
+_bool CPlayer_StateMachine::Is_GuardLocked() const
+{
+    const CHARACTER_ACTION eCur = Get_CurrentCharacterAction();
+    return (CHARACTER_ACTION::GUARD_START == eCur) ||
+        (CHARACTER_ACTION::GUARD_LOOP == eCur) ||
+        (CHARACTER_ACTION::GUARD_END == eCur);
+}
+
+_bool CPlayer_StateMachine::Is_AttackLocked() const
+{
+    const CHARACTER_ACTION eCur = Get_CurrentCharacterAction();
+
+    const _bool bIsAttacking = 
+        (CHARACTER_ACTION::BASIC_ATTACK_01 == eCur) ||
+        (CHARACTER_ACTION::BASIC_ATTACK_02 == eCur) ||
+        (CHARACTER_ACTION::BASIC_ATTACK_03 == eCur);
+
+    if (false == bIsAttacking)
+        return false;
+
+    return (false == m_bComboWindowOpen);
+}
+
 void CPlayer_StateMachine::Bind_Owner(CPlayer* pOwner)
 {
     m_pOwner = pOwner;
@@ -156,6 +268,34 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
             break;
         }
 
+        const _bool bAttackFinished =
+            (CHARACTER_ACTION::BASIC_ATTACK_01 == eFinished) ||
+            (CHARACTER_ACTION::BASIC_ATTACK_02 == eFinished) ||
+            (CHARACTER_ACTION::BASIC_ATTACK_03 == eFinished);
+        
+        if (bAttackFinished)
+        {
+            m_iComboStep = 0;
+            m_bComboWindowOpen = false;
+
+            Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+            break;
+        }
+
+        if (CHARACTER_ACTION::GUARD_START == eFinished)
+        {
+            if (true == m_bLastGuardHeld)
+                Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_LOOP));
+            else
+                Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_END));
+            break;
+        }
+        else if (CHARACTER_ACTION::GUARD_END == eFinished)
+        {
+            Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+            break;
+        }
+
         // UNDRAW 완료 -> HIDDEN
         if (CHARACTER_ACTION::UNDRAW == eFinished)
         {
@@ -167,8 +307,35 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
         break;
     }
     case NOTIFY_TYPE::ANIM_EVENT:
-        // Step C 이후 처리
+    {
+        const ANIM_NOTIFY_TYPE eAnim = static_cast<ANIM_NOTIFY_TYPE>(Event.iPayload);
+
+        switch (eAnim)
+        {
+        case ANIM_NOTIFY_TYPE::FOOTSTEP_L:
+        case ANIM_NOTIFY_TYPE::FOOTSTEP_R:
+            // Step E (Audio): 발소리 재생 위치. 현재는 무시.
+            break;
+
+        case ANIM_NOTIFY_TYPE::ATTACK_HIT:
+            // Step C-6 (BASIC_ATTACK 콤보): 적 피격 박스 활성화 트리거 위치. 현재는 무시.
+            break;
+
+        case ANIM_NOTIFY_TYPE::COMBO_WINDOW_OPEN:
+            m_bComboWindowOpen = true;
+            break;
+
+        case ANIM_NOTIFY_TYPE::COMBO_WINDOW_CLOSE:
+            m_bComboWindowOpen = false;
+            break;
+
+        case ANIM_NOTIFY_TYPE::NONE:
+        case ANIM_NOTIFY_TYPE::END:
+        default:
+            break;
+        }
         break;
+    }
     default:
         break;
     }
@@ -209,6 +376,16 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     case CHARACTER_ACTION::BACK_DASH:
         m_pOwner->Set_SpeedCoeff(0.f);
         break;
+    case CHARACTER_ACTION::BASIC_ATTACK_01:
+    case CHARACTER_ACTION::BASIC_ATTACK_02:
+    case CHARACTER_ACTION::BASIC_ATTACK_03:
+        m_pOwner->Set_SpeedCoeff(0.f);
+        break;
+    case CHARACTER_ACTION::GUARD_START:
+    case CHARACTER_ACTION::GUARD_LOOP:
+    case CHARACTER_ACTION::GUARD_END:
+        m_pOwner->Set_SpeedCoeff(0.f);
+        break;
     case CHARACTER_ACTION::UNDRAW:
         m_pOwner->Set_SpeedCoeff(0.f);
         break;
@@ -232,6 +409,16 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
         m_pOwner->Set_WeaponsVisible(false);
         break;
     
+    case CHARACTER_ACTION::BASIC_ATTACK_01:
+    case CHARACTER_ACTION::BASIC_ATTACK_02:
+    case CHARACTER_ACTION::BASIC_ATTACK_03:
+        m_pOwner->Set_WeaponsVisible(true);
+        break;
+    case CHARACTER_ACTION::GUARD_START:
+    case CHARACTER_ACTION::GUARD_LOOP:
+    case CHARACTER_ACTION::GUARD_END:
+        m_pOwner->Set_WeaponsVisible(true);
+        break;
     case CHARACTER_ACTION::IDLE:
     case CHARACTER_ACTION::UNDRAW:
         break;

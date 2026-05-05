@@ -24,11 +24,23 @@ public:
 	_float					Get_PrevTrackPosition() const { return m_fPrevTrackPosition; }
 
 public:
+	_uint                   Get_NumNotifies() const { return static_cast<_uint>(m_Notifies.size()); }
+	const ANIM_NOTIFY&		Get_Notify(_uint i) const { return m_Notifies[i]; }
+	void                    Set_NotifyTick(_uint i, _float fTick);
+	void                    Set_NotifyType(_uint i, ANIM_NOTIFY_TYPE eType);
+	void                    Add_Notify(const ANIM_NOTIFY& Notify);
+	void                    Remove_Notify(_uint i);
+	void                    Sort_Notifies();
+
+public:
 	HRESULT					Initialize(const ANIMATION_DESC& Desc);
 	_bool					Update_TransformationMatrix(const vector<class CBone*>& Bones,
-														_float fTimeDelta, _bool isLoop);
+														_float fTimeDelta, _bool isLoop,
+														class INotifyListener* pListener = nullptr );
 	_bool					Advance_Time(_float fTimeDelta, _bool isLoop);
 	void					Evaluate_Pose(BONE_POSE* pOutPoses, _ubyte* pOutHasPose);
+
+	void					Tick_Notifies(_float fPrevTick, _float fCurTick, _bool bWrapped, class INotifyListener* pListener = nullptr);
 
 
 private:
@@ -43,6 +55,9 @@ private:
 	_uint					m_iNumChannels = {};
 	vector<class CChannel*> m_Channels;
 	vector<_uint>			m_CurrentKeyFrameIndices;
+
+	vector<ANIM_NOTIFY>		m_Notifies;
+	_float					m_fLastNotifyTick = { 0.f };
 
 public:
 	static CAnimation*		Create(const ANIMATION_DESC& Desc);

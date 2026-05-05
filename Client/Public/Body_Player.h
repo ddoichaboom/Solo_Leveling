@@ -40,7 +40,7 @@ public:
 
 public:
     HRESULT                             Play_Action(CHARACTER_ACTION eAction);
-    void                                Set_Listener(INotifyListener* pListener) { m_pListener = pListener; }
+    void                                Set_Listener(INotifyListener* pListener);
     CHARACTER_ACTION                    Pick_RunEndAction() const;
 
 private:
@@ -67,7 +67,7 @@ private:
     HRESULT                             Register_AnimationClips();
 
     const CHARACTER_ANIM_BIND_DESC*     Find_Bind(CHARACTER_STATE eState, CHARACTER_ACTION eAction, WEAPON_TYPE  eWeapon) const;
-    _uint64                             Resolve_ActionKey(CHARACTER_ACTION eAction) const;
+    _uint64                             Resolve_ActionKey(CHARACTER_ACTION eAction);
     const CHARACTER_ACTION_POLICY*      Find_ActionPolicy(CHARACTER_ACTION eAction) const;
 
 public:

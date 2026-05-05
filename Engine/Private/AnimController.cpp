@@ -1,5 +1,6 @@
 #include "AnimController.h"
 #include "Model.h"
+#include "NotifyListener.h"
 
 CAnimController::CAnimController(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CComponent{ pDevice, pContext }
@@ -99,7 +100,7 @@ _bool CAnimController::Update(_float fTimeDelta)
 	if (false == m_bHasCurrentClip)
 		return false;
 
-	m_bFinished = m_pModel->Play_Animation(fTimeDelta);
+	m_bFinished = m_pModel->Play_Animation(fTimeDelta, m_pListener);
 
 	return m_bFinished;
 }

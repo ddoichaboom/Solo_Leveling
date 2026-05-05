@@ -111,12 +111,19 @@ namespace Engine
 		float		fTrackPosition;
 	}KEYFRAME;
 
+	typedef struct tagAnimNotify
+	{
+		float				fTick = {};
+		ANIM_NOTIFY_TYPE	eType = { ANIM_NOTIFY_TYPE::NONE };
+	}ANIM_NOTIFY;
+
 	typedef struct tagBonePose
 	{
 		XMFLOAT3	vScale = { 1.f, 1.f, 1.f };
 		XMFLOAT4	vRotation = { 0.f, 0.f, 0.f, 1.f };
 		XMFLOAT3	vTranslation = { 0.f, 0.f, 0.f };
 	}BONE_POSE;
+
 	typedef struct tagMeshDesc
 	{
 		char			szName[MAX_PATH] = {};
@@ -152,6 +159,9 @@ namespace Engine
 		bool			bUseRootMotion = { false };
 		unsigned int	iNumChannels = {};
 		CHANNEL_DESC*	pChannels = { nullptr };
+
+		unsigned int	iNumNotifies = {};
+		ANIM_NOTIFY*	pNotifies = { nullptr };
 	}ANIMATION_DESC;
 
 	typedef struct tagBoneDesc

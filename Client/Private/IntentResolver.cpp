@@ -12,6 +12,8 @@ void CIntentResolver::Resolve(const PLAYER_RAW_INPUT_FRAME& Raw, _float fCameraY
     pOutIntent->bHasMoveIntent = ((0.f != pOutIntent->vMoveAxis.x) || (0.f != pOutIntent->vMoveAxis.y));
 
     pOutIntent->bDashRequested = Raw.bDashPressed;
+    pOutIntent->bAttackRequested = Raw.bLButtonPressed;
+    pOutIntent->bGuardHeld = Raw.bRButtonHeld;
 
     pOutIntent->vMoveDirWorld = { 0.f, 0.f, 0.f };
 

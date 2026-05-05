@@ -57,6 +57,17 @@ namespace Engine
         END
     };
 
+    enum class ANIM_NOTIFY_TYPE : unsigned int
+    {
+        NONE = 0,
+        FOOTSTEP_L,
+        FOOTSTEP_R,
+        ATTACK_HIT,
+        COMBO_WINDOW_OPEN,
+        COMBO_WINDOW_CLOSE,
+        END
+    };
+
 	//// Dynamic 컴포넌트 경우 매 프레임마다 갱신해야하는 컴포넌트 집단
 	//enum COMPONENTID { ID_DYNAMIC, ID_STATIC, ID_END };
 

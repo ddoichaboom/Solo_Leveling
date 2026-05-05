@@ -263,6 +263,12 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 	{
 		ImGui::TextDisabled("Loop RM [Idx] Name");
 
+		ImGui::BeginChild(
+			"##AnimListScroll",
+			ImVec2(0.f, 360.f),
+			true,
+			ImGuiWindowFlags_HorizontalScrollbar);
+
 		for (size_t i = 0; i < iNumAnims; i++)
 		{
 			ImGui::PushID(static_cast<int>(i));
@@ -281,7 +287,6 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 
 			ImGui::SameLine();
 
-			// 재생 선택
 			char szLabel[MAX_PATH] = {};
 			sprintf_s(szLabel, "[%d] %s",
 				static_cast<int>(i),
@@ -296,9 +301,89 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 					pModel->Restart_Animation();
 			}
 
-			ImGui::PopID();
+			// C-5: 선택된 애니메이션에만 Notify 편집 UI 표시
+			if (bSelected)
+			{
+				ImGui::Indent();
+
+				const _uint iAnim = static_cast<_uint>(i);
+				const _uint iNumNotifies = pModel->Get_NumNotifies(iAnim);
+				const _float fAnimDuration = pModel->Get_Duration();
+				const _float fTPS = pModel->Get_TickPerSecond();
+
+				ImGui::Text("Notifies (%u)", iNumNotifies);
+
+				// ANIM_NOTIFY_TYPE enum 순서와 반드시 일치
+				static const char* s_TypeNames[] = {
+					"NONE",
+					"FOOTSTEP_L",
+					"FOOTSTEP_R",
+					"ATTACK_HIT",
+					"COMBO_WINDOW_OPEN",
+					"COMBO_WINDOW_CLOSE"
+				};
+
+				_int iRemoveIndex = -1;     // 삭제 요청 캐시 (루프 종료 후 1회 처리)
+				for (_uint k = 0; k < iNumNotifies; ++k)
+				{
+					ImGui::PushID(static_cast<int>(k + 10000));     // outer i 와 충돌 회피
+
+					ANIM_NOTIFY N = pModel->Get_Notify(iAnim, k);
+
+					// [tick 드래그]
+					ImGui::SetNextItemWidth(120.f);
+					_float fTick = N.fTick;
+					if (ImGui::DragFloat("##tick", &fTick, 0.1f, 0.f, fAnimDuration, "Tick %.2f"))
+						pModel->Set_NotifyTick(iAnim, k, fTick);
+
+					// 드래그 종료 시점에만 정렬 (도중 정렬 시 ID 충돌)
+					if (ImGui::IsItemDeactivatedAfterEdit())
+						pModel->Sort_Notifies(iAnim);
+
+					// [초 환산 표시]
+					ImGui::SameLine();
+					ImGui::Text("@%.2fs", (fTPS > 0.f) ? (fTick / fTPS) : 0.f);
+
+					// [타입 dropdown]
+					ImGui::SameLine();
+					ImGui::SetNextItemWidth(180.f);
+					_int iType = static_cast<_int>(N.eType);
+					if (ImGui::Combo("##type", &iType, s_TypeNames, IM_ARRAYSIZE(s_TypeNames)))
+						pModel->Set_NotifyType(iAnim, k, static_cast<ANIM_NOTIFY_TYPE>(iType));
+
+					// [삭제 버튼]
+					ImGui::SameLine();
+					if (ImGui::Button("X"))
+						iRemoveIndex = static_cast<_int>(k);
+
+					ImGui::PopID();
+				}
+
+				if (iRemoveIndex >= 0)
+					pModel->Remove_Notify(iAnim, static_cast<_uint>(iRemoveIndex));
+
+				if (ImGui::SmallButton("+ Add Notify"))
+				{
+					ANIM_NOTIFY New{};
+					New.fTick = 0.f;        // 0 tick 으로 추가, 사용자가 drag 로 이동
+					New.eType = ANIM_NOTIFY_TYPE::NONE;
+					pModel->Add_Notify(iAnim, New);
+				}
+
+				ImGui::Unindent();
+			}
+
+			ImGui::PopID();         // *** 위치 이동: Notify UI 까지 감싸도록 ***
 		}
+		ImGui::EndChild();
+
 		ImGui::TreePop();
+	}
+
+	ImGui::Separator();
+	if (ImGui::Button("Save Model Binary"))
+	{
+		pModel->Save_Binary();
 	}
 }
 

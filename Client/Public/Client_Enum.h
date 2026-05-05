@@ -37,6 +37,17 @@ namespace Client
 		RUN_END,		// 애니메이션이 LEFT랑 비슷하지만 클립이 존재하므로 발 비교가 불가능할 때 분기하기 위해 바인딩
 		RUN_END_LEFT,
 		RUN_END_RIGHT,
+
+		// 공격 모션 - DEFAULT/DAGGER 공통 클립
+		BASIC_ATTACK_01,
+		BASIC_ATTACK_02,
+		BASIC_ATTACK_03,
+
+		// 가드
+		GUARD_START,
+		GUARD_LOOP,
+		GUARD_END,
+
 		UNDRAW,
 		END
 	};
