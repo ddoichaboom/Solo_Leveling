@@ -86,7 +86,7 @@ HRESULT CLevel_GamePlay::Ready_Layer_Camera(const _wstring& strLayerTag)
 	CameraDesc.fFovy = XMConvertToRadians(60.f);
 	CameraDesc.fNear = 0.1f;
 	CameraDesc.fFar = 500.f;
-
+	CameraDesc.strTargetLayerTag = TEXT("Layer_Player");
 	CameraDesc.pTargetWorldMatrix = pTargetWorld;
 	CameraDesc.vHeightOffset = { 0.f, 1.5f, 0.f };
 	CameraDesc.fIdealDistance = 5.f;

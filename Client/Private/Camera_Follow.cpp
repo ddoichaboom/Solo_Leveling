@@ -2,6 +2,7 @@
 #include "SpringArm.h"
 #include "GameInstance.h"
 #include "Transform_3D.h"
+#include "Layer.h"
 
 CCamera_Follow::CCamera_Follow(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CCamera { pDevice, pContext }
@@ -34,6 +35,10 @@ HRESULT CCamera_Follow::Initialize(void* pArg)
 	if (FAILED(Ready_Components(*pDesc)))
 		return E_FAIL;
 
+	m_strTargetLayerTag = pDesc->strTargetLayerTag.empty()
+		? TEXT("Layer_Player")
+		: pDesc->strTargetLayerTag;
+
 	return S_OK;
 }
 
@@ -54,6 +59,8 @@ void CCamera_Follow::Late_Update(_float fTimeDelta)
 	// (1) 입력 수집 & SpringArm에 전달
 	_long lDX = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::X);
 	_long lDY = m_pGameInstance->Get_MouseDelta(MOUSEAXIS::Y);
+
+	Rebind_Target();
 
 	m_pSpringArm->Update_Rotation(lDX, lDY);
 	m_pSpringArm->Update_Arm(fTimeDelta);
@@ -117,6 +124,44 @@ void CCamera_Follow::Apply_SpringArmToTransform()
 	pTransform->Set_State(STATE::UP, vUp);
 	pTransform->Set_State(STATE::LOOK, vLook);
 	pTransform->Set_State(STATE::POSITION, vEye);
+}
+
+void CCamera_Follow::Rebind_Target()
+{
+	if (nullptr == m_pSpringArm)
+		return;
+
+	m_pSpringArm->Set_TargetWorldMatrix(Find_TargetWorldMatrix());
+}
+
+const _float4x4* CCamera_Follow::Find_TargetWorldMatrix() const
+{
+	if (m_strTargetLayerTag.empty())
+		return nullptr;
+
+	const _int iCurrentLevel = m_pGameInstance->Get_CurrentLevelIndex();
+	if (0 > iCurrentLevel)
+		return nullptr;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(static_cast<_uint>(iCurrentLevel));
+	if (nullptr == pLayers)
+		return nullptr;
+
+	auto iterLayer = pLayers->find(m_strTargetLayerTag);
+	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+		return nullptr;
+
+	const list<CGameObject*>& Objects = iterLayer->second->Get_GameObjects();
+
+	for (CGameObject* pObject : Objects)
+	{
+		if (nullptr == pObject || nullptr == pObject->Get_Transform())
+			continue;
+
+		return pObject->Get_Transform()->Get_WorldMatrixPtr();
+	}
+
+	return nullptr;
 }
 
 CCamera_Follow* CCamera_Follow::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

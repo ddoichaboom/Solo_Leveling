@@ -36,14 +36,14 @@ HRESULT	CPlayer_StateMachine::Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimT
 
 void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
 {
-    m_bLastHasMoveIntent = Intent.bHasMoveIntent;
+    const _bool bHasMoveIntent = Has_MoveIntent(Intent);
+    m_bLastHasMoveIntent = bHasMoveIntent;
 
-    // (1) DASH 입력 처리
     if (true == Intent.bDashRequested && nullptr != m_pOwner)
     {
         if (true == m_pOwner->Can_ConsumeDashCharge())
         {
-            const CHARACTER_ACTION eDashAction = (false == Intent.bHasMoveIntent)
+            const CHARACTER_ACTION eDashAction = (false == bHasMoveIntent)
                 ? CHARACTER_ACTION::BACK_DASH
                 : CHARACTER_ACTION::DASH;
 
@@ -60,7 +60,7 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
 
     if (CHARACTER_ACTION::UNDRAW == eCurrent)
     {
-        if (true == Intent.bHasMoveIntent && nullptr != m_pOwner)
+        if (true == bHasMoveIntent && nullptr != m_pOwner)
         {
             m_pOwner->Set_WeaponsVisible(false);
             __super::On_ActionFinished();
@@ -74,16 +74,15 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
         (CHARACTER_ACTION::RUN_FAST_LEFT == eCurrent) ||
         (CHARACTER_ACTION::RUN_FAST_RIGHT == eCurrent);
 
-    // (2)  RUN / RUN_FAST 중 입력 종료 -> 발위 치 분기
     if (bIsRunAction)
     {
-        if (false == Intent.bHasMoveIntent && nullptr != m_pOwner)
+        if (false == bHasMoveIntent && nullptr != m_pOwner)
         {
             const CHARACTER_ACTION eEndAction = m_pOwner->Pick_RunEndByFoot();
             Try_Transition(ETOUI(eEndAction));
             return;
         }
-        
+
         if (CHARACTER_ACTION::RUN != eCurrent && nullptr != m_pOwner)
         {
             const CHARACTER_ACTION eVariant = m_pOwner->Pick_RunFastVariant(Intent.vMoveDirWorld, eCurrent);
@@ -93,18 +92,16 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
         return;
     }
 
-    // (3) RUN_END 재생 중 다시 이동 입력 -> RUN으로 전환
     if (CHARACTER_ACTION::RUN_END == eCurrent ||
         CHARACTER_ACTION::RUN_END_LEFT == eCurrent ||
         CHARACTER_ACTION::RUN_END_RIGHT == eCurrent)
     {
-        if (true == Intent.bHasMoveIntent)
+        if (true == bHasMoveIntent)
             Try_Transition(ETOUI(CHARACTER_ACTION::RUN));
         return;
     }
 
-    // (4) IDLE 등에서 이동 입력 -> RUN 전환
-    if (true == Intent.bHasMoveIntent)
+    if (true == bHasMoveIntent)
         Try_Transition(ETOUI(CHARACTER_ACTION::RUN));
     else
         Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
@@ -119,10 +116,12 @@ void CPlayer_StateMachine::Update_Combat(const PLAYER_INTENT_FRAME& Intent)
         (CHARACTER_ACTION::BASIC_ATTACK_02 == eCur) ||
         (CHARACTER_ACTION::BASIC_ATTACK_03 == eCur);
     
+    const _bool bHasMoveIntent = Has_MoveIntent(Intent);
+
     // 1) 공격 진행 중
     if (true == bIsAttacking
         && true == m_bComboWindowOpen
-        && true == Intent.bHasMoveIntent
+        && true == bHasMoveIntent
         && false == Intent.bAttackRequested)
     {
         __super::On_ActionFinished();

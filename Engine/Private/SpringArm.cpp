@@ -10,6 +10,16 @@ CSpringArm::CSpringArm(const CSpringArm& Prototype)
 {
 }
 
+void CSpringArm::Set_TargetWorldMatrix(const _float4x4* pTargetMat)
+{
+	m_pTargetWorldMatrix = pTargetMat;
+}
+
+void CSpringArm::Set_DesiredDistance(_float fDistance)
+{
+	m_fDesiredDistance = max(0.f, min(fDistance, m_fIdealDistance));
+}
+
 _vector CSpringArm::Get_TargetPoint() const
 {
 	_vector vPos = XMVectorSet(0.f, 0.f, 0.f, 1.f);
@@ -79,6 +89,7 @@ HRESULT CSpringArm::Initialize(void* pArg)
 	}
 
 	m_fCurrentDistance		= m_fIdealDistance;
+	m_fDesiredDistance		= m_fIdealDistance;
 
 	return S_OK;
 }
@@ -113,16 +124,28 @@ void CSpringArm::Update_Rotation(_long lMouseDX, _long lMouseDY)
 
 void CSpringArm::Update_Arm(_float fTimeDelta)
 {
-	// E-1a : 충돌 없으므로 즉시 Ideal 유지
-	m_fCurrentDistance = m_fIdealDistance;
+	const _float fTargetDistance = m_fDesiredDistance;
 
-	// E-1b 에서 아래 패턴으로 교체:
-	//   _float fReducedDist = Raycast(Target → IdealEye)  // 충돌 시 단축값
-	//   if (fReducedDist < m_fCurrentDistance)
-	//       m_fCurrentDistance = fReducedDist;            // 즉시 단축
-	//   else
-	//       // Ideal 쪽으로 보간 복귀
-	//       m_fCurrentDistance += (m_fIdealDistance - m_fCurrentDistance) * m_fArmLerpSpeed * fTimeDelta;
+	if (fTargetDistance < m_fCurrentDistance)
+	{
+		// Collision shrink: apply immediately so the camera does not pass through walls.
+		m_fCurrentDistance = fTargetDistance;
+	}
+	else
+	{
+		// Recovery only: when collision is gone, return to ideal distance smoothly.
+		_float fAlpha = 1.f;
+
+		if (m_fArmLerpSpeed > 0.f)
+			fAlpha = 1.f - expf(-m_fArmLerpSpeed * fTimeDelta);
+
+		fAlpha = max(0.f, min(1.f, fAlpha));
+
+		m_fCurrentDistance += (fTargetDistance - m_fCurrentDistance) * fAlpha;
+	}
+
+	// Until camera collision exists, next frame defaults back to ideal distance.
+	m_fDesiredDistance = m_fIdealDistance;
 }
 
 CSpringArm* CSpringArm::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

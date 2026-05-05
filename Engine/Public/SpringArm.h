@@ -28,10 +28,8 @@ private:
 	virtual ~CSpringArm() = default;
 
 public:
-	void				Set_TargetWorldMatrix(const _float4x4* pTargetMat) 
-	{ 
-		m_pTargetWorldMatrix = pTargetMat; 
-	}
+	void				Set_TargetWorldMatrix(const _float4x4* pTargetMat);
+	void				Set_DesiredDistance(_float fDistance);
 	_vector				Get_TargetPoint() const;
 	_vector				Get_LookDirection() const;
 	_vector				Get_EyePosition() const;
@@ -60,6 +58,8 @@ private:
 	_float				m_fPitchMin = {};
 	_float				m_fPitchMax = {};
 	_float				m_fMouseSensor = {};
+
+	_float				m_fDesiredDistance = {};
 
 	// 회전의 진짜 상태 - 누적은 여기로만
 	_float				m_fYaw = { 0.f };

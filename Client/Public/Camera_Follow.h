@@ -14,6 +14,7 @@ class CLIENT_DLL CCamera_Follow final : public CCamera
 public:
 	typedef struct tagCameraFollowDesc final : public CCamera::CAMERA_DESC
 	{
+		_wstring			strTargetLayerTag = TEXT("Layer_Player");
 		const _float4x4*	pTargetWorldMatrix = { nullptr };
 		_float3				vHeightOffset = { 0.f, 1.5f, 0.f };
 		_float				fIdealDistance     = { 5.f };		
@@ -44,8 +45,13 @@ public:
 private:
 	CSpringArm*				m_pSpringArm = { nullptr };
 
+	_wstring				m_strTargetLayerTag = TEXT("Layer_Player");
+
+private:
 	HRESULT					Ready_Components(const CAMERA_FOLLOW_DESC& Desc);
 	void					Apply_SpringArmToTransform();
+	void					Rebind_Target();
+	const _float4x4*		Find_TargetWorldMatrix() const;
 
 public:
 	static	CCamera_Follow* Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

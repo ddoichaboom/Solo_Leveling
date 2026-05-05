@@ -14,6 +14,14 @@ namespace Client
 	{
 		return (ETOUI64(eAction) << 32) | ETOUI64(ePhase);
 	}
+
+	inline _bool Has_MoveIntent(const PLAYER_INTENT_FRAME& Intent)
+	{
+		const _float x = Intent.vMoveDirWorld.x;
+		const _float z = Intent.vMoveDirWorld.z;
+
+		return (x * x + z * z) > 0.0001f;
+	}
 }
 
 #endif // Client_Func_h

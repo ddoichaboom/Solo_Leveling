@@ -5,27 +5,21 @@ void CIntentResolver::Resolve(const PLAYER_RAW_INPUT_FRAME& Raw, _float fCameraY
     if (nullptr == pOutIntent)
         return;
 
-    pOutIntent->vMoveAxis.x = Compute_Axis(Raw.bMoveLeftHeld, Raw.bMoveRightHeld);
-    pOutIntent->vMoveAxis.y = Compute_Axis(Raw.bMoveBackwardHeld, Raw.bMoveForwardHeld);
+    const _float ax = Compute_Axis(Raw.bMoveLeftHeld, Raw.bMoveRightHeld);
+    const _float az = Compute_Axis(Raw.bMoveBackwardHeld, Raw.bMoveForwardHeld);
+    const _bool bHasMoveIntent = ((0.f != ax) || (0.f != az));
 
     pOutIntent->lLookDeltaX = Raw.lMouseDeltaX;
-    pOutIntent->bHasMoveIntent = ((0.f != pOutIntent->vMoveAxis.x) || (0.f != pOutIntent->vMoveAxis.y));
-
     pOutIntent->bDashRequested = Raw.bDashPressed;
     pOutIntent->bAttackRequested = Raw.bLButtonPressed;
     pOutIntent->bGuardHeld = Raw.bRButtonHeld;
-
     pOutIntent->vMoveDirWorld = { 0.f, 0.f, 0.f };
 
-    if (true == pOutIntent->bHasMoveIntent)
+    if (true == bHasMoveIntent)
     {
         const _float fSin = sinf(fCameraYaw);
         const _float fCos = cosf(fCameraYaw);
 
-        const _float ax = pOutIntent->vMoveAxis.x;
-        const _float az = pOutIntent->vMoveAxis.y;
-
-        // Forward(XZ) = (sin, cos), Right(XZ) = (cos, -sin)
         _float vx = az * fSin + ax * fCos;
         _float vz = az * fCos - ax * fSin;
 

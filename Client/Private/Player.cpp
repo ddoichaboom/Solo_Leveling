@@ -436,7 +436,7 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 			return;
 	}
 
-	if (false == Intent.bHasMoveIntent)
+	if (false == Has_MoveIntent(Intent))
 		return;
 
 
