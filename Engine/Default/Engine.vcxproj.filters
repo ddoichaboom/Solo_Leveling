@@ -133,6 +133,18 @@
     <Filter Include="07. Component\SpringArm">
       <UniqueIdentifier>{78fd9a44-dc6e-40f5-84ed-9ec02ab6fb5f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="07. Component\Navigation">
+      <UniqueIdentifier>{1215de83-97e3-460d-9c7a-878ff4995405}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Navigation\Cell">
+      <UniqueIdentifier>{732b6fb2-d572-4878-a8b9-215e6aa15744}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Navigation\NavMesh">
+      <UniqueIdentifier>{6f8d3ec9-3cde-47c0-b75b-f993021f509b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Navigation\NavigationAgent">
+      <UniqueIdentifier>{8ddc9094-5402-4f11-8173-90e82fc9d243}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -248,6 +260,15 @@
     </ClCompile>
     <ClCompile Include="..\Private\SpringArm.cpp">
       <Filter>07. Component\SpringArm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Cell.cpp">
+      <Filter>07. Component\Navigation\Cell</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\NavMesh.cpp">
+      <Filter>07. Component\Navigation\NavMesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\NavigationAgent.cpp">
+      <Filter>07. Component\Navigation\NavigationAgent</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -385,6 +406,18 @@
     </ClInclude>
     <ClInclude Include="..\Public\SpringArm.h">
       <Filter>07. Component\SpringArm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\NavMesh_Types.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Cell.h">
+      <Filter>07. Component\Navigation\Cell</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\NavMesh.h">
+      <Filter>07. Component\Navigation\NavMesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\NavigationAgent.h">
+      <Filter>07. Component\Navigation\NavigationAgent</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

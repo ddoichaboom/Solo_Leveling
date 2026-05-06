@@ -154,6 +154,7 @@ call EngineSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Base.cpp" />
     <ClCompile Include="..\Private\Bone.cpp" />
     <ClCompile Include="..\Private\Camera.cpp" />
+    <ClCompile Include="..\Private\Cell.cpp" />
     <ClCompile Include="..\Private\Channel.cpp" />
     <ClCompile Include="..\Private\Component.cpp" />
     <ClCompile Include="..\Private\ContainerObject.cpp" />
@@ -169,6 +170,8 @@ call EngineSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Material.cpp" />
     <ClCompile Include="..\Private\Mesh.cpp" />
     <ClCompile Include="..\Private\Model.cpp" />
+    <ClCompile Include="..\Private\NavigationAgent.cpp" />
+    <ClCompile Include="..\Private\NavMesh.cpp" />
     <ClCompile Include="..\Private\Object_Manager.cpp" />
     <ClCompile Include="..\Private\PartObject.cpp" />
     <ClCompile Include="..\Private\PipeLine.cpp" />
@@ -194,6 +197,7 @@ call EngineSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Base.h" />
     <ClInclude Include="..\Public\Bone.h" />
     <ClInclude Include="..\Public\Camera.h" />
+    <ClInclude Include="..\Public\Cell.h" />
     <ClInclude Include="..\Public\Channel.h" />
     <ClInclude Include="..\Public\Component.h" />
     <ClInclude Include="..\Public\ContainerObject.h" />
@@ -215,6 +219,9 @@ call EngineSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Material.h" />
     <ClInclude Include="..\Public\Mesh.h" />
     <ClInclude Include="..\Public\Model.h" />
+    <ClInclude Include="..\Public\NavigationAgent.h" />
+    <ClInclude Include="..\Public\NavMesh.h" />
+    <ClInclude Include="..\Public\NavMesh_Types.h" />
     <ClInclude Include="..\Public\NotifyListener.h" />
     <ClInclude Include="..\Public\Object_Manager.h" />
     <ClInclude Include="..\Public\PartObject.h" />
