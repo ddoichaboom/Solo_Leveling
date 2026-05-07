@@ -70,7 +70,9 @@ HRESULT CMapObject::Ready_PartObjects()
 	CMapStaticObject::MAPSTATICOBJECT_DESC StaticDesc{};
 	StaticDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
 	StaticDesc.pShaderProtoTag = TEXT("Prototype_Component_Shader_VtxMesh");
-	StaticDesc.pModelProtoTag = TEXT("Prototype_Component_Model_Map_ThroneRoom");
+	//StaticDesc.pModelProtoTag = TEXT("Prototype_Component_Model_Map_ThroneRoom");
+	StaticDesc.pModelProtoTag = TEXT("Prototype_Component_Model_Map_Hapjung_Station_1F_Static");
+
 
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 				TEXT("Prototype_GameObject_MapStaticObject"),
