@@ -214,8 +214,13 @@ _bool CNavMesh::Try_Move(_int* pCurrentCellIndex, const _float3& vCandidatePosit
 		return true;
 	}
 
-	while (true == Is_ValidCellIndex(iNeighborIndex))
+	const _uint iMaxHopCount = static_cast<_uint>(m_Cells.size());
+	_uint iHopCount = 0;
+
+	while (true == Is_ValidCellIndex(iNeighborIndex) && iHopCount < iMaxHopCount)
 	{
+		++iHopCount;
+
 		const _int iNextCellIndex = iNeighborIndex;
 		iNeighborIndex = NAVMESH_INVALID_INDEX;
 

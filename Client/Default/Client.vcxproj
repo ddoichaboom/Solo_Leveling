@@ -185,6 +185,7 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\MapStaticObject.h" />
     <ClInclude Include="..\Public\ModelObject.h" />
     <ClInclude Include="..\Public\MonsterAnimTable.h" />
+    <ClInclude Include="..\Public\NavMeshObject.h" />
     <ClInclude Include="..\Public\Player.h" />
     <ClInclude Include="..\Public\Player_StateMachine.h" />
     <ClInclude Include="..\Public\Terrain.h" />
@@ -206,6 +207,7 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\MapStaticObject.cpp" />
     <ClCompile Include="..\Private\ModelObject.cpp" />
     <ClCompile Include="..\Private\MonsterAnimTable.cpp" />
+    <ClCompile Include="..\Private\NavMeshObject.cpp" />
     <ClCompile Include="..\Private\Player.cpp" />
     <ClCompile Include="..\Private\Player_StateMachine.cpp" />
     <ClCompile Include="..\Private\Terrain.cpp" />

@@ -3,6 +3,7 @@
 // ENGINE
 #include "GameInstance.h"
 #include "Model.h"
+#include "NavMesh.h"
 
 // LOGO
 #include "BackGround.h"
@@ -15,6 +16,7 @@
 #include "MapObject.h"
 #include "MapStaticObject.h"
 #include "Camera_Follow.h"
+#include "NavMeshObject.h"
 
 
 CLoader::CLoader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -135,6 +137,12 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 			VTXANIMMESH::Elements, VTXANIMMESH::iNumElements))))
 		return E_FAIL;
 
+	// Prototype_Component_NavMesh
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_NavMesh"),
+		CNavMesh::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
 	lstrcpy(m_szLoadingText, TEXT("¸ðµ¨ ·Îµå Áß"));
 
 	// Prototype_Component_Model_SungJinWoo
@@ -195,6 +203,11 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 	// Prototype_GameObject_MapObject
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_MapObject"),
 		CMapObject::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_NavMeshObject
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_NavMeshObject"),
+		CNavMeshObject::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	// Prototype_GameObject_MapStaticObject

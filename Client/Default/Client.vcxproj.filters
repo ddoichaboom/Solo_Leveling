@@ -88,6 +88,12 @@
     <Filter Include="02. GameObject\Camera\Follow">
       <UniqueIdentifier>{94990f58-f408-4dd5-8f01-7c81695008d2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\Navigation">
+      <UniqueIdentifier>{6de5206d-59c7-48c2-a508-35446c521797}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Navigation\NavMeshObject">
+      <UniqueIdentifier>{da03b798-fdee-4e13-9f15-ab1afd3d3c24}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -159,6 +165,9 @@
     <ClInclude Include="..\Public\Camera_Follow.h">
       <Filter>02. GameObject\Camera\Follow</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\NavMeshObject.h">
+      <Filter>02. GameObject\Navigation\NavMeshObject</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -217,6 +226,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Camera_Follow.cpp">
       <Filter>02. GameObject\Camera\Follow</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\NavMeshObject.cpp">
+      <Filter>02. GameObject\Navigation\NavMeshObject</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
