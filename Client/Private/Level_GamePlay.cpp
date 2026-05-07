@@ -3,6 +3,7 @@
 #include "Camera_Follow.h"
 #include "Player.h"
 #include "Layer.h"
+#include "NavMeshObject.h"
 
 CLevel_GamePlay::CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	:CLevel{ pDevice, pContext }
@@ -16,6 +17,9 @@ HRESULT CLevel_GamePlay::Initialize()
 		return E_FAIL;
 
 	if (FAILED(Ready_Layer_BackGround(TEXT("Layer_BackGround"))))
+		return E_FAIL;
+
+	if (FAILED(Ready_Layer_NavMesh(TEXT("Layer_NavMesh"))))
 		return E_FAIL;
 
 	if (FAILED(Ready_Layer_Player(TEXT("Layer_Player"))))
@@ -111,6 +115,39 @@ HRESULT CLevel_GamePlay::Ready_Layer_BackGround(const _wstring& strLayerTag)
 	if (FAILED(m_pGameInstance->Add_GameObject(
 		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_MapObject"),
 		ETOUI(LEVEL::GAMEPLAY), strLayerTag)))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT CLevel_GamePlay::Ready_Layer_NavMesh(const _wstring& strLayerTag)
+{
+	NAVMESH_SNAPSHOT Snapshot{};
+
+	Snapshot.Vertices.push_back(_float3(-2.f, 0.f, -2.f));
+	Snapshot.Vertices.push_back(_float3(2.f, 0.f, -2.f));
+	Snapshot.Vertices.push_back(_float3(2.f, 0.f, 2.f));
+	Snapshot.Vertices.push_back(_float3(-2.f, 0.f, 2.f));
+
+	NAVMESH_CELL Cell0{};
+	Cell0.iVertexIndices[0] = 0;
+	Cell0.iVertexIndices[1] = 1;
+	Cell0.iVertexIndices[2] = 2;
+
+	NAVMESH_CELL Cell1{};
+	Cell1.iVertexIndices[0] = 0;
+	Cell1.iVertexIndices[1] = 2;
+	Cell1.iVertexIndices[2] = 3;
+
+	Snapshot.Cells.push_back(Cell0);
+	Snapshot.Cells.push_back(Cell1);
+
+	CNavMeshObject::NAVMESHOBJECT_DESC Desc{};
+	Desc.pInitialSnapshot = &Snapshot;
+
+	if (FAILED(m_pGameInstance->Add_GameObject(
+		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_NavMeshObject"),
+		ETOUI(LEVEL::GAMEPLAY), strLayerTag, &Desc)))
 		return E_FAIL;
 
 	return S_OK;

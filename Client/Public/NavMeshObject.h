@@ -6,6 +6,8 @@
 
 NS_BEGIN(Engine)
 class CNavMesh;
+class CShader;
+class CVIBuffer_NavMesh;
 NS_END
 
 NS_BEGIN(Client)
@@ -36,9 +38,12 @@ public:
 
 private:
 	CNavMesh*				m_pNavMeshCom = { nullptr };
+	CShader*				m_pShaderCom = { nullptr };
+	CVIBuffer_NavMesh*		m_pNavMeshBufferCom = { nullptr };
 
 private:
 	HRESULT					Ready_Components(const NAVMESHOBJECT_DESC* pDesc);
+	HRESULT					Bind_ShaderResources();
 
 public:
 	static CNavMeshObject*	Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

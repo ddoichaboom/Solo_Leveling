@@ -137,13 +137,29 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 			VTXANIMMESH::Elements, VTXANIMMESH::iNumElements))))
 		return E_FAIL;
 
+	// Prototype_Component_Shader_VtxPosColor
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Shader_VtxPosColor"),
+		CShader::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/ShaderFiles/Shader_VtxPosColor.hlsl"),
+			VTXPOS::Elements, VTXPOS::iNumElements))))
+		return E_FAIL;
+
+	lstrcpy(m_szLoadingText, TEXT("정점, 인덱스 버퍼 로드 중"));
+
+	// Prototype_Component_VIBuffer_NavMesh
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_VIBuffer_NavMesh"),
+		CVIBuffer_NavMesh::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	lstrcpy(m_szLoadingText, TEXT("모델 로드 중"));
+
 	// Prototype_Component_NavMesh
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
 		TEXT("Prototype_Component_NavMesh"),
 		CNavMesh::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
-
-	lstrcpy(m_szLoadingText, TEXT("모델 로드 중"));
 
 	// Prototype_Component_Model_SungJinWoo
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),

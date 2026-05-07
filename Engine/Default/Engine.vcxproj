@@ -188,6 +188,7 @@ call EngineSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Transform_3D.cpp" />
     <ClCompile Include="..\Private\UIObject.cpp" />
     <ClCompile Include="..\Private\VIBuffer.cpp" />
+    <ClCompile Include="..\Private\VIBuffer_NavMesh.cpp" />
     <ClCompile Include="..\Private\VIBuffer_Rect.cpp" />
     <ClCompile Include="..\Private\VIBuffer_Terrain.cpp" />
   </ItemGroup>
@@ -239,6 +240,7 @@ call EngineSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Transform_3D.h" />
     <ClInclude Include="..\Public\UIObject.h" />
     <ClInclude Include="..\Public\VIBuffer.h" />
+    <ClInclude Include="..\Public\VIBuffer_NavMesh.h" />
     <ClInclude Include="..\Public\VIBuffer_Rect.h" />
     <ClInclude Include="..\Public\VIBuffer_Terrain.h" />
   </ItemGroup>
