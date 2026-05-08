@@ -2,6 +2,12 @@
 
 #include "Editor_Defines.h"
 #include "Panel.h"
+#include "NavMesh_Types.h"
+
+NS_BEGIN(Engine)
+class CGameObject;
+class CNavMesh;
+NS_END
 
 NS_BEGIN(Editor)
 
@@ -48,10 +54,70 @@ private:
 
 #pragma region PICKING
 private:
+    typedef struct tagPickResult
+    {
+        CGameObject*      pObject = { nullptr };
+        _float3			        vPosition = {};
+        _float			        fDistance = {};
+    }PICK_RESULT;
+
     void                        Pick_Object();
 
     _float                      m_fPickX = {};
     _float                      m_fPickY = {};
+#pragma endregion
+
+#pragma region NAVMESH
+private:
+    typedef struct tagNavMeshPickPoint
+    {
+        _float3                 vRawPosition = {};
+        _float3                 vPreviewPosition = {};
+        _int                    iSnapVertexIndex = { -1 };
+        _bool                   bSnapped = { false };
+    }NAVMESH_PICK_POINT;
+
+    _bool                       Render_NavMeshEditToolbar(const ImVec2& vImagePos);
+    void                        Render_NavMesh_PickPreview(const ImVec2& vImagePos);
+    void                        Render_SelectedNavMeshCell(const ImVec2& vImagePos);
+    void                        Render_SelectedNavMeshVertex(const ImVec2& vImagePos);
+
+    void                        Select_NavMeshVertex();
+    HRESULT                     Move_SelectedNavMeshVertex();
+
+
+    void                        Select_NavMeshCell();
+    HRESULT                     Delete_SelectedNavMeshCell();
+    HRESULT                     Undo_NavMeshEdit();
+    HRESULT                     Redo_NavMeshEdit();
+
+    HRESULT                     Save_NavMeshData();
+    HRESULT                     Load_NavMeshData();
+
+    void                        Push_NavMeshUndoSnapshot(const NAVMESH_SNAPSHOT& Snapshot);
+    void                        Clear_NavMeshEditState();
+
+    _bool                       World_To_Viewport(const _float3& vWorldPosition, const ImVec2& vImagePos, ImVec2* pOutScreenPosition) const;
+    CNavMesh*                   Find_NavMesh() const;
+
+    _bool                       Pick_Surface(PICK_RESULT* pOutResult, _bool bMapOnly = false );
+    void                        Pick_NavMeshEditPoint();
+
+    HRESULT                     Try_Create_NavMeshCell();
+    void                        Clear_NavMeshPickPoints();
+
+    void                        Log_EditStatus(LOG_LEVEL eLevel, const string& strMessage) const;
+
+    _bool                       m_bHasLastNavMeshPick = { false };
+    _float3                     m_vLastNavMeshPick = {};
+    vector<NAVMESH_PICK_POINT>  m_NavMeshPickedPoints;
+
+    _bool                       m_bNavMeshToggleKeyHeld = { false };
+    _int                        m_iSelectedNavMeshCellIndex = { NAVMESH_INVALID_INDEX };
+    _int                        m_iSelectedNavMeshVertexIndex = { NAVMESH_INVALID_INDEX };
+    vector<NAVMESH_SNAPSHOT>    m_NavMeshUndoStack;
+    vector<NAVMESH_SNAPSHOT>    m_NavMeshRedoStack;
+
 #pragma endregion
 
 #pragma region GIZMO

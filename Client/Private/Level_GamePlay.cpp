@@ -4,6 +4,43 @@
 #include "Player.h"
 #include "Layer.h"
 #include "NavMeshObject.h"
+#include "NavMesh.h"
+#include "Cell.h"
+
+namespace
+{
+	static constexpr _int PLAYER_START_CELL_INDEX = { 40 };
+
+	CNavMesh* Find_GamePlayNavMesh()
+	{
+		CGameInstance* pGameInstance = CGameInstance::GetInstance();
+		if (nullptr == pGameInstance)
+			return nullptr;
+
+		const auto* pLayers = pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+		if (nullptr == pLayers)
+			return nullptr;
+
+		auto iterLayer = pLayers->find(TEXT("Layer_NavMesh"));
+		if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+			return nullptr;
+
+		const list<CGameObject*>& NavMeshObjects = iterLayer->second->Get_GameObjects();
+
+		for (CGameObject* pObject : NavMeshObjects)
+		{
+			CNavMeshObject* pNavMeshObject = dynamic_cast<CNavMeshObject*>(pObject);
+			if (nullptr == pNavMeshObject)
+				continue;
+
+			CNavMesh* pNavMesh = pNavMeshObject->Get_NavMesh();
+			if (nullptr != pNavMesh)
+				return pNavMesh;
+		}
+
+		return nullptr;
+	}
+}
 
 CLevel_GamePlay::CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	:CLevel{ pDevice, pContext }
@@ -124,23 +161,10 @@ HRESULT CLevel_GamePlay::Ready_Layer_NavMesh(const _wstring& strLayerTag)
 {
 	NAVMESH_SNAPSHOT Snapshot{};
 
-	Snapshot.Vertices.push_back(_float3(-2.f, 0.f, -2.f));
-	Snapshot.Vertices.push_back(_float3(2.f, 0.f, -2.f));
-	Snapshot.Vertices.push_back(_float3(2.f, 0.f, 2.f));
-	Snapshot.Vertices.push_back(_float3(-2.f, 0.f, 2.f));
-
-	NAVMESH_CELL Cell0{};
-	Cell0.iVertexIndices[0] = 0;
-	Cell0.iVertexIndices[1] = 1;
-	Cell0.iVertexIndices[2] = 2;
-
-	NAVMESH_CELL Cell1{};
-	Cell1.iVertexIndices[0] = 0;
-	Cell1.iVertexIndices[1] = 2;
-	Cell1.iVertexIndices[2] = 3;
-
-	Snapshot.Cells.push_back(Cell0);
-	Snapshot.Cells.push_back(Cell1);
+	if (FAILED(CNavMesh::Load_NavDataSnapshot(
+		TEXT("../../Resources/NavMesh/ThroneRoom.navdata"),
+		&Snapshot)))
+		return E_FAIL;
 
 	CNavMeshObject::NAVMESHOBJECT_DESC Desc{};
 	Desc.pInitialSnapshot = &Snapshot;
@@ -166,13 +190,29 @@ HRESULT CLevel_GamePlay::Ready_Layer_Monster(const _wstring& strLayerTag)
 HRESULT CLevel_GamePlay::Ready_Layer_Player(const _wstring& strLayerTag)
 {
 	CPlayer::PLAYER_DESC Desc{};
-	Desc.vPosition			= _float3(0.f, 1.f, 0.f);
-	Desc.vRotationDeg		= _float3(0.f, 0.f, 0.f);
-	Desc.vScale				= _float3(1.f, 1.f, 1.f);
-	Desc.fSpeedPerSec		= 10.f;
-	Desc.fRotationPerSec	= XMConvertToRadians(1440.f);
 
-	// Prototype_GameObject_Player
+	CNavMesh* pNavMesh = Find_GamePlayNavMesh();
+
+	Desc.pNavMesh = pNavMesh;
+	Desc.iStartCellIndex = NAVMESH_INVALID_INDEX;
+
+	Desc.vPosition = _float3(0.f, 1.f, 0.f);
+	Desc.vRotationDeg = _float3(0.f, 0.f, 0.f);
+	Desc.vScale = _float3(1.f, 1.f, 1.f);
+	Desc.fSpeedPerSec = 5.f;
+	Desc.fRotationPerSec = XMConvertToRadians(1440.f);
+
+	if (nullptr != pNavMesh)
+	{
+		const CCell* pStartCell = pNavMesh->Get_Cell(PLAYER_START_CELL_INDEX);
+		if (nullptr != pStartCell)
+		{
+			Desc.vPosition = pStartCell->Get_Center();
+			Desc.vPosition.y = pNavMesh->Compute_Height(PLAYER_START_CELL_INDEX, Desc.vPosition);
+			Desc.iStartCellIndex = PLAYER_START_CELL_INDEX;
+		}
+	}
+
 	if (FAILED(m_pGameInstance->Add_GameObject(
 		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Player"),
 		ETOUI(LEVEL::GAMEPLAY), strLayerTag, &Desc)))

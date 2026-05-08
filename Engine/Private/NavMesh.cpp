@@ -1,6 +1,28 @@
 #include "NavMesh.h"
 #include "Cell.h"
 
+namespace
+{
+	static constexpr char NAVDATA_MAGIC[4] = { 'S', 'L', 'N', 'M' };
+	static constexpr _uint NAVDATA_VERSION_MIN = { 1 };
+	static constexpr _uint NAVDATA_VERSION_LATEST = { 1 };
+
+	static _bool Read_Block(FILE* fp, void* pData, size_t iElementSize, size_t iElementCount)
+	{
+		return nullptr != fp &&
+			nullptr != pData &&
+			iElementCount == fread(pData, iElementSize, iElementCount, fp);
+	}
+
+	static _bool Write_Block(FILE* fp, const void* pData, size_t iElementSize, size_t iElementCount)
+	{
+		return nullptr != fp &&
+			nullptr != pData &&
+			iElementCount == fwrite(pData, iElementSize, iElementCount, fp);
+	}
+}
+
+
 CNavMesh::CNavMesh(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CComponent{ pDevice, pContext }
 {
@@ -48,14 +70,7 @@ const CCell* CNavMesh::Get_Cell(_int iCellIndex) const
 	return m_Cells[iCellIndex];
 }
 
-_int CNavMesh::Add_Vertex(const _float3& vPosition)
-{
-	m_Vertices.push_back(vPosition);
-
-	return static_cast<_int>(m_Vertices.size() - 1);
-}
-
-_int CNavMesh::Find_OrAddVertex(const _float3& vPosition, _float fSnapRadius)
+_int CNavMesh::Find_Vertex(const _float3& vPosition, _float fSnapRadius) const
 {
 	const _float fSnapRadiusSq = fSnapRadius * fSnapRadius;
 
@@ -72,7 +87,52 @@ _int CNavMesh::Find_OrAddVertex(const _float3& vPosition, _float fSnapRadius)
 			return static_cast<_int>(i);
 	}
 
+	return NAVMESH_INVALID_INDEX;
+}
+
+_int CNavMesh::Add_Vertex(const _float3& vPosition)
+{
+	m_Vertices.push_back(vPosition);
+
+	return static_cast<_int>(m_Vertices.size() - 1);
+}
+
+_int CNavMesh::Find_OrAddVertex(const _float3& vPosition, _float fSnapRadius)
+{
+	const _int iVertexIndex = Find_Vertex(vPosition, fSnapRadius);
+
+	if (NAVMESH_INVALID_INDEX != iVertexIndex)
+		return iVertexIndex;
+
 	return Add_Vertex(vPosition);
+}
+
+HRESULT CNavMesh::Move_Vertex(_int iVertexIndex, const _float3& vPosition, _float fMergeRejectRadius)
+{
+	if (false == Is_ValidVertexIndex(iVertexIndex))
+		return E_FAIL;
+
+	if (fMergeRejectRadius > 0.f)
+	{
+		const _int iFoundVertexIndex = Find_Vertex(vPosition, fMergeRejectRadius);
+
+		if (NAVMESH_INVALID_INDEX != iFoundVertexIndex &&
+			iFoundVertexIndex != iVertexIndex)
+			return E_FAIL;
+	}
+
+	vector<_float3> BackupVertices = m_Vertices;
+
+	m_Vertices[iVertexIndex] = vPosition;
+
+	if (FAILED(Rebuild_Neighbors()))
+	{
+		m_Vertices = BackupVertices;
+		Rebuild_Neighbors();
+		return E_FAIL;
+	}
+
+	return S_OK;
 }
 
 HRESULT CNavMesh::Add_Cell(const NAVMESH_CELL& Cell, _int* pOutCellIndex)
@@ -137,12 +197,156 @@ HRESULT CNavMesh::Try_AddCell(_int iVertex0, _int iVertex1, _int iVertex2, _int*
 	return Add_Cell(Cell, pOutCellIndex);
 }
 
+HRESULT CNavMesh::Remove_Cell(_int iCellIndex)
+{
+	if (false == Is_ValidCellIndex(iCellIndex))
+		return E_FAIL;
+
+	vector<NAVMESH_CELL> BackupCells = m_CellDescs;
+
+	m_CellDescs.erase(m_CellDescs.begin() + iCellIndex);
+
+	if (FAILED(Rebuild_Neighbors()))
+	{
+		m_CellDescs = BackupCells;
+		Rebuild_Neighbors();
+		return E_FAIL;
+	}
+
+	return S_OK;
+}
+
 void CNavMesh::Clear()
 {
 	Release_CellObjects();
 
 	m_CellDescs.clear();
 	m_Vertices.clear();
+}
+
+HRESULT CNavMesh::Save_NavData(const _tchar* pNavDataPath) const
+{
+	NAVMESH_SNAPSHOT Snapshot = Capture_Snapshot();
+
+	return Save_NavDataSnapshot(pNavDataPath, Snapshot);
+}
+
+HRESULT CNavMesh::Load_NavData(const _tchar* pNavDataPath)
+{
+	NAVMESH_SNAPSHOT Snapshot{};
+
+	if (FAILED(Load_NavDataSnapshot(pNavDataPath, &Snapshot)))
+		return E_FAIL;
+
+	NAVMESH_SNAPSHOT Backup = Capture_Snapshot();
+
+	if (FAILED(Restore_Snapshot(Snapshot)))
+	{
+		Restore_Snapshot(Backup);
+		return E_FAIL;
+	}
+
+	return S_OK;
+}
+
+HRESULT CNavMesh::Save_NavDataSnapshot(const _tchar* pNavDataPath, const NAVMESH_SNAPSHOT& Snapshot)
+{
+	if (nullptr == pNavDataPath || '\0' == pNavDataPath[0])
+		return E_FAIL;
+
+	FILE* fp = nullptr;
+	if (0 != _wfopen_s(&fp, pNavDataPath, L"wb") || nullptr == fp)
+		return E_FAIL;
+
+	const _uint iVersion = NAVDATA_VERSION_LATEST;
+	const _uint iNumVertices = static_cast<_uint>(Snapshot.Vertices.size());
+	const _uint iNumCells = static_cast<_uint>(Snapshot.Cells.size());
+
+	if (false == Write_Block(fp, NAVDATA_MAGIC, sizeof(char), 4) ||
+		false == Write_Block(fp, &iVersion, sizeof(_uint), 1) ||
+		false == Write_Block(fp, &iNumVertices, sizeof(_uint), 1) ||
+		false == Write_Block(fp, &iNumCells, sizeof(_uint), 1))
+	{
+		fclose(fp);
+		return E_FAIL;
+	}
+
+	if (iNumVertices > 0 &&
+		false == Write_Block(fp, Snapshot.Vertices.data(), sizeof(_float3), iNumVertices))
+	{
+		fclose(fp);
+		return E_FAIL;
+	}
+
+	for (_uint i = 0; i < iNumCells; ++i)
+	{
+		const NAVMESH_CELL& Cell = Snapshot.Cells[i];
+
+		if (false == Write_Block(fp, Cell.iVertexIndices, sizeof(_int), ETOUI(NAVMESH_POINT::END)))
+		{
+			fclose(fp);
+			return E_FAIL;
+		}
+	}
+
+	fclose(fp);
+
+	return S_OK;
+}
+
+HRESULT CNavMesh::Load_NavDataSnapshot(const _tchar* pNavDataPath, NAVMESH_SNAPSHOT* pOutSnapshot)
+{
+	if (nullptr == pNavDataPath || '\0' == pNavDataPath[0] || nullptr == pOutSnapshot)
+		return E_FAIL;
+
+	FILE* fp = nullptr;
+	if (0 != _wfopen_s(&fp, pNavDataPath, L"rb") || nullptr == fp)
+		return E_FAIL;
+
+	char szMagic[4] = {};
+	_uint iVersion = {};
+	_uint iNumVertices = {};
+	_uint iNumCells = {};
+
+	if (false == Read_Block(fp, szMagic, sizeof(char), 4) ||
+		0 != memcmp(szMagic, NAVDATA_MAGIC, 4) ||
+		false == Read_Block(fp, &iVersion, sizeof(_uint), 1) ||
+		iVersion < NAVDATA_VERSION_MIN ||
+		iVersion > NAVDATA_VERSION_LATEST ||
+		false == Read_Block(fp, &iNumVertices, sizeof(_uint), 1) ||
+		false == Read_Block(fp, &iNumCells, sizeof(_uint), 1))
+	{
+		fclose(fp);
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Snapshot{};
+	Snapshot.Vertices.resize(iNumVertices);
+	Snapshot.Cells.resize(iNumCells);
+
+	if (iNumVertices > 0 &&
+		false == Read_Block(fp, Snapshot.Vertices.data(), sizeof(_float3), iNumVertices))
+	{
+		fclose(fp);
+		return E_FAIL;
+	}
+
+	for (_uint i = 0; i < iNumCells; ++i)
+	{
+		NAVMESH_CELL& Cell = Snapshot.Cells[i];
+
+		if (false == Read_Block(fp, Cell.iVertexIndices, sizeof(_int), ETOUI(NAVMESH_POINT::END)))
+		{
+			fclose(fp);
+			return E_FAIL;
+		}
+	}
+
+	fclose(fp);
+
+	*pOutSnapshot = Snapshot;
+
+	return S_OK;
 }
 
 NAVMESH_SNAPSHOT CNavMesh::Capture_Snapshot() const

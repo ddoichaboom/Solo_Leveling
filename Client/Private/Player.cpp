@@ -5,6 +5,8 @@
 #include "Transform_3D.h"
 #include "IntentResolver.h"
 #include "Player_StateMachine.h"
+#include "NavigationAgent.h"
+#include "NavMesh.h"
 
 namespace
 {
@@ -58,7 +60,7 @@ HRESULT CPlayer::Initialize(void* pArg)
 	m_strName = TEXT("Player");
 	m_strTag = TEXT("SungJinWoo");
 
-	GAMEOBJECT_DESC Desc{};
+	PLAYER_DESC Desc{};
 
 	if (nullptr != pArg)
 		Desc = *static_cast<PLAYER_DESC*>(pArg);
@@ -70,6 +72,9 @@ HRESULT CPlayer::Initialize(void* pArg)
 		Desc.fRotationPerSec = XMConvertToRadians(180.f);
 
 	if (FAILED(__super::Initialize(&Desc)))
+		return E_FAIL;
+
+	if (FAILED(Ready_Components(Desc)))
 		return E_FAIL;
 
 	if (FAILED(Ready_PartObjects()))
@@ -197,7 +202,11 @@ void CPlayer::Apply_RootMotion(const _float3& vLocalDelta)
 	// 현재 Position에 누적
 	_vector vPos = m_pTransformCom->Get_State(STATE::POSITION);
 	vPos = XMVectorAdd(vPos, vWorldDelta);
-	m_pTransformCom->Set_State(STATE::POSITION, vPos);
+
+	_float3 vCandidatePosition = {};
+	XMStoreFloat3(&vCandidatePosition, vPos);
+
+	Try_ApplyNavigationPosition(vCandidatePosition);
 }
 
 void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial)
@@ -394,6 +403,51 @@ HRESULT CPlayer::Ready_StateMachine()
 	return S_OK;
 }
 
+HRESULT CPlayer::Ready_Components(const PLAYER_DESC& Desc)
+{
+	CNavigationAgent::NAVIGATION_AGENT_DESC NavigationDesc{};
+	NavigationDesc.pNavMesh = Desc.pNavMesh;
+	NavigationDesc.iStartCellIndex = Desc.iStartCellIndex;
+
+	if (FAILED(__super::Add_Component(
+		ETOUI(LEVEL::GAMEPLAY),
+		TEXT("Prototype_Component_NavigationAgent"),
+		TEXT("Com_NavigationAgent"),
+		reinterpret_cast<CComponent**>(&m_pNavigationAgent),
+		&NavigationDesc)))
+		return E_FAIL;
+
+	if (nullptr != m_pNavigationAgent &&
+		m_pNavigationAgent->Has_NavMesh() &&
+		NAVMESH_INVALID_INDEX == m_pNavigationAgent->Get_CurrentCellIndex())
+	{
+		_float3 vPosition = {};
+		XMStoreFloat3(&vPosition, m_pTransformCom->Get_State(STATE::POSITION));
+		m_pNavigationAgent->Find_CurrentCell(vPosition);
+	}
+
+	return S_OK;
+}
+
+_bool CPlayer::Try_ApplyNavigationPosition(const _float3& vCandidatePosition)
+{
+	if (nullptr == m_pTransformCom)
+		return false;
+
+	if (nullptr == m_pNavigationAgent || false == m_pNavigationAgent->Has_NavMesh())
+	{
+		m_pTransformCom->Set_State(STATE::POSITION, XMVectorSetW(XMLoadFloat3(&vCandidatePosition), 1.f));
+		return true;
+	}
+
+	_float3 vAdjustedPosition = {};
+	if (false == m_pNavigationAgent->Try_Move(vCandidatePosition, &vAdjustedPosition))
+		return false;
+
+	m_pTransformCom->Set_State(STATE::POSITION, XMVectorSetW(XMLoadFloat3(&vAdjustedPosition), 1.f));
+	return true;
+}
+
 void CPlayer::Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw)
 {
 	if (nullptr == pOutRaw)
@@ -476,7 +530,11 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 	const _float fSpeed = pTransform->Get_SpeedPerSec() * m_fSpeedCoeff;
 	_vector vPos = pTransform->Get_State(STATE::POSITION);
 	vPos = XMVectorAdd(vPos, XMVectorScale(vLookXZ, fSpeed * fTimeDelta));
-	pTransform->Set_State(STATE::POSITION, vPos);
+
+	_float3 vCandidatePosition = {};
+	XMStoreFloat3(&vCandidatePosition, vPos);
+
+	Try_ApplyNavigationPosition(vCandidatePosition);
 }
 
 _float CPlayer::Query_CameraYaw() const
@@ -578,6 +636,7 @@ void CPlayer::Free()
 {
 	__super::Free();
 
+	Safe_Release(m_pNavigationAgent);
 	Safe_Release(m_pStateMachine);
 	Safe_Release(m_pIntentResolver);
 	Safe_Release(m_pWeaponL);

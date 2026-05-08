@@ -34,13 +34,23 @@ public:
 	const CCell*				Get_Cell(_int iCellIndex) const;
 
 public:
+	_int						Find_Vertex(const _float3& vPosition, _float fSnapRadius = NAVMESH_DEFAULT_SNAP_RADIUS) const;
 	_int						Add_Vertex(const _float3& vPosition);
 	_int						Find_OrAddVertex(const _float3& vPosition, _float fSnapRadius = NAVMESH_DEFAULT_SNAP_RADIUS);
+	HRESULT						Move_Vertex(_int iVertexIndex, const _float3& vPosition, _float fMergeRejectRadius = NAVMESH_DEFAULT_SNAP_RADIUS);
 
 	HRESULT						Add_Cell(const NAVMESH_CELL& Cell, _int* pOutCellIndex = nullptr);
 	HRESULT						Try_AddCell(_int iVertex0, _int iVertex1, _int iVertex2, _int* pOutCellIndex = nullptr);
+	HRESULT						Remove_Cell(_int iCellIndex);
 
 	void						Clear();
+
+	HRESULT						Save_NavData(const _tchar* pNavDataPath) const;
+	HRESULT						Load_NavData(const _tchar* pNavDataPath);
+
+	static HRESULT				Save_NavDataSnapshot(const _tchar* pNavDataPath, const NAVMESH_SNAPSHOT& Snapshot);
+	static HRESULT				Load_NavDataSnapshot(const _tchar* pNavDataPath, NAVMESH_SNAPSHOT* pOutSnapshot);
+
 	NAVMESH_SNAPSHOT			Capture_Snapshot() const;
 	HRESULT						Restore_Snapshot(const NAVMESH_SNAPSHOT& Snapshot);
 

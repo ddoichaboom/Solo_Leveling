@@ -4,6 +4,7 @@
 #include "GameInstance.h"
 #include "Model.h"
 #include "NavMesh.h"
+#include "NavigationAgent.h"
 
 // LOGO
 #include "BackGround.h"
@@ -145,12 +146,18 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 			VTXPOS::Elements, VTXPOS::iNumElements))))
 		return E_FAIL;
 
-	lstrcpy(m_szLoadingText, TEXT("정점, 인덱스 버퍼 로드 중"));
+	lstrcpy(m_szLoadingText, TEXT("내비게이션 로드 중"));
 
 	// Prototype_Component_VIBuffer_NavMesh
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
 		TEXT("Prototype_Component_VIBuffer_NavMesh"),
 		CVIBuffer_NavMesh::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_Component_NavigationAgent
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_NavigationAgent"),
+		CNavigationAgent::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	lstrcpy(m_szLoadingText, TEXT("모델 로드 중"));

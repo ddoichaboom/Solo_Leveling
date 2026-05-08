@@ -5,7 +5,7 @@
 NS_BEGIN(Engine)
 
 static constexpr _int	NAVMESH_INVALID_INDEX		= { -1 };
-static constexpr _float NAVMESH_DEFAULT_SNAP_RADIUS = { 0.1f };
+static constexpr _float NAVMESH_DEFAULT_SNAP_RADIUS = { 0.5f };
 static constexpr _float NAVMESH_MIN_CELL_AREA		= { 0.0001f };
 
 enum class NAVMESH_POINT : _uint

@@ -6,6 +6,8 @@
 #include "Model.h"
 #include "ContainerObject.h"
 #include "PartObject.h"
+#include "NavMeshObject.h"
+#include "NavMesh.h"
 
 
 CPanel_Viewport::CPanel_Viewport(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -56,6 +58,14 @@ void CPanel_Viewport::Render()
 			reinterpret_cast<ImTextureID>(m_pSRV),
 			ImVec2(static_cast<_float>(m_iRTWidth), static_cast<_float>(m_iRTHeight)));
 
+		const _bool bViewportImageHovered = ImGui::IsItemHovered();
+
+		const _bool bWindowFocused =
+			ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+		const _bool bNavMeshToolbarHovered = Render_NavMeshEditToolbar(vImagePos);
+		const _bool bNavMeshEditMode = m_pPanel_Manager->Is_NavMeshEditMode();
+
 		// ImGuizmo 오버레이 세팅
 		// (1) 기즈모 드로잉을 현재 Viewport 윈도우 drawlist에 연결
 		ImGuizmo::SetDrawlist();
@@ -66,9 +76,36 @@ void CPanel_Viewport::Render()
 			static_cast<_float>(m_iRTWidth),
 			static_cast<_float>(m_iRTHeight));
 
+		const _bool bNavMeshToggleKeyDown = ImGui::IsKeyDown(ImGuiKey_N);
+
+		if (false == bNavMeshToggleKeyDown)
+		{
+			m_bNavMeshToggleKeyHeld = false;
+		}
+		else if (bWindowFocused &&
+			false == m_bNavMeshToggleKeyHeld &&
+			false == ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+			false == ImGui::IsAnyItemActive())
+		{
+			m_pPanel_Manager->Toggle_NavMeshEditMode();
+			m_bNavMeshToggleKeyHeld = true;
+		}
+
+		if (bWindowFocused &&
+			bNavMeshEditMode &&
+			false == ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+			false == ImGui::IsAnyItemActive() &&
+			false == ImGui::IsKeyDown(ImGuiMod_Ctrl) &&
+			false == ImGui::IsKeyDown(ImGuiMod_Alt) &&
+			false == ImGui::IsKeyDown(ImGuiMod_Shift) &&
+			ImGui::IsKeyPressed(ImGuiKey_C))
+		{
+			Try_Create_NavMeshCell();
+		}
+
 		// 기즈모 단축키 처리
 		// Viewport 포커스 상태 + RMB(카메라 모드) 비활성 시에만 반응
-		if (ImGui::IsWindowFocused() && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+		if (bWindowFocused && !bNavMeshEditMode && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
 			if (ImGui::IsKeyPressed(ImGuiKey_W))
 				m_eGizmoOperation = ImGuizmo::TRANSLATE;
@@ -87,67 +124,93 @@ void CPanel_Viewport::Render()
 
 		_bool bGizmoBlocking = { false };
 
-		// 선택 오브젝트에 대한 기즈모 조작
-		CGameObject* pSelected = m_pPanel_Manager->Get_SelectedObject();
-		if (nullptr != pSelected)
+		if (false == bNavMeshEditMode)
 		{
-			CTransform* pTransform = pSelected->Get_Transform();
-			if (nullptr != pTransform)
+			// 선택 오브젝트에 대한 기즈모 조작
+			CGameObject* pSelected = m_pPanel_Manager->Get_SelectedObject();
+			if (nullptr != pSelected)
 			{
-				// View/Proj 행렬 
-				const _float4x4* pViewMatrix = m_pGameInstance->Get_Transform(D3DTS::VIEW);
-				const _float4x4* pProjMatrix = m_pGameInstance->Get_Transform(D3DTS::PROJ);
-
-				// 대상 World 행렬을 스택 로컬로 복사
-				_float4x4 worldMatrix = *pTransform->Get_WorldMatrixPtr();
-
-				const _float* pSnap = { nullptr };
-				_float3 vSnap = {};
-
-				if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
+				CTransform* pTransform = pSelected->Get_Transform();
+				if (nullptr != pTransform)
 				{
-					switch (m_eGizmoOperation)
+					// View/Proj 행렬
+					const _float4x4* pViewMatrix = m_pGameInstance->Get_Transform(D3DTS::VIEW);
+					const _float4x4* pProjMatrix = m_pGameInstance->Get_Transform(D3DTS::PROJ);
+
+					// 대상 World 행렬을 스택 로컬로 복사
+					_float4x4 worldMatrix = *pTransform->Get_WorldMatrixPtr();
+
+					const _float* pSnap = { nullptr };
+					_float3 vSnap = {};
+
+					if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
 					{
-					case ImGuizmo::TRANSLATE:
-						vSnap = _float3(m_fSnapTranslate, m_fSnapTranslate, m_fSnapTranslate);
-						break;
-					case ImGuizmo::ROTATE:
-						vSnap = _float3(m_fSnapRotate, m_fSnapRotate, m_fSnapRotate);
-						break;
-					case ImGuizmo::SCALE:
-						vSnap = _float3(m_fSnapScale, m_fSnapScale, m_fSnapScale);
-						break;
+						switch (m_eGizmoOperation)
+						{
+						case ImGuizmo::TRANSLATE:
+							vSnap = _float3(m_fSnapTranslate, m_fSnapTranslate, m_fSnapTranslate);
+							break;
+						case ImGuizmo::ROTATE:
+							vSnap = _float3(m_fSnapRotate, m_fSnapRotate, m_fSnapRotate);
+							break;
+						case ImGuizmo::SCALE:
+							vSnap = _float3(m_fSnapScale, m_fSnapScale, m_fSnapScale);
+							break;
+						}
+						pSnap = reinterpret_cast<const _float*>(&vSnap);
 					}
-					pSnap = reinterpret_cast<const _float*>(&vSnap);
+
+					// 기즈모 조작
+					ImGuizmo::Manipulate(
+						reinterpret_cast<const _float*>(pViewMatrix),
+						reinterpret_cast<const _float*>(pProjMatrix),
+						m_eGizmoOperation,
+						m_eGizmoMode,
+						reinterpret_cast<_float*>(&worldMatrix),
+						nullptr,
+						pSnap);
+
+					// 조작이 발생했을 때만 Transform에 반영
+					if (ImGuizmo::IsUsing())
+						pTransform->Set_WorldMatrix(worldMatrix);
+
+					// 이 프레임에 Manipulate를 호출했을 때만 IsOver/IsUsing 상태가 유효
+					bGizmoBlocking = ImGuizmo::IsOver() || ImGuizmo::IsUsing();
 				}
-
-				// 기즈모 조작 
-				ImGuizmo::Manipulate(
-					reinterpret_cast<const _float*>(pViewMatrix),
-					reinterpret_cast<const _float*>(pProjMatrix),
-					m_eGizmoOperation,
-					m_eGizmoMode,
-					reinterpret_cast<_float*>(&worldMatrix),
-					nullptr,
-					pSnap);
-
-				// 조작이 발생했을 때만 Transform에 반영
-				if (ImGuizmo::IsUsing())
-					pTransform->Set_WorldMatrix(worldMatrix);
-
-				// 이 프레임에 Manipulate를 호출했을 때만 IsOver/IsUsing 상태가 유효
-				bGizmoBlocking = ImGuizmo::IsOver() || ImGuizmo::IsUsing();
 			}
 		}
 
-		if (ImGui::IsItemHovered() && 
+		if (bViewportImageHovered &&
+			false == bNavMeshToolbarHovered &&
 			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
 			!bGizmoBlocking)
 		{
 			ImVec2 vMousePos = ImGui::GetMousePos();
 			m_fPickX = vMousePos.x - vImagePos.x;
 			m_fPickY = vMousePos.y - vImagePos.y;
-			Pick_Object();
+
+			if (bNavMeshEditMode)
+			{
+				if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
+					Select_NavMeshCell();
+				else if (ImGui::IsKeyDown(ImGuiMod_Alt))
+					Select_NavMeshVertex();
+				else if (ImGui::IsKeyDown(ImGuiMod_Shift))
+					Move_SelectedNavMeshVertex();
+				else
+					Pick_NavMeshEditPoint();
+			}
+			else
+			{
+				Pick_Object();
+			}
+		}
+
+		if (bNavMeshEditMode)
+		{
+			Render_SelectedNavMeshCell(vImagePos);
+			Render_SelectedNavMeshVertex(vImagePos);
+			Render_NavMesh_PickPreview(vImagePos);
 		}
 	}
 
@@ -266,43 +329,652 @@ void CPanel_Viewport::Release_RenderTarget()
 
 void CPanel_Viewport::Pick_Object()
 {
-	if (0 == m_iRTWidth || 0 == m_iRTHeight)
+	PICK_RESULT Result{};
+
+	if (Pick_Surface(&Result, false) && nullptr != Result.pObject)
+		m_pPanel_Manager->Set_SelectedObject(Result.pObject);
+	else
+		m_pPanel_Manager->Clear_Selection();
+}
+
+#pragma endregion
+
+#pragma region NAVMESH
+
+_bool CPanel_Viewport::Render_NavMeshEditToolbar(const ImVec2& vImagePos)
+{
+	ImGuiWindowFlags Flags =
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoSavedSettings |
+		ImGuiWindowFlags_AlwaysAutoResize;
+
+	ImGui::SetNextWindowPos(ImVec2(vImagePos.x + 12.f, vImagePos.y + 12.f), ImGuiCond_Always);
+	ImGui::SetNextWindowBgAlpha(0.72f);
+
+	ImGui::Begin("NavMesh Edit##ViewportOverlay", nullptr, Flags);
+
+	const _bool bHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
+
+	_bool bNavMeshMode = m_pPanel_Manager->Is_NavMeshEditMode();
+
+	if (ImGui::Checkbox("NavMesh Edit", &bNavMeshMode))
+	{
+		m_pPanel_Manager->Set_ToolMode(
+			bNavMeshMode ? EDITOR_TOOL_MODE::NAVMESH : EDITOR_TOOL_MODE::OBJECT);
+	}
+
+	if (ImGui::Button("Clear Picks"))
+	{
+		Clear_NavMeshPickPoints();
+		Log_EditStatus(LOG_LEVEL::INFO, "Cleared Picks");
+	}
+
+	const _bool bCreateCellDisabled = m_NavMeshPickedPoints.size() < 3;
+
+	ImGui::SameLine();
+
+	if (bCreateCellDisabled)
+		ImGui::BeginDisabled();
+
+	if (ImGui::Button("Create Cell"))
+	{
+		Try_Create_NavMeshCell();
+	}
+
+	if (bCreateCellDisabled)
+		ImGui::EndDisabled();
+
+	ImGui::SameLine();
+
+	const _bool bDeleteCellDisabled = (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex);
+	if (bDeleteCellDisabled)
+		ImGui::BeginDisabled();
+
+	if (ImGui::Button("Delete Cell"))
+	{
+		Delete_SelectedNavMeshCell();
+	}
+
+	if (bDeleteCellDisabled)
+		ImGui::EndDisabled();
+
+	const _bool bUndoDisabled = m_NavMeshUndoStack.empty();
+	const _bool bRedoDisabled = m_NavMeshRedoStack.empty();
+
+	if (bUndoDisabled)
+		ImGui::BeginDisabled();
+
+	if (ImGui::Button("Undo"))
+	{
+		Undo_NavMeshEdit();
+	}
+
+	if (bUndoDisabled)
+		ImGui::EndDisabled();
+
+	ImGui::SameLine();
+
+	if (bRedoDisabled)
+		ImGui::BeginDisabled();
+
+	if (ImGui::Button("Redo"))
+	{
+		Redo_NavMeshEdit();
+	}
+
+	if (bRedoDisabled)
+		ImGui::EndDisabled();
+
+	if (ImGui::Button("Save NavData"))
+	{
+		Save_NavMeshData();
+	}
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Load NavData"))
+	{
+		Load_NavMeshData();
+	}
+
+	ImGui::Text("Selected Cell : %d", m_iSelectedNavMeshCellIndex);
+	ImGui::Text("Selected Vertex : %d", m_iSelectedNavMeshVertexIndex);
+	ImGui::Text("Pending Points: %u", static_cast<_uint>(m_NavMeshPickedPoints.size()));
+
+
+	for (_uint i = 0; i < static_cast<_uint>(m_NavMeshPickedPoints.size()); ++i)
+	{
+		const NAVMESH_PICK_POINT& Point = m_NavMeshPickedPoints[i];
+
+		if (Point.bSnapped)
+		{
+			ImGui::Text("[%u] snapped: %d / %.2f, %.2f, %.2f",
+				i,
+				Point.iSnapVertexIndex,
+				Point.vPreviewPosition.x,
+				Point.vPreviewPosition.y,
+				Point.vPreviewPosition.z);
+		}
+		else
+		{
+			ImGui::Text("[%u] new / %.2f, %.2f, %.2f",
+				i,
+				Point.vPreviewPosition.x,
+				Point.vPreviewPosition.y,
+				Point.vPreviewPosition.z);
+		}
+	}
+
+	ImGui::End();
+
+	return bHovered;
+}
+
+void CPanel_Viewport::Render_NavMesh_PickPreview(const ImVec2& vImagePos)
+{
+	if (m_NavMeshPickedPoints.empty())
 		return;
 
-	// (1) Screen → World Ray
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	ImVec2 FirstScreen{};
+	ImVec2 PrevScreen{};
+
+	_bool bHasFirst = false;
+	_bool bHasPrev = false;
+	_uint iVisibleCount = 0;
+
+	for (_uint i = 0; i < static_cast<_uint>(m_NavMeshPickedPoints.size()); ++i)
+	{
+		const NAVMESH_PICK_POINT& Point = m_NavMeshPickedPoints[i];
+
+		ImVec2 ScreenPos{};
+		if (false == World_To_Viewport(Point.vPreviewPosition, vImagePos, &ScreenPos))
+			continue;
+
+		const ImU32 Color = Point.bSnapped
+			? IM_COL32(255, 210, 64, 255)
+			: IM_COL32(64, 180, 255, 255);
+
+		pDrawList->AddCircleFilled(ScreenPos, 5.f, Color, 16);
+		pDrawList->AddCircle(ScreenPos, 9.f, Color, 16, 2.f);
+
+		if (false == bHasFirst)
+		{
+			FirstScreen = ScreenPos;
+			bHasFirst = true;
+		}
+
+		if (bHasPrev)
+			pDrawList->AddLine(PrevScreen, ScreenPos, IM_COL32(255, 255, 255, 220), 2.f);
+
+		PrevScreen = ScreenPos;
+		bHasPrev = true;
+		++iVisibleCount;
+	}
+
+	if (3 == m_NavMeshPickedPoints.size() &&
+		3 == iVisibleCount &&
+		bHasFirst &&
+		bHasPrev)
+	{
+		pDrawList->AddLine(PrevScreen, FirstScreen, IM_COL32(255, 255, 255, 220), 2.f);
+	}
+}
+
+void CPanel_Viewport::Render_SelectedNavMeshCell(const ImVec2& vImagePos)
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex)
+		return;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return;
+
+	const vector<NAVMESH_CELL>& Cells = pNavMesh->Get_CellDescs();
+	const vector<_float3>& Vertices = pNavMesh->Get_Vertices();
+
+	if (m_iSelectedNavMeshCellIndex < 0 ||
+		static_cast<size_t>(m_iSelectedNavMeshCellIndex) >= Cells.size())
+		return;
+
+	const NAVMESH_CELL& Cell = Cells[m_iSelectedNavMeshCellIndex];
+
+	ImVec2 Screen[3]{};
+
+	for (_uint i = 0; i < 3; ++i)
+	{
+		const _int iVertexIndex = Cell.iVertexIndices[i];
+
+		if (iVertexIndex < 0 ||
+			static_cast<size_t>(iVertexIndex) >= Vertices.size())
+			return;
+
+		if (false == World_To_Viewport(Vertices[iVertexIndex], vImagePos, &Screen[i]))
+			return;
+	}
+
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	pDrawList->AddTriangleFilled(
+		Screen[0], Screen[1], Screen[2],
+		IM_COL32(255, 96, 64, 55));
+
+	pDrawList->AddTriangle(
+		Screen[0], Screen[1], Screen[2],
+		IM_COL32(255, 96, 64, 255),
+		3.f);
+}
+
+void CPanel_Viewport::Render_SelectedNavMeshVertex(const ImVec2& vImagePos)
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshVertexIndex)
+		return;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return;
+
+	const vector<_float3>& Vertices = pNavMesh->Get_Vertices();
+
+	if (m_iSelectedNavMeshVertexIndex < 0 ||
+		static_cast<size_t>(m_iSelectedNavMeshVertexIndex) >= Vertices.size())
+		return;
+
+	ImVec2 vScreenPosition = {};
+	if (false == World_To_Viewport(Vertices[m_iSelectedNavMeshVertexIndex], vImagePos, &vScreenPosition))
+		return;
+
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	pDrawList->AddCircleFilled(
+		vScreenPosition,
+		7.f,
+		IM_COL32(255, 210, 64, 255));
+
+	pDrawList->AddCircle(
+		vScreenPosition,
+		10.f,
+		IM_COL32(255, 255, 255, 255),
+		16,
+		2.f);
+}
+
+void CPanel_Viewport::Select_NavMeshVertex()
+{
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(&Result, true))
+	{
+		m_iSelectedNavMeshVertexIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::WARNING, "No map hit.");
+		return;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		m_iSelectedNavMeshVertexIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return;
+	}
+
+	static constexpr _float fVertexPickRadius = { 0.35f };
+
+	const _int iVertexIndex = pNavMesh->Find_Vertex(Result.vPosition, fVertexPickRadius);
+	m_iSelectedNavMeshVertexIndex = iVertexIndex;
+
+	if (NAVMESH_INVALID_INDEX == iVertexIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No vertex selected.");
+		return;
+	}
+
+	_char szStatus[128] = {};
+	sprintf_s(szStatus, "Selected Vertex: %d", iVertexIndex);
+	Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+}
+
+HRESULT CPanel_Viewport::Move_SelectedNavMeshVertex()
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshVertexIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No selected vertex.");
+		return E_FAIL;
+	}
+
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(&Result, true))
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No map hit.");
+		return E_FAIL;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	if (FAILED(pNavMesh->Move_Vertex(m_iSelectedNavMeshVertexIndex, Result.vPosition)))
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to move vertex.");
+		return E_FAIL;
+	}
+
+	Push_NavMeshUndoSnapshot(Backup);
+	Clear_NavMeshPickPoints();
+
+	_char szStatus[128] = {};
+	sprintf_s(szStatus, "Moved Vertex: %d", m_iSelectedNavMeshVertexIndex);
+	Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+
+	return S_OK;
+}
+
+void CPanel_Viewport::Select_NavMeshCell()
+{
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(&Result, true))
+	{
+		m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::WARNING, "No map hit");
+		return;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return;
+	}
+
+	const _int iCellIndex = pNavMesh->Find_Cell(Result.vPosition);
+	m_iSelectedNavMeshCellIndex = iCellIndex;
+
+	if (NAVMESH_INVALID_INDEX == iCellIndex)
+		Log_EditStatus(LOG_LEVEL::WARNING, "No cell selected.");
+	else
+	{
+		_char szStatus[128] = {};
+		sprintf_s(szStatus, "Selected Cell: %d", iCellIndex);
+		Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+	}
+}
+
+HRESULT CPanel_Viewport::Delete_SelectedNavMeshCell()
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No selected cell.");
+		return E_FAIL;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	if (FAILED(pNavMesh->Remove_Cell(m_iSelectedNavMeshCellIndex)))
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to delete cell.");
+		return E_FAIL;
+	}
+
+	Push_NavMeshUndoSnapshot(Backup);
+
+	m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+	Clear_NavMeshPickPoints();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Deleted selected cell.");
+
+	return S_OK;
+}
+
+HRESULT CPanel_Viewport::Undo_NavMeshEdit()
+{
+	if (m_NavMeshUndoStack.empty())
+		return E_FAIL;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return E_FAIL;
+
+	NAVMESH_SNAPSHOT Current = pNavMesh->Capture_Snapshot();
+	NAVMESH_SNAPSHOT Previous = m_NavMeshUndoStack.back();
+	m_NavMeshUndoStack.pop_back();
+
+	if (FAILED(pNavMesh->Restore_Snapshot(Previous)))
+	{
+		pNavMesh->Restore_Snapshot(Current);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Undo failed.");
+		return E_FAIL;
+	}
+
+	m_NavMeshRedoStack.push_back(Current);
+	Clear_NavMeshEditState();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Undo.");
+
+	return S_OK;
+}
+
+HRESULT CPanel_Viewport::Redo_NavMeshEdit()
+{
+	if (m_NavMeshRedoStack.empty())
+		return E_FAIL;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return E_FAIL;
+
+	NAVMESH_SNAPSHOT Current = pNavMesh->Capture_Snapshot();
+	NAVMESH_SNAPSHOT Next = m_NavMeshRedoStack.back();
+	m_NavMeshRedoStack.pop_back();
+
+	if (FAILED(pNavMesh->Restore_Snapshot(Next)))
+	{
+		pNavMesh->Restore_Snapshot(Current);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Redo failed.");
+		return E_FAIL;
+	}
+
+	m_NavMeshUndoStack.push_back(Current);
+	Clear_NavMeshEditState();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Redo.");
+
+	return S_OK;
+}
+
+HRESULT CPanel_Viewport::Save_NavMeshData()
+{
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	std::error_code ErrorCode{};
+	std::filesystem::create_directories(std::filesystem::path(TEXT("../../Resources/NavMesh")), ErrorCode);
+
+	if (ErrorCode)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create NavMesh directory.");
+		return E_FAIL;
+	}
+
+	if (FAILED(pNavMesh->Save_NavData(TEXT("../../Resources/NavMesh/ThroneRoom.navdata"))))
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to save NavData.");
+		return E_FAIL;
+	}
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Saved NavData: ../../Resources/NavMesh/ThroneRoom.navdata");
+
+	return S_OK;
+}
+
+HRESULT CPanel_Viewport::Load_NavMeshData()
+{
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	if (FAILED(pNavMesh->Load_NavData(TEXT("../../Resources/NavMesh/ThroneRoom.navdata"))))
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to load NavData.");
+		return E_FAIL;
+	}
+
+	Push_NavMeshUndoSnapshot(Backup);
+	Clear_NavMeshEditState();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Loaded NavData: ../../Resources/NavMesh/ThroneRoom.navdata");
+
+	return S_OK;
+}
+
+void CPanel_Viewport::Push_NavMeshUndoSnapshot(const NAVMESH_SNAPSHOT& Snapshot)
+{
+	m_NavMeshUndoStack.push_back(Snapshot);
+	m_NavMeshRedoStack.clear();
+
+	static constexpr size_t iMaxUndoCount = 64;
+	if (m_NavMeshUndoStack.size() > iMaxUndoCount)
+		m_NavMeshUndoStack.erase(m_NavMeshUndoStack.begin());
+}
+
+void CPanel_Viewport::Clear_NavMeshEditState()
+{
+	Clear_NavMeshPickPoints();
+	m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+	m_iSelectedNavMeshVertexIndex = NAVMESH_INVALID_INDEX;
+}
+
+_bool CPanel_Viewport::World_To_Viewport(const _float3& vWorldPosition, const ImVec2& vImagePos, ImVec2* pOutScreenPosition) const
+{
+	if (nullptr == pOutScreenPosition || 0 == m_iRTWidth || 0 == m_iRTHeight)
+		return false;
+
+	const _float4x4* pViewMatrix = m_pGameInstance->Get_Transform(D3DTS::VIEW);
+	const _float4x4* pProjMatrix = m_pGameInstance->Get_Transform(D3DTS::PROJ);
+	if (nullptr == pViewMatrix || nullptr == pProjMatrix)
+		return false;
+
+	_matrix matView = XMLoadFloat4x4(pViewMatrix);
+	_matrix matProj = XMLoadFloat4x4(pProjMatrix);
+
+	_vector vClip = XMVector3TransformCoord(XMLoadFloat3(&vWorldPosition), matView * matProj);
+
+	const _float fX = XMVectorGetX(vClip);
+	const _float fY = XMVectorGetY(vClip);
+	const _float fZ = XMVectorGetZ(vClip);
+
+	if (fZ < 0.f || fZ > 1.f)
+		return false;
+
+	pOutScreenPosition->x = vImagePos.x + (fX + 1.f) * 0.5f * static_cast<_float>(m_iRTWidth);
+	pOutScreenPosition->y = vImagePos.y + (1.f - fY) * 0.5f * static_cast<_float>(m_iRTHeight);
+
+	return true;
+}
+
+CNavMesh* CPanel_Viewport::Find_NavMesh() const
+{
+	_int iLevelIndex = m_pGameInstance->Get_CurrentLevelIndex();
+	if (iLevelIndex < 0)
+		return nullptr;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(static_cast<_uint>(iLevelIndex));
+	if (nullptr == pLayers)
+		return nullptr;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_NavMesh"));
+	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+		return nullptr;
+
+	for (auto& pObject : iterLayer->second->Get_GameObjects())
+	{
+		CNavMeshObject* pNavMeshObject = dynamic_cast<CNavMeshObject*>(pObject);
+		if (nullptr == pNavMeshObject)
+			continue;
+
+		return pNavMeshObject->Get_NavMesh();
+	}
+
+	return nullptr;
+}
+
+_bool CPanel_Viewport::Pick_Surface(PICK_RESULT* pOutResult, _bool bMapOnly)
+{
+	if (nullptr == pOutResult || 0 == m_iRTWidth || 0 == m_iRTHeight)
+		return false;
+
 	_float4 vRayOrigin = {};
 	_float4 vRayDir = {};
 
 	m_pGameInstance->Compute_WorldRay(
 		m_fPickX, m_fPickY,
-		static_cast<_float>(m_iRTWidth), static_cast<_float>(m_iRTHeight),
+		static_cast<_float>(m_iRTWidth),
+		static_cast<_float>(m_iRTHeight),
 		&vRayOrigin, &vRayDir);
 
 	_vector vOrigin = XMLoadFloat4(&vRayOrigin);
-	_vector vDir	= XMLoadFloat4(&vRayDir);
+	_vector vDir = XMLoadFloat4(&vRayDir);
 
-	//_vector vOrigin = XMVectorSet(64.f, 100.f, 64.f, 1.f);
-	//_vector vDir = XMVectorSet(0.f, -1.f, 0.f, 0.f);
-
-	// (2) 현재 레벨의 오브젝트 순회
 	_int iLevelIndex = m_pGameInstance->Get_CurrentLevelIndex();
 	if (iLevelIndex < 0)
-		return;
+		return false;
 
 	const auto* pLayers = m_pGameInstance->Get_Layers(static_cast<_uint>(iLevelIndex));
 	if (nullptr == pLayers)
-		return;
+		return false;
 
 	CGameObject* pPicked = { nullptr };
-	_float fMinDist		= FLT_MAX;
+	_float fMinDist = FLT_MAX;
 
 	for (auto& LayerPair : *pLayers)
 	{
+		if (LayerPair.first == TEXT("Layer_NavMesh"))
+			continue;
+
+		if (bMapOnly && LayerPair.first != TEXT("Layer_BackGround"))
+			continue;
+
 		for (auto& pObject : LayerPair.second->Get_GameObjects())
 		{
-			// 1. 일반 GameObject Picking
-			_float fDist = { 0.f };
-			_bool bHit = { false };
+			if (nullptr == pObject || nullptr == pObject->Get_Transform())
+				continue;
+
+			_float fDist = {};
+			_bool bHit = false;
 
 			_matrix matWorld = XMLoadFloat4x4(pObject->Get_Transform()->Get_WorldMatrixPtr());
 
@@ -328,7 +1000,6 @@ void CPanel_Viewport::Pick_Object()
 				pPicked = pObject;
 			}
 
-			// 2. ContainerObject 내부 PartObject Picking
 			CContainerObject* pContainer = dynamic_cast<CContainerObject*>(pObject);
 			if (nullptr == pContainer)
 				continue;
@@ -361,13 +1032,142 @@ void CPanel_Viewport::Pick_Object()
 				}
 			}
 		}
-	}	
+	}
 
-	// (3) 결과 반영
-	if (nullptr != pPicked)
-		m_pPanel_Manager->Set_SelectedObject(pPicked);
-	else
-		m_pPanel_Manager->Clear_Selection();
+	if (nullptr == pPicked)
+		return false;
+
+	_vector vHitPosition = vOrigin + XMVector3Normalize(vDir) * fMinDist;
+
+	pOutResult->pObject = pPicked;
+	pOutResult->fDistance = fMinDist;
+	XMStoreFloat3(&pOutResult->vPosition, vHitPosition);
+
+	return true;
+}
+
+void CPanel_Viewport::Pick_NavMeshEditPoint()
+{
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(&Result, true))
+	{
+		m_bHasLastNavMeshPick = false;
+		return;
+	}
+
+	NAVMESH_PICK_POINT PickPoint{};
+	PickPoint.vRawPosition = Result.vPosition;
+	PickPoint.vPreviewPosition = Result.vPosition;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr != pNavMesh)
+	{
+		const _int iSnapVertexIndex = pNavMesh->Find_Vertex(Result.vPosition);
+		const vector<_float3>& Vertices = pNavMesh->Get_Vertices();
+
+		if (iSnapVertexIndex >= 0 &&
+			static_cast<size_t>(iSnapVertexIndex) < Vertices.size())
+		{
+			PickPoint.iSnapVertexIndex = iSnapVertexIndex;
+			PickPoint.vPreviewPosition = Vertices[iSnapVertexIndex];
+			PickPoint.bSnapped = true;
+		}
+	}
+
+	m_vLastNavMeshPick = PickPoint.vPreviewPosition;
+	m_bHasLastNavMeshPick = true;
+
+	m_NavMeshPickedPoints.push_back(PickPoint);
+
+	if (m_NavMeshPickedPoints.size() > 3)
+		m_NavMeshPickedPoints.erase(m_NavMeshPickedPoints.begin());
+}
+
+HRESULT CPanel_Viewport::Try_Create_NavMeshCell()
+{
+	if (3 != m_NavMeshPickedPoints.size())
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "Need exactly 3 points.");
+		return E_FAIL;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	_int iVertexIndices[3] = {
+			NAVMESH_INVALID_INDEX,
+			NAVMESH_INVALID_INDEX,
+			NAVMESH_INVALID_INDEX
+	};
+
+	for (_uint i = 0; i < 3; ++i)
+	{
+		const NAVMESH_PICK_POINT& Point = m_NavMeshPickedPoints[i];
+
+		if (Point.bSnapped)
+			iVertexIndices[i] = Point.iSnapVertexIndex;
+		else
+			iVertexIndices[i] = pNavMesh->Find_OrAddVertex(Point.vPreviewPosition);
+
+		if (NAVMESH_INVALID_INDEX == iVertexIndices[i])
+		{
+			pNavMesh->Restore_Snapshot(Backup);
+			Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create vertex.");
+			return E_FAIL;
+		}
+	}
+
+	if (iVertexIndices[0] == iVertexIndices[1] ||
+		iVertexIndices[1] == iVertexIndices[2] ||
+		iVertexIndices[2] == iVertexIndices[0])
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::WARNING, "Duplicated vertices.");
+		return E_FAIL;
+	}
+
+	_int iCellIndex = NAVMESH_INVALID_INDEX;
+	if (FAILED(pNavMesh->Try_AddCell(
+		iVertexIndices[0],
+		iVertexIndices[1],
+		iVertexIndices[2],
+		&iCellIndex)))
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create cell.");
+		return E_FAIL;
+	}
+
+
+	Push_NavMeshUndoSnapshot(Backup);
+	m_iSelectedNavMeshCellIndex = iCellIndex;
+
+	Clear_NavMeshPickPoints();
+
+	_char szStatus[128] = {};
+	sprintf_s(szStatus, "Created Cell: %d", iCellIndex);
+	Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+
+	return S_OK;
+}
+
+void CPanel_Viewport::Clear_NavMeshPickPoints()
+{
+	m_NavMeshPickedPoints.clear();
+	m_bHasLastNavMeshPick = false;
+	m_vLastNavMeshPick = {};
+}
+
+void CPanel_Viewport::Log_EditStatus(LOG_LEVEL eLevel, const string& strMessage) const
+{
+	Log_Message(eLevel, "[NavMesh] " + strMessage);
 }
 
 #pragma endregion

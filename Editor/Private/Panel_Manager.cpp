@@ -9,6 +9,24 @@ CPanel_Manager::CPanel_Manager()
 
 }
 
+void CPanel_Manager::Set_ToolMode(EDITOR_TOOL_MODE eMode)
+{
+	if (ETOUI(eMode) >= ETOUI(EDITOR_TOOL_MODE::END))
+		return;
+
+	m_eToolMode = eMode;
+
+	if (EDITOR_TOOL_MODE::NAVMESH == m_eToolMode)
+		Clear_Selection();
+}
+
+void CPanel_Manager::Toggle_NavMeshEditMode()
+{
+	Set_ToolMode(Is_NavMeshEditMode()
+		? EDITOR_TOOL_MODE::OBJECT
+		: EDITOR_TOOL_MODE::NAVMESH);
+}
+
 HRESULT CPanel_Manager::Add_Panel(const _wstring& strPanelTag, CPanel* pPanel)
 {
 	if (nullptr == pPanel)

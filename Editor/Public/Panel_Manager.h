@@ -33,6 +33,13 @@ public:
 	}
 
 public:
+	EDITOR_TOOL_MODE		Get_Tool_Mode() const { return m_eToolMode; }
+	_bool					Is_NavMeshEditMode() const { return EDITOR_TOOL_MODE::NAVMESH == m_eToolMode; }
+
+	void					Set_ToolMode(EDITOR_TOOL_MODE eMode);
+	void					Toggle_NavMeshEditMode();
+
+public:
 	HRESULT					Add_Panel(const _wstring& strPanelTag, CPanel* pPanel);
 	CPanel*					Get_Panel(const _wstring& strPanelTag);
 	void					Update_Panels(_float fTimeDelta);
@@ -45,6 +52,8 @@ public:
 private:
 	map<_wstring, CPanel*>	m_Panels;
 	CGameObject*			m_pSelectedObject = { nullptr };
+
+	EDITOR_TOOL_MODE		m_eToolMode = { EDITOR_TOOL_MODE::OBJECT };
 
 public:
 	virtual void Free() override;
