@@ -20,12 +20,6 @@ void CPanel_Manager::Set_ToolMode(EDITOR_TOOL_MODE eMode)
 		Clear_Selection();
 }
 
-void CPanel_Manager::Toggle_NavMeshEditMode()
-{
-	Set_ToolMode(Is_NavMeshEditMode()
-		? EDITOR_TOOL_MODE::OBJECT
-		: EDITOR_TOOL_MODE::NAVMESH);
-}
 
 HRESULT CPanel_Manager::Add_Panel(const _wstring& strPanelTag, CPanel* pPanel)
 {

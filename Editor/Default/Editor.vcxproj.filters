@@ -58,6 +58,12 @@
     <Filter Include="01. Panel\Shortcuts">
       <UniqueIdentifier>{8d4e0c35-5889-4e1a-8b94-1ed8898ccd6a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="01. Panel\NavMesh Editor">
+      <UniqueIdentifier>{f48b94fb-1354-42fc-a20d-94f4f7086ace}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="95. Tools\NavMeshEditorTool">
+      <UniqueIdentifier>{9ba69ec4-767d-4f46-bbca-2ea417407ed9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp">
@@ -122,6 +128,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\Panel_Shortcuts.cpp">
       <Filter>01. Panel\Shortcuts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_NavMeshEditor.cpp">
+      <Filter>01. Panel\NavMesh Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\NavMeshEditorTool.cpp">
+      <Filter>95. Tools\NavMeshEditorTool</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -208,6 +220,12 @@
     </ClInclude>
     <ClInclude Include="..\Public\Panel_Shortcuts.h">
       <Filter>01. Panel\Shortcuts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_NavMeshEditor.h">
+      <Filter>01. Panel\NavMesh Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\NavMeshEditorTool.h">
+      <Filter>95. Tools\NavMeshEditorTool</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

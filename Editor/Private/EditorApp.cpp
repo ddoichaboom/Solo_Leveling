@@ -186,6 +186,7 @@ void CEditorApp::Render_DockSpace()
 		ImGui::DockBuilderDockWindow("Content Browser", bottom);
 		ImGui::DockBuilderDockWindow("Log", bottom);  
 		ImGui::DockBuilderDockWindow("Shortcuts", bottom);  
+		ImGui::DockBuilderDockWindow("NavMesh Editor", right);  
 
 		ImGui::DockBuilderFinish(dockspace_id);
 	}
@@ -203,6 +204,7 @@ void CEditorApp::Render_DockSpace()
 			ToggleMenuItem(TEXT("Panel_ContentBrowser"), MENUTYPE::PANEL);
 			ToggleMenuItem(TEXT("Panel_Log"), MENUTYPE::PANEL);
 			ToggleMenuItem(TEXT("Panel_Shortcuts"), MENUTYPE::PANEL);
+			ToggleMenuItem(TEXT("Panel_NavMeshEditor"), MENUTYPE::PANEL);
 
 			ImGui::EndMenu();
 		}
@@ -250,6 +252,11 @@ HRESULT CEditorApp::Ready_Panels()
 		return E_FAIL;
 
 	Safe_AddRef(m_pViewport);
+
+
+	// Panel_NavMeshEditor
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_NavMeshEditor"), CPanel_NavMeshEditor::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
 
 	// Panel_Hierarchy
 	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Hierarchy"), CPanel_Hierarchy::Create(m_pDevice, m_pContext))))

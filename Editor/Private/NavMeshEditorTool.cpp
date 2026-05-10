@@ -1,0 +1,1035 @@
+#include "NavMeshEditorTool.h"
+#include "GameInstance.h"
+#include "Layer.h"
+#include "GameObject.h"
+#include "Model.h"
+#include "VIBuffer.h"
+#include "ContainerObject.h"
+#include "PartObject.h"
+#include "NavMeshObject.h"
+#include "NavMesh.h"
+#include "Cell.h"
+#include "SceneSerializer.h"
+
+namespace
+{
+	static const _tchar* NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
+	static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/ThroneRoom.scene");
+
+	const char* Get_SpawnTypeLabel(SPAWN_TYPE eType)
+	{
+		switch (eType)
+		{
+		case SPAWN_TYPE::PLAYER:
+			return "Player";
+		case SPAWN_TYPE::MONSTER_NORMAL:
+			return "Normal";
+		case SPAWN_TYPE::MONSTER_ELITE:
+			return "Elite";
+		case SPAWN_TYPE::MONSTER_BOSS:
+			return "Boss";
+		default:
+			return "Unknown";
+		}
+	}
+
+	ImU32 Get_SpawnColor(SPAWN_TYPE eType)
+	{
+		switch (eType)
+		{
+		case SPAWN_TYPE::PLAYER:
+			return IM_COL32(80, 200, 255, 255);
+		case SPAWN_TYPE::MONSTER_NORMAL:
+			return IM_COL32(120, 255, 120, 255);
+		case SPAWN_TYPE::MONSTER_ELITE:
+			return IM_COL32(255, 210, 64, 255);
+		case SPAWN_TYPE::MONSTER_BOSS:
+			return IM_COL32(255, 80, 80, 255);
+		default:
+			return IM_COL32(255, 255, 255, 255);
+		}
+	}
+}
+
+CNavMeshEditorTool::CNavMeshEditorTool()
+	: m_pGameInstance{ CGameInstance::GetInstance() }
+{
+	Safe_AddRef(m_pGameInstance);
+}
+
+void CNavMeshEditorTool::Render_Overlay(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight)
+{
+	Render_SpawnPoints(vImagePos, iViewportWidth, iViewportHeight);
+	Render_SelectedCell(vImagePos, iViewportWidth, iViewportHeight);
+	Render_SelectedVertex(vImagePos, iViewportWidth, iViewportHeight);
+	Render_PickPreview(vImagePos, iViewportWidth, iViewportHeight);
+}
+
+void CNavMeshEditorTool::Handle_ViewportClick(_float fPickX, _float fPickY, _uint iViewportWidth, _uint iViewportHeight)
+{
+	if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
+		Select_Cell(fPickX, fPickY, iViewportWidth, iViewportHeight);
+	else if (ImGui::IsKeyDown(ImGuiMod_Alt))
+		Select_Vertex(fPickX, fPickY, iViewportWidth, iViewportHeight);
+	else if (ImGui::IsKeyDown(ImGuiMod_Shift))
+		Move_SelectedVertex(fPickX, fPickY, iViewportWidth, iViewportHeight);
+	else
+		Pick_EditPoint(fPickX, fPickY, iViewportWidth, iViewportHeight);
+}
+
+HRESULT CNavMeshEditorTool::Create_NavMeshCell()
+{
+	if (3 != m_NavMeshPickedPoints.size())
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "Need exactly 3 points.");
+		return E_FAIL;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	_int iVertexIndices[3] = {
+		NAVMESH_INVALID_INDEX,
+		NAVMESH_INVALID_INDEX,
+		NAVMESH_INVALID_INDEX
+	};
+
+	for (_uint i = 0; i < 3; ++i)
+	{
+		const NAVMESH_PICK_POINT& Point = m_NavMeshPickedPoints[i];
+
+		if (Point.bSnapped)
+			iVertexIndices[i] = Point.iSnapVertexIndex;
+		else
+			iVertexIndices[i] = pNavMesh->Find_OrAddVertex(Point.vPreviewPosition);
+
+		if (NAVMESH_INVALID_INDEX == iVertexIndices[i])
+		{
+			pNavMesh->Restore_Snapshot(Backup);
+			Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create vertex.");
+			return E_FAIL;
+		}
+	}
+
+	if (iVertexIndices[0] == iVertexIndices[1] ||
+		iVertexIndices[1] == iVertexIndices[2] ||
+		iVertexIndices[2] == iVertexIndices[0])
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::WARNING, "Duplicated vertices.");
+		return E_FAIL;
+	}
+
+	_int iCellIndex = NAVMESH_INVALID_INDEX;
+	if (FAILED(pNavMesh->Try_AddCell(
+		iVertexIndices[0],
+		iVertexIndices[1],
+		iVertexIndices[2],
+		&iCellIndex)))
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create cell.");
+		return E_FAIL;
+	}
+
+	Push_UndoSnapshot(Backup);
+	m_iSelectedNavMeshCellIndex = iCellIndex;
+	Clear_PickPoints();
+
+	_char szStatus[128] = {};
+	sprintf_s(szStatus, "Created Cell: %d", iCellIndex);
+	Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+
+	return S_OK;
+}
+
+void CNavMeshEditorTool::Clear_PickPoints()
+{
+	m_NavMeshPickedPoints.clear();
+	m_bHasLastNavMeshPick = false;
+	m_vLastNavMeshPick = {};
+}
+
+HRESULT CNavMeshEditorTool::Delete_SelectedCell()
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No selected cell.");
+		return E_FAIL;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	if (FAILED(pNavMesh->Remove_Cell(m_iSelectedNavMeshCellIndex)))
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to delete cell.");
+		return E_FAIL;
+	}
+
+	Push_UndoSnapshot(Backup);
+	m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+	Clear_PickPoints();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Deleted selected cell.");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Undo()
+{
+	if (m_NavMeshUndoStack.empty())
+		return E_FAIL;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return E_FAIL;
+
+	NAVMESH_SNAPSHOT Current = pNavMesh->Capture_Snapshot();
+	NAVMESH_SNAPSHOT Previous = m_NavMeshUndoStack.back();
+	m_NavMeshUndoStack.pop_back();
+
+	if (FAILED(pNavMesh->Restore_Snapshot(Previous)))
+	{
+		pNavMesh->Restore_Snapshot(Current);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Undo failed.");
+		return E_FAIL;
+	}
+
+	m_NavMeshRedoStack.push_back(Current);
+	Clear_EditState();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Undo.");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Redo()
+{
+	if (m_NavMeshRedoStack.empty())
+		return E_FAIL;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return E_FAIL;
+
+	NAVMESH_SNAPSHOT Current = pNavMesh->Capture_Snapshot();
+	NAVMESH_SNAPSHOT Next = m_NavMeshRedoStack.back();
+	m_NavMeshRedoStack.pop_back();
+
+	if (FAILED(pNavMesh->Restore_Snapshot(Next)))
+	{
+		pNavMesh->Restore_Snapshot(Current);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Redo failed.");
+		return E_FAIL;
+	}
+
+	m_NavMeshUndoStack.push_back(Current);
+	Clear_EditState();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Redo.");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Save_NavData()
+{
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	std::error_code ErrorCode{};
+	std::filesystem::create_directories(std::filesystem::path(TEXT("../../Resources/NavMesh")), ErrorCode);
+
+	if (ErrorCode)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create NavMesh directory.");
+		return E_FAIL;
+	}
+
+	if (FAILED(pNavMesh->Save_NavData(NAVDATA_PATH)))
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to save NavData.");
+		return E_FAIL;
+	}
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Saved NavData: ../../Resources/NavMesh/ThroneRoom.navdata");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Load_NavData()
+{
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	if (FAILED(pNavMesh->Load_NavData(NAVDATA_PATH)))
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to load NavData.");
+		return E_FAIL;
+	}
+
+	Push_UndoSnapshot(Backup);
+	Clear_EditState();
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Loaded NavData: ../../Resources/NavMesh/ThroneRoom.navdata");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Set_PlayerSpawnPoint()
+{
+	SPAWN_POINT Point{};
+
+	if (false == Build_SpawnPointFromSelectedCell(SPAWN_TYPE::PLAYER, TEXT("PlayerSpawn"), &Point))
+		return E_FAIL;
+
+	Push_OrReplacePlayerSpawnPoint(Point);
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Set Player SpawnPoint.");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Add_MonsterSpawnPoint(SPAWN_TYPE eType)
+{
+	_uint iSameTypeCount = {};
+
+	for (const SPAWN_POINT& Point : m_SpawnPoints)
+	{
+		if (Point.eType == eType)
+			++iSameTypeCount;
+	}
+
+	_tchar szName[MAX_PATH] = {};
+	swprintf_s(szName, TEXT("%S_%02u"), Get_SpawnTypeLabel(eType), iSameTypeCount);
+
+	SPAWN_POINT Point{};
+
+	if (false == Build_SpawnPointFromSelectedCell(eType, szName, &Point))
+		return E_FAIL;
+
+	m_SpawnPoints.push_back(Point);
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Added Monster SpawnPoint.");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Delete_LastSpawnPoint()
+{
+	if (m_SpawnPoints.empty())
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "SpawnPoint does not exist.");
+		return E_FAIL;
+	}
+
+	m_SpawnPoints.pop_back();
+	if (static_cast<_uint>(m_iSelectedSpawnPointIndex) >= static_cast<_uint>(m_SpawnPoints.size()))
+	{
+		m_iSelectedSpawnPointIndex = m_SpawnPoints.empty()
+			? NAVMESH_INVALID_INDEX
+			: static_cast<_int>(m_SpawnPoints.size() - 1);
+	}
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Deleted last SpawnPoint.");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Delete_SelectedSpawnPoint()
+{
+	if (m_iSelectedSpawnPointIndex < 0 ||
+		static_cast<_uint>(m_iSelectedSpawnPointIndex) >= static_cast<_uint>(m_SpawnPoints.size()))
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No SpawnPoint selected.");
+		return E_FAIL;
+	}
+
+	m_SpawnPoints.erase(m_SpawnPoints.begin() + m_iSelectedSpawnPointIndex);
+
+	if (m_SpawnPoints.empty())
+		m_iSelectedSpawnPointIndex = NAVMESH_INVALID_INDEX;
+	else if (static_cast<_uint>(m_iSelectedSpawnPointIndex) >= static_cast<_uint>(m_SpawnPoints.size()))
+		m_iSelectedSpawnPointIndex = static_cast<_int>(m_SpawnPoints.size() - 1);
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Deleted selected SpawnPoint.");
+
+	return S_OK;
+}
+
+void CNavMeshEditorTool::Clear_SpawnPoints()
+{
+	if (m_SpawnPoints.empty())
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "SpawnPoint does not exist.");
+		return;
+	}
+
+	m_SpawnPoints.clear();
+	m_iSelectedSpawnPointIndex = NAVMESH_INVALID_INDEX;
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Cleared SpawnPoints.");
+}
+
+HRESULT CNavMeshEditorTool::Save_SceneData()
+{
+	std::error_code ErrorCode{};
+	std::filesystem::create_directories(std::filesystem::path(TEXT("../../Resources/Scenes")), ErrorCode);
+
+	if (ErrorCode)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create Scenes directory.");
+		return E_FAIL;
+	}
+
+	SCENE_DATA SceneData{};
+	wcscpy_s(SceneData.szNavDataPath, NAVDATA_PATH);
+	SceneData.SpawnPoints = m_SpawnPoints;
+
+	if (FAILED(CSceneSerializer::Save(SCENEDATA_PATH, SceneData)))
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to save SceneData.");
+		return E_FAIL;
+	}
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Saved SceneData: ../../Resources/Scenes/ThroneRoom.scene");
+
+	return S_OK;
+}
+
+HRESULT CNavMeshEditorTool::Load_SceneData()
+{
+	SCENE_DATA SceneData{};
+
+	if (FAILED(CSceneSerializer::Load(SCENEDATA_PATH, &SceneData)))
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to load SceneData.");
+		return E_FAIL;
+	}
+
+	m_SpawnPoints = SceneData.SpawnPoints;
+	m_iSelectedSpawnPointIndex = NAVMESH_INVALID_INDEX;
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Loaded SceneData: ../../Resources/Scenes/ThroneRoom.scene");
+
+	return S_OK;
+}
+
+const SPAWN_POINT* CNavMeshEditorTool::Get_SpawnPoint(_uint iIndex) const
+{
+	if (iIndex >= static_cast<_uint>(m_SpawnPoints.size()))
+		return nullptr;
+
+	return &m_SpawnPoints[iIndex];
+}
+
+void CNavMeshEditorTool::Set_SelectedSpawnPointIndex(_int iIndex)
+{
+	if (iIndex < 0 ||
+		static_cast<_uint>(iIndex) >= static_cast<_uint>(m_SpawnPoints.size()))
+	{
+		m_iSelectedSpawnPointIndex = NAVMESH_INVALID_INDEX;
+		return;
+	}
+
+	m_iSelectedSpawnPointIndex = iIndex;
+}
+
+void CNavMeshEditorTool::Render_PickPreview(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight)
+{
+	if (m_NavMeshPickedPoints.empty())
+		return;
+
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	ImVec2 FirstScreen{};
+	ImVec2 PrevScreen{};
+
+	_bool bHasFirst = false;
+	_bool bHasPrev = false;
+	_uint iVisibleCount = 0;
+
+	for (_uint i = 0; i < static_cast<_uint>(m_NavMeshPickedPoints.size()); ++i)
+	{
+		const NAVMESH_PICK_POINT& Point = m_NavMeshPickedPoints[i];
+
+		ImVec2 ScreenPos{};
+		if (false == World_To_Viewport(Point.vPreviewPosition, vImagePos, iViewportWidth, iViewportHeight, &ScreenPos))
+			continue;
+
+		const ImU32 Color = Point.bSnapped
+			? IM_COL32(255, 210, 64, 255)
+			: IM_COL32(64, 180, 255, 255);
+
+		pDrawList->AddCircleFilled(ScreenPos, 5.f, Color, 16);
+		pDrawList->AddCircle(ScreenPos, 9.f, Color, 16, 2.f);
+
+		if (false == bHasFirst)
+		{
+			FirstScreen = ScreenPos;
+			bHasFirst = true;
+		}
+
+		if (bHasPrev)
+			pDrawList->AddLine(PrevScreen, ScreenPos, IM_COL32(255, 255, 255, 220), 2.f);
+
+		PrevScreen = ScreenPos;
+		bHasPrev = true;
+		++iVisibleCount;
+	}
+
+	if (3 == m_NavMeshPickedPoints.size() &&
+		3 == iVisibleCount &&
+		bHasFirst &&
+		bHasPrev)
+	{
+		pDrawList->AddLine(PrevScreen, FirstScreen, IM_COL32(255, 255, 255, 220), 2.f);
+	}
+}
+
+void CNavMeshEditorTool::Render_SelectedCell(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight)
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex)
+		return;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return;
+
+	const vector<NAVMESH_CELL>& Cells = pNavMesh->Get_CellDescs();
+	const vector<_float3>& Vertices = pNavMesh->Get_Vertices();
+
+	if (m_iSelectedNavMeshCellIndex < 0 ||
+		static_cast<size_t>(m_iSelectedNavMeshCellIndex) >= Cells.size())
+		return;
+
+	const NAVMESH_CELL& Cell = Cells[m_iSelectedNavMeshCellIndex];
+
+	ImVec2 Screen[3]{};
+
+	for (_uint i = 0; i < 3; ++i)
+	{
+		const _int iVertexIndex = Cell.iVertexIndices[i];
+
+		if (iVertexIndex < 0 ||
+			static_cast<size_t>(iVertexIndex) >= Vertices.size())
+			return;
+
+		if (false == World_To_Viewport(Vertices[iVertexIndex], vImagePos, iViewportWidth, iViewportHeight, &Screen[i]))
+			return;
+	}
+
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	pDrawList->AddTriangleFilled(
+		Screen[0], Screen[1], Screen[2],
+		IM_COL32(255, 96, 64, 55));
+
+	pDrawList->AddTriangle(
+		Screen[0], Screen[1], Screen[2],
+		IM_COL32(255, 96, 64, 255),
+		3.f);
+}
+
+void CNavMeshEditorTool::Render_SelectedVertex(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight)
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshVertexIndex)
+		return;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+		return;
+
+	const vector<_float3>& Vertices = pNavMesh->Get_Vertices();
+
+	if (m_iSelectedNavMeshVertexIndex < 0 ||
+		static_cast<size_t>(m_iSelectedNavMeshVertexIndex) >= Vertices.size())
+		return;
+
+	ImVec2 vScreenPosition = {};
+	if (false == World_To_Viewport(Vertices[m_iSelectedNavMeshVertexIndex], vImagePos, iViewportWidth, iViewportHeight, &vScreenPosition))
+		return;
+
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	pDrawList->AddCircleFilled(
+		vScreenPosition,
+		7.f,
+		IM_COL32(255, 210, 64, 255));
+
+	pDrawList->AddCircle(
+		vScreenPosition,
+		10.f,
+		IM_COL32(255, 255, 255, 255),
+		16,
+		2.f);
+}
+
+void CNavMeshEditorTool::Render_SpawnPoints(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight)
+{
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	for (_uint i = 0; i < static_cast<_uint>(m_SpawnPoints.size()); ++i)
+	{
+		const SPAWN_POINT& Point = m_SpawnPoints[i];
+
+		ImVec2 vScreenPosition{};
+		if (false == World_To_Viewport(Point.vPosition, vImagePos, iViewportWidth, iViewportHeight, &vScreenPosition))
+			continue;
+
+		const ImU32 Color = Get_SpawnColor(Point.eType);
+		const _bool bSelected = static_cast<_int>(i) == m_iSelectedSpawnPointIndex;
+
+		pDrawList->AddCircleFilled(vScreenPosition, 6.f, Color, 16);
+		pDrawList->AddCircle(
+			vScreenPosition,
+			bSelected ? 14.f : 11.f,
+			bSelected ? IM_COL32(255, 255, 0, 255) : IM_COL32(255, 255, 255, 255),
+			16,
+			bSelected ? 3.f : 2.f);
+
+		_char szLabel[64] = {};
+		sprintf_s(szLabel, "%s %u / Cell %d", Get_SpawnTypeLabel(Point.eType), i, Point.iNavCellIndex);
+
+		pDrawList->AddText(
+			ImVec2(vScreenPosition.x + 10.f, vScreenPosition.y - 8.f),
+			Color,
+			szLabel);
+	}
+}
+
+void CNavMeshEditorTool::Select_Vertex(_float fPickX, _float fPickY, _uint iViewportWidth, _uint iViewportHeight)
+{
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(fPickX, fPickY, iViewportWidth, iViewportHeight, &Result, true))
+	{
+		m_iSelectedNavMeshVertexIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::WARNING, "No map hit.");
+		return;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		m_iSelectedNavMeshVertexIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return;
+	}
+
+	static constexpr _float fVertexPickRadius = { 0.35f };
+
+	const _int iVertexIndex = pNavMesh->Find_Vertex(Result.vPosition, fVertexPickRadius);
+	m_iSelectedNavMeshVertexIndex = iVertexIndex;
+
+	if (NAVMESH_INVALID_INDEX == iVertexIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No vertex selected.");
+		return;
+	}
+
+	_char szStatus[128] = {};
+	sprintf_s(szStatus, "Selected Vertex: %d", iVertexIndex);
+	Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+}
+
+HRESULT CNavMeshEditorTool::Move_SelectedVertex(_float fPickX, _float fPickY, _uint iViewportWidth, _uint iViewportHeight)
+{
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshVertexIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No selected vertex.");
+		return E_FAIL;
+	}
+
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(fPickX, fPickY, iViewportWidth, iViewportHeight, &Result, true))
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No map hit.");
+		return E_FAIL;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return E_FAIL;
+	}
+
+	NAVMESH_SNAPSHOT Backup = pNavMesh->Capture_Snapshot();
+
+	if (FAILED(pNavMesh->Move_Vertex(m_iSelectedNavMeshVertexIndex, Result.vPosition)))
+	{
+		pNavMesh->Restore_Snapshot(Backup);
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to move vertex.");
+		return E_FAIL;
+	}
+
+	Push_UndoSnapshot(Backup);
+	Clear_PickPoints();
+
+	_char szStatus[128] = {};
+	sprintf_s(szStatus, "Moved Vertex: %d", m_iSelectedNavMeshVertexIndex);
+	Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+
+	return S_OK;
+}
+
+void CNavMeshEditorTool::Select_Cell(_float fPickX, _float fPickY, _uint iViewportWidth, _uint iViewportHeight)
+{
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(fPickX, fPickY, iViewportWidth, iViewportHeight, &Result, true))
+	{
+		m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::WARNING, "No map hit");
+		return;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return;
+	}
+
+	const _int iCellIndex = pNavMesh->Find_Cell(Result.vPosition);
+	m_iSelectedNavMeshCellIndex = iCellIndex;
+
+	if (NAVMESH_INVALID_INDEX == iCellIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No cell selected.");
+	}
+	else
+	{
+		_char szStatus[128] = {};
+		sprintf_s(szStatus, "Selected Cell: %d", iCellIndex);
+		Log_EditStatus(LOG_LEVEL::INFO, szStatus);
+	}
+}
+
+void CNavMeshEditorTool::Pick_EditPoint(_float fPickX, _float fPickY, _uint iViewportWidth, _uint iViewportHeight)
+{
+	PICK_RESULT Result{};
+
+	if (false == Pick_Surface(fPickX, fPickY, iViewportWidth, iViewportHeight, &Result, true))
+	{
+		m_bHasLastNavMeshPick = false;
+		return;
+	}
+
+	NAVMESH_PICK_POINT PickPoint{};
+	PickPoint.vRawPosition = Result.vPosition;
+	PickPoint.vPreviewPosition = Result.vPosition;
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr != pNavMesh)
+	{
+		const _int iSnapVertexIndex = pNavMesh->Find_Vertex(Result.vPosition);
+		const vector<_float3>& Vertices = pNavMesh->Get_Vertices();
+
+		if (iSnapVertexIndex >= 0 &&
+			static_cast<size_t>(iSnapVertexIndex) < Vertices.size())
+		{
+			PickPoint.iSnapVertexIndex = iSnapVertexIndex;
+			PickPoint.vPreviewPosition = Vertices[iSnapVertexIndex];
+			PickPoint.bSnapped = true;
+		}
+	}
+
+	m_vLastNavMeshPick = PickPoint.vPreviewPosition;
+	m_bHasLastNavMeshPick = true;
+
+	m_NavMeshPickedPoints.push_back(PickPoint);
+
+	if (m_NavMeshPickedPoints.size() > 3)
+		m_NavMeshPickedPoints.erase(m_NavMeshPickedPoints.begin());
+}
+
+_bool CNavMeshEditorTool::Build_SpawnPointFromSelectedCell(SPAWN_TYPE eType, const _tchar* pName, SPAWN_POINT* pOutPoint)
+{
+	if (nullptr == pOutPoint)
+		return false;
+
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No selected cell.");
+		return false;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return false;
+	}
+
+	const CCell* pCell = pNavMesh->Get_Cell(m_iSelectedNavMeshCellIndex);
+	if (nullptr == pCell)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Invalid selected cell.");
+		return false;
+	}
+
+	SPAWN_POINT Point{};
+	Point.eType = eType;
+	Point.iNavCellIndex = m_iSelectedNavMeshCellIndex;
+	Point.vPosition = pCell->Get_Center();
+	Point.vPosition.y = pNavMesh->Compute_Height(m_iSelectedNavMeshCellIndex, Point.vPosition);
+	Point.vRotationDeg = _float3(0.f, 0.f, 0.f);
+
+	if (nullptr != pName)
+		wcscpy_s(Point.szName, pName);
+
+	*pOutPoint = Point;
+
+	return true;
+}
+
+void CNavMeshEditorTool::Push_OrReplacePlayerSpawnPoint(const SPAWN_POINT& Point)
+{
+	for (SPAWN_POINT& SpawnPoint : m_SpawnPoints)
+	{
+		if (SPAWN_TYPE::PLAYER == SpawnPoint.eType)
+		{
+			SpawnPoint = Point;
+			return;
+		}
+	}
+
+	m_SpawnPoints.push_back(Point);
+}
+
+void CNavMeshEditorTool::Push_UndoSnapshot(const NAVMESH_SNAPSHOT& Snapshot)
+{
+	m_NavMeshUndoStack.push_back(Snapshot);
+	m_NavMeshRedoStack.clear();
+
+	static constexpr size_t iMaxUndoCount = 64;
+	if (m_NavMeshUndoStack.size() > iMaxUndoCount)
+		m_NavMeshUndoStack.erase(m_NavMeshUndoStack.begin());
+}
+
+void CNavMeshEditorTool::Clear_EditState()
+{
+	Clear_PickPoints();
+	m_iSelectedNavMeshCellIndex = NAVMESH_INVALID_INDEX;
+	m_iSelectedNavMeshVertexIndex = NAVMESH_INVALID_INDEX;
+}
+
+_bool CNavMeshEditorTool::World_To_Viewport(const _float3& vWorldPosition, const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight, ImVec2* pOutScreenPosition) const
+{
+	if (nullptr == pOutScreenPosition || 0 == iViewportWidth || 0 == iViewportHeight)
+		return false;
+
+	const _float4x4* pViewMatrix = m_pGameInstance->Get_Transform(D3DTS::VIEW);
+	const _float4x4* pProjMatrix = m_pGameInstance->Get_Transform(D3DTS::PROJ);
+	if (nullptr == pViewMatrix || nullptr == pProjMatrix)
+		return false;
+
+	_matrix matView = XMLoadFloat4x4(pViewMatrix);
+	_matrix matProj = XMLoadFloat4x4(pProjMatrix);
+
+	_vector vClip = XMVector3TransformCoord(XMLoadFloat3(&vWorldPosition), matView * matProj);
+
+	const _float fX = XMVectorGetX(vClip);
+	const _float fY = XMVectorGetY(vClip);
+	const _float fZ = XMVectorGetZ(vClip);
+
+	if (fZ < 0.f || fZ > 1.f)
+		return false;
+
+	pOutScreenPosition->x = vImagePos.x + (fX + 1.f) * 0.5f * static_cast<_float>(iViewportWidth);
+	pOutScreenPosition->y = vImagePos.y + (1.f - fY) * 0.5f * static_cast<_float>(iViewportHeight);
+
+	return true;
+}
+
+_bool CNavMeshEditorTool::Pick_Surface(_float fPickX, _float fPickY, _uint iViewportWidth, _uint iViewportHeight, PICK_RESULT* pOutResult, _bool bMapOnly)
+{
+	if (nullptr == pOutResult || 0 == iViewportWidth || 0 == iViewportHeight)
+		return false;
+
+	_float4 vRayOrigin = {};
+	_float4 vRayDir = {};
+
+	m_pGameInstance->Compute_WorldRay(
+		fPickX, fPickY,
+		static_cast<_float>(iViewportWidth),
+		static_cast<_float>(iViewportHeight),
+		&vRayOrigin, &vRayDir);
+
+	_vector vOrigin = XMLoadFloat4(&vRayOrigin);
+	_vector vDir = XMLoadFloat4(&vRayDir);
+
+	_int iLevelIndex = m_pGameInstance->Get_CurrentLevelIndex();
+	if (iLevelIndex < 0)
+		return false;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(static_cast<_uint>(iLevelIndex));
+	if (nullptr == pLayers)
+		return false;
+
+	CGameObject* pPicked = { nullptr };
+	_float fMinDist = FLT_MAX;
+
+	for (auto& LayerPair : *pLayers)
+	{
+		if (LayerPair.first == TEXT("Layer_NavMesh"))
+			continue;
+
+		if (bMapOnly && LayerPair.first != TEXT("Layer_BackGround"))
+			continue;
+
+		for (auto& pObject : LayerPair.second->Get_GameObjects())
+		{
+			if (nullptr == pObject || nullptr == pObject->Get_Transform())
+				continue;
+
+			_float fDist = {};
+			_bool bHit = false;
+
+			_matrix matWorld = XMLoadFloat4x4(pObject->Get_Transform()->Get_WorldMatrixPtr());
+
+			CVIBuffer* pVIBuffer = pObject->Get_VIBuffer();
+			if (nullptr != pVIBuffer)
+			{
+				bHit = pVIBuffer->Pick(vOrigin, vDir, matWorld, fDist);
+			}
+			else
+			{
+				auto& Components = pObject->Get_Components();
+				auto iter = Components.find(TEXT("Com_Model"));
+				if (iter != Components.end())
+				{
+					CModel* pModel = static_cast<CModel*>(iter->second);
+					bHit = pModel->Pick(vOrigin, vDir, matWorld, fDist);
+				}
+			}
+
+			if (bHit && fDist < fMinDist)
+			{
+				fMinDist = fDist;
+				pPicked = pObject;
+			}
+
+			CContainerObject* pContainer = dynamic_cast<CContainerObject*>(pObject);
+			if (nullptr == pContainer)
+				continue;
+
+			for (auto& PartPair : pContainer->Get_PartObjects())
+			{
+				CPartObject* pPartObject = PartPair.second;
+				if (nullptr == pPartObject)
+					continue;
+
+				auto& PartComponents = pPartObject->Get_Components();
+				auto itModel = PartComponents.find(TEXT("Com_Model"));
+				if (itModel == PartComponents.end())
+					continue;
+
+				CModel* pModel = static_cast<CModel*>(itModel->second);
+				if (nullptr == pModel)
+					continue;
+
+				_matrix matPartWorld = XMLoadFloat4x4(&pPartObject->Get_CombinedWorldMatrix());
+
+				_float fPartDist = {};
+				if (pModel->Pick(vOrigin, vDir, matPartWorld, fPartDist))
+				{
+					if (fPartDist < fMinDist)
+					{
+						fMinDist = fPartDist;
+						pPicked = pPartObject;
+					}
+				}
+			}
+		}
+	}
+
+	if (nullptr == pPicked)
+		return false;
+
+	_vector vHitPosition = vOrigin + XMVector3Normalize(vDir) * fMinDist;
+
+	pOutResult->pObject = pPicked;
+	pOutResult->fDistance = fMinDist;
+	XMStoreFloat3(&pOutResult->vPosition, vHitPosition);
+
+	return true;
+}
+
+CNavMesh* CNavMeshEditorTool::Find_NavMesh() const
+{
+	_int iLevelIndex = m_pGameInstance->Get_CurrentLevelIndex();
+	if (iLevelIndex < 0)
+		return nullptr;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(static_cast<_uint>(iLevelIndex));
+	if (nullptr == pLayers)
+		return nullptr;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_NavMesh"));
+	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+		return nullptr;
+
+	for (auto& pObject : iterLayer->second->Get_GameObjects())
+	{
+		CNavMeshObject* pNavMeshObject = dynamic_cast<CNavMeshObject*>(pObject);
+		if (nullptr == pNavMeshObject)
+			continue;
+
+		return pNavMeshObject->Get_NavMesh();
+	}
+
+	return nullptr;
+}
+
+void CNavMeshEditorTool::Log_EditStatus(LOG_LEVEL eLevel, const string& strMessage) const
+{
+	Log_Message(eLevel, "[NavMesh] " + strMessage);
+}
+
+CNavMeshEditorTool* CNavMeshEditorTool::Create()
+{
+	return new CNavMeshEditorTool();
+}
+
+void CNavMeshEditorTool::Free()
+{
+	__super::Free();
+
+	Safe_Release(m_pGameInstance);
+}

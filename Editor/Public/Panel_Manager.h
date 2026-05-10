@@ -10,6 +10,7 @@
 #include "Panel_Log.h"
 #include "Panel_Viewport.h"
 #include "Panel_Shortcuts.h"
+#include "Panel_NavMeshEditor.h"
 
 NS_BEGIN(Engine)
 class CGameObject;
@@ -37,7 +38,6 @@ public:
 	_bool					Is_NavMeshEditMode() const { return EDITOR_TOOL_MODE::NAVMESH == m_eToolMode; }
 
 	void					Set_ToolMode(EDITOR_TOOL_MODE eMode);
-	void					Toggle_NavMeshEditMode();
 
 public:
 	HRESULT					Add_Panel(const _wstring& strPanelTag, CPanel* pPanel);

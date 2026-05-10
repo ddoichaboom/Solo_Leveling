@@ -66,7 +66,6 @@ void CPanel_Shortcuts::Render()
             ImGui::Text("NavMesh Edit (release RMB):");
             ImGui::BulletText("LMB : Pick NavMesh point");
             ImGui::BulletText("Ctrl + LMB : Select Cell");
-            ImGui::BulletText("N : Exit NavMesh Edit Mode");
             ImGui::BulletText("C : Create Cell from 3 picked points");
         }
         else
@@ -113,7 +112,6 @@ void CPanel_Shortcuts::Render_GizmoShortcuts()
 
 void CPanel_Shortcuts::Render_NavMeshShortcuts()
 {
-    ImGui::BulletText("N : Exit NavMesh Edit Mode");
     ImGui::BulletText("LMB : Pick NavMesh point");
     ImGui::BulletText("Ctrl + LMB : Select Cell");
     ImGui::BulletText("Alt + LMB : Select Vertex");
