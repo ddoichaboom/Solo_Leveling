@@ -6,8 +6,26 @@
 #include "Model.h"
 #include "ContainerObject.h"
 #include "PartObject.h"
+#include "VIBuffer.h"
+#include "Panel_NavMeshEditor.h"
+#include "NavMeshEditorTool.h"
 
 
+namespace
+{
+	CNavMeshEditorTool* Find_NavMeshEditorTool(CPanel_Manager* pPanelManager)
+	{
+		if (nullptr == pPanelManager)
+			return nullptr;
+
+		CPanel* pPanel = pPanelManager->Get_Panel(TEXT("Panel_NavMeshEditor"));
+		CPanel_NavMeshEditor* pNavMeshEditor = dynamic_cast<CPanel_NavMeshEditor*>(pPanel);
+		if (nullptr == pNavMeshEditor)
+			return nullptr;
+
+		return pNavMeshEditor->Get_Tool();
+	}
+}
 CPanel_Viewport::CPanel_Viewport(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPanel{ pDevice, pContext }
 {
@@ -56,6 +74,15 @@ void CPanel_Viewport::Render()
 			reinterpret_cast<ImTextureID>(m_pSRV),
 			ImVec2(static_cast<_float>(m_iRTWidth), static_cast<_float>(m_iRTHeight)));
 
+		const _bool bViewportImageHovered = ImGui::IsItemHovered();
+
+		const _bool bWindowFocused =
+			ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+		const _bool bNavMeshToolbarHovered = false;
+		CNavMeshEditorTool* pNavMeshEditorTool = Find_NavMeshEditorTool(m_pPanel_Manager);
+		const _bool bNavMeshEditMode = m_pPanel_Manager->Is_NavMeshEditMode();
+
 		// ImGuizmo 오버레이 세팅
 		// (1) 기즈모 드로잉을 현재 Viewport 윈도우 drawlist에 연결
 		ImGuizmo::SetDrawlist();
@@ -66,9 +93,22 @@ void CPanel_Viewport::Render()
 			static_cast<_float>(m_iRTWidth),
 			static_cast<_float>(m_iRTHeight));
 
+		if (bWindowFocused &&
+			bNavMeshEditMode &&
+			false == ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+			false == ImGui::IsAnyItemActive() &&
+			false == ImGui::IsKeyDown(ImGuiMod_Ctrl) &&
+			false == ImGui::IsKeyDown(ImGuiMod_Alt) &&
+			false == ImGui::IsKeyDown(ImGuiMod_Shift) &&
+			ImGui::IsKeyPressed(ImGuiKey_C))
+		{
+			if (nullptr != pNavMeshEditorTool)
+				pNavMeshEditorTool->Create_NavMeshCell();
+		}
+
 		// 기즈모 단축키 처리
 		// Viewport 포커스 상태 + RMB(카메라 모드) 비활성 시에만 반응
-		if (ImGui::IsWindowFocused() && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+		if (bWindowFocused && !bNavMeshEditMode && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
 			if (ImGui::IsKeyPressed(ImGuiKey_W))
 				m_eGizmoOperation = ImGuizmo::TRANSLATE;
@@ -87,67 +127,85 @@ void CPanel_Viewport::Render()
 
 		_bool bGizmoBlocking = { false };
 
-		// 선택 오브젝트에 대한 기즈모 조작
-		CGameObject* pSelected = m_pPanel_Manager->Get_SelectedObject();
-		if (nullptr != pSelected)
+		if (false == bNavMeshEditMode)
 		{
-			CTransform* pTransform = pSelected->Get_Transform();
-			if (nullptr != pTransform)
+			// 선택 오브젝트에 대한 기즈모 조작
+			CGameObject* pSelected = m_pPanel_Manager->Get_SelectedObject();
+			if (nullptr != pSelected)
 			{
-				// View/Proj 행렬 
-				const _float4x4* pViewMatrix = m_pGameInstance->Get_Transform(D3DTS::VIEW);
-				const _float4x4* pProjMatrix = m_pGameInstance->Get_Transform(D3DTS::PROJ);
-
-				// 대상 World 행렬을 스택 로컬로 복사
-				_float4x4 worldMatrix = *pTransform->Get_WorldMatrixPtr();
-
-				const _float* pSnap = { nullptr };
-				_float3 vSnap = {};
-
-				if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
+				CTransform* pTransform = pSelected->Get_Transform();
+				if (nullptr != pTransform)
 				{
-					switch (m_eGizmoOperation)
+					// View/Proj 행렬
+					const _float4x4* pViewMatrix = m_pGameInstance->Get_Transform(D3DTS::VIEW);
+					const _float4x4* pProjMatrix = m_pGameInstance->Get_Transform(D3DTS::PROJ);
+
+					// 대상 World 행렬을 스택 로컬로 복사
+					_float4x4 worldMatrix = *pTransform->Get_WorldMatrixPtr();
+
+					const _float* pSnap = { nullptr };
+					_float3 vSnap = {};
+
+					if (ImGui::IsKeyDown(ImGuiMod_Ctrl))
 					{
-					case ImGuizmo::TRANSLATE:
-						vSnap = _float3(m_fSnapTranslate, m_fSnapTranslate, m_fSnapTranslate);
-						break;
-					case ImGuizmo::ROTATE:
-						vSnap = _float3(m_fSnapRotate, m_fSnapRotate, m_fSnapRotate);
-						break;
-					case ImGuizmo::SCALE:
-						vSnap = _float3(m_fSnapScale, m_fSnapScale, m_fSnapScale);
-						break;
+						switch (m_eGizmoOperation)
+						{
+						case ImGuizmo::TRANSLATE:
+							vSnap = _float3(m_fSnapTranslate, m_fSnapTranslate, m_fSnapTranslate);
+							break;
+						case ImGuizmo::ROTATE:
+							vSnap = _float3(m_fSnapRotate, m_fSnapRotate, m_fSnapRotate);
+							break;
+						case ImGuizmo::SCALE:
+							vSnap = _float3(m_fSnapScale, m_fSnapScale, m_fSnapScale);
+							break;
+						}
+						pSnap = reinterpret_cast<const _float*>(&vSnap);
 					}
-					pSnap = reinterpret_cast<const _float*>(&vSnap);
+
+					// 기즈모 조작
+					ImGuizmo::Manipulate(
+						reinterpret_cast<const _float*>(pViewMatrix),
+						reinterpret_cast<const _float*>(pProjMatrix),
+						m_eGizmoOperation,
+						m_eGizmoMode,
+						reinterpret_cast<_float*>(&worldMatrix),
+						nullptr,
+						pSnap);
+
+					// 조작이 발생했을 때만 Transform에 반영
+					if (ImGuizmo::IsUsing())
+						pTransform->Set_WorldMatrix(worldMatrix);
+
+					// 이 프레임에 Manipulate를 호출했을 때만 IsOver/IsUsing 상태가 유효
+					bGizmoBlocking = ImGuizmo::IsOver() || ImGuizmo::IsUsing();
 				}
-
-				// 기즈모 조작 
-				ImGuizmo::Manipulate(
-					reinterpret_cast<const _float*>(pViewMatrix),
-					reinterpret_cast<const _float*>(pProjMatrix),
-					m_eGizmoOperation,
-					m_eGizmoMode,
-					reinterpret_cast<_float*>(&worldMatrix),
-					nullptr,
-					pSnap);
-
-				// 조작이 발생했을 때만 Transform에 반영
-				if (ImGuizmo::IsUsing())
-					pTransform->Set_WorldMatrix(worldMatrix);
-
-				// 이 프레임에 Manipulate를 호출했을 때만 IsOver/IsUsing 상태가 유효
-				bGizmoBlocking = ImGuizmo::IsOver() || ImGuizmo::IsUsing();
 			}
 		}
 
-		if (ImGui::IsItemHovered() && 
+		if (bViewportImageHovered &&
+			false == bNavMeshToolbarHovered &&
 			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
 			!bGizmoBlocking)
 		{
 			ImVec2 vMousePos = ImGui::GetMousePos();
 			m_fPickX = vMousePos.x - vImagePos.x;
 			m_fPickY = vMousePos.y - vImagePos.y;
-			Pick_Object();
+
+			if (bNavMeshEditMode)
+			{
+				if (nullptr != pNavMeshEditorTool)
+						pNavMeshEditorTool->Handle_ViewportClick(m_fPickX, m_fPickY, m_iRTWidth, m_iRTHeight);
+			}
+			else
+			{
+				Pick_Object();
+			}
+		}
+
+		if (bNavMeshEditMode && nullptr != pNavMeshEditorTool)
+		{
+			pNavMeshEditorTool->Render_Overlay(vImagePos, m_iRTWidth, m_iRTHeight);
 		}
 	}
 
@@ -266,43 +324,59 @@ void CPanel_Viewport::Release_RenderTarget()
 
 void CPanel_Viewport::Pick_Object()
 {
-	if (0 == m_iRTWidth || 0 == m_iRTHeight)
-		return;
+	PICK_RESULT Result{};
 
-	// (1) Screen → World Ray
+	if (Pick_Surface(&Result, false) && nullptr != Result.pObject)
+		m_pPanel_Manager->Set_SelectedObject(Result.pObject);
+	else
+		m_pPanel_Manager->Clear_Selection();
+}
+
+#pragma endregion
+
+_bool CPanel_Viewport::Pick_Surface(PICK_RESULT* pOutResult, _bool bMapOnly)
+{
+	if (nullptr == pOutResult || 0 == m_iRTWidth || 0 == m_iRTHeight)
+		return false;
+
 	_float4 vRayOrigin = {};
 	_float4 vRayDir = {};
 
 	m_pGameInstance->Compute_WorldRay(
 		m_fPickX, m_fPickY,
-		static_cast<_float>(m_iRTWidth), static_cast<_float>(m_iRTHeight),
+		static_cast<_float>(m_iRTWidth),
+		static_cast<_float>(m_iRTHeight),
 		&vRayOrigin, &vRayDir);
 
 	_vector vOrigin = XMLoadFloat4(&vRayOrigin);
-	_vector vDir	= XMLoadFloat4(&vRayDir);
+	_vector vDir = XMLoadFloat4(&vRayDir);
 
-	//_vector vOrigin = XMVectorSet(64.f, 100.f, 64.f, 1.f);
-	//_vector vDir = XMVectorSet(0.f, -1.f, 0.f, 0.f);
-
-	// (2) 현재 레벨의 오브젝트 순회
 	_int iLevelIndex = m_pGameInstance->Get_CurrentLevelIndex();
 	if (iLevelIndex < 0)
-		return;
+		return false;
 
 	const auto* pLayers = m_pGameInstance->Get_Layers(static_cast<_uint>(iLevelIndex));
 	if (nullptr == pLayers)
-		return;
+		return false;
 
 	CGameObject* pPicked = { nullptr };
-	_float fMinDist		= FLT_MAX;
+	_float fMinDist = FLT_MAX;
 
 	for (auto& LayerPair : *pLayers)
 	{
+		if (LayerPair.first == TEXT("Layer_NavMesh"))
+			continue;
+
+		if (bMapOnly && LayerPair.first != TEXT("Layer_BackGround"))
+			continue;
+
 		for (auto& pObject : LayerPair.second->Get_GameObjects())
 		{
-			// 1. 일반 GameObject Picking
-			_float fDist = { 0.f };
-			_bool bHit = { false };
+			if (nullptr == pObject || nullptr == pObject->Get_Transform())
+				continue;
+
+			_float fDist = {};
+			_bool bHit = false;
 
 			_matrix matWorld = XMLoadFloat4x4(pObject->Get_Transform()->Get_WorldMatrixPtr());
 
@@ -328,7 +402,6 @@ void CPanel_Viewport::Pick_Object()
 				pPicked = pObject;
 			}
 
-			// 2. ContainerObject 내부 PartObject Picking
 			CContainerObject* pContainer = dynamic_cast<CContainerObject*>(pObject);
 			if (nullptr == pContainer)
 				continue;
@@ -361,16 +434,20 @@ void CPanel_Viewport::Pick_Object()
 				}
 			}
 		}
-	}	
+	}
 
-	// (3) 결과 반영
-	if (nullptr != pPicked)
-		m_pPanel_Manager->Set_SelectedObject(pPicked);
-	else
-		m_pPanel_Manager->Clear_Selection();
+	if (nullptr == pPicked)
+		return false;
+
+	_vector vHitPosition = vOrigin + XMVector3Normalize(vDir) * fMinDist;
+
+	pOutResult->pObject = pPicked;
+	pOutResult->fDistance = fMinDist;
+	XMStoreFloat3(&pOutResult->vPosition, vHitPosition);
+
+	return true;
 }
 
-#pragma endregion
 
 
 CPanel_Viewport* CPanel_Viewport::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

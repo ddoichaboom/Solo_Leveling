@@ -3,6 +3,122 @@
 #include "Camera_Follow.h"
 #include "Player.h"
 #include "Layer.h"
+#include "NavMeshObject.h"
+#include "NavMesh.h"
+#include "Cell.h"
+#include "SceneSerializer.h"
+
+static constexpr _int PLAYER_START_CELL_INDEX = { 40 };
+
+static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/ThroneRoom.scene");
+static const _tchar* DEFAULT_NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
+
+_bool CLevel_GamePlay::Apply_PlayerSpawnFromCell(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, _int iCellIndex)
+{
+	if (nullptr == pNavMesh)
+		return false;
+
+	const CCell* pStartCell = pNavMesh->Get_Cell(iCellIndex);
+	if (nullptr == pStartCell)
+		return false;
+
+	Desc.vPosition = pStartCell->Get_Center();
+	Desc.vPosition.y = pNavMesh->Compute_Height(iCellIndex, Desc.vPosition);
+	Desc.iStartCellIndex = iCellIndex;
+
+	return true;
+}
+
+_bool CLevel_GamePlay::Apply_PlayerSpawnPoint(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, const SPAWN_POINT* pSpawnPoint)
+{
+	if (nullptr == pSpawnPoint)
+		return false;
+
+	Desc.vPosition = pSpawnPoint->vPosition;
+	Desc.vRotationDeg = pSpawnPoint->vRotationDeg;
+	Desc.iStartCellIndex = pSpawnPoint->iNavCellIndex;
+
+	if (nullptr != pNavMesh)
+	{
+		if (NAVMESH_INVALID_INDEX == Desc.iStartCellIndex)
+			Desc.iStartCellIndex = pNavMesh->Find_Cell(Desc.vPosition);
+
+		if (NAVMESH_INVALID_INDEX == Desc.iStartCellIndex)
+			return false;
+
+		Desc.vPosition.y = pNavMesh->Compute_Height(Desc.iStartCellIndex, Desc.vPosition);
+	}
+
+	return true;
+}
+
+CNavMesh* CLevel_GamePlay::Find_GamePlayNavMesh()
+{
+	if (nullptr == m_pGameInstance)
+		return nullptr;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+	if (nullptr == pLayers)
+		return nullptr;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_NavMesh"));
+	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+		return nullptr;
+
+	const list<CGameObject*>& NavMeshObjects = iterLayer->second->Get_GameObjects();
+
+	for (CGameObject* pObject : NavMeshObjects)
+	{
+		CNavMeshObject* pNavMeshObject = dynamic_cast<CNavMeshObject*>(pObject);
+		if (nullptr == pNavMeshObject)
+			continue;
+
+		CNavMesh* pNavMesh = pNavMeshObject->Get_NavMesh();
+		if (nullptr != pNavMesh)
+			return pNavMesh;
+	}
+
+	return nullptr;
+}
+
+const _tchar* CLevel_GamePlay::Get_MonsterPrototypeTag(SPAWN_TYPE eType) const
+{
+	switch (eType)
+	{
+	case SPAWN_TYPE::MONSTER_NORMAL:
+		return TEXT("Prototype_GameObject_Normal_Monster");
+
+	case SPAWN_TYPE::MONSTER_ELITE:
+		return TEXT("Prototype_GameObject_Elite_Monster");
+
+	case SPAWN_TYPE::MONSTER_BOSS:
+		return TEXT("Prototype_GameObject_Boss_Monster");
+
+	default:
+		return nullptr;
+	}
+}
+
+_bool CLevel_GamePlay::Apply_MonsterSpawnPoint(CMonster::MONSTER_DESC& Desc, CNavMesh* pNavMesh, const SPAWN_POINT& SpawnPoint)
+{
+	Desc.vPosition = SpawnPoint.vPosition;
+	Desc.vRotationDeg = SpawnPoint.vRotationDeg;
+	Desc.iStartCellIndex = SpawnPoint.iNavCellIndex;
+	Desc.eSpawnType = SpawnPoint.eType;
+
+	if (nullptr != pNavMesh)
+	{
+		if (NAVMESH_INVALID_INDEX == Desc.iStartCellIndex)
+			Desc.iStartCellIndex = pNavMesh->Find_Cell(Desc.vPosition);
+
+		if (NAVMESH_INVALID_INDEX == Desc.iStartCellIndex)
+			return false;
+
+		Desc.vPosition.y = pNavMesh->Compute_Height(Desc.iStartCellIndex, Desc.vPosition);
+	}
+
+	return true;
+}
 
 CLevel_GamePlay::CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	:CLevel{ pDevice, pContext }
@@ -12,13 +128,22 @@ CLevel_GamePlay::CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pCo
 
 HRESULT CLevel_GamePlay::Initialize()
 {
+	if (FAILED(Ready_SceneData()))
+		return E_FAIL;
+
 	if (FAILED(Ready_Lights()))
 		return E_FAIL;
 
 	if (FAILED(Ready_Layer_BackGround(TEXT("Layer_BackGround"))))
 		return E_FAIL;
 
+	if (FAILED(Ready_Layer_NavMesh(TEXT("Layer_NavMesh"))))
+		return E_FAIL;
+
 	if (FAILED(Ready_Layer_Player(TEXT("Layer_Player"))))
+		return E_FAIL;
+
+	if (FAILED(Ready_Layer_Monster(TEXT("Layer_Monster"))))
 		return E_FAIL;
 
 	if (FAILED(Ready_Layer_Camera(TEXT("Layer_Camera"))))
@@ -39,6 +164,20 @@ HRESULT CLevel_GamePlay::Render()
 #ifdef _DEBUG
 	SetWindowText(m_pGameInstance->Get_hWnd(), TEXT("게임 플레이 레벨 입니다."));
 #endif
+
+	return S_OK;
+}
+
+HRESULT CLevel_GamePlay::Ready_SceneData()
+{
+	m_SceneData = SCENE_DATA{};
+	m_bSceneDataLoaded = false;
+
+	if (SUCCEEDED(CSceneSerializer::Load(SCENEDATA_PATH, &m_SceneData)))
+		m_bSceneDataLoaded = true;
+
+	if (0 == m_SceneData.szNavDataPath[0])
+		wcscpy_s(m_SceneData.szNavDataPath, DEFAULT_NAVDATA_PATH);
 
 	return S_OK;
 }
@@ -116,12 +255,50 @@ HRESULT CLevel_GamePlay::Ready_Layer_BackGround(const _wstring& strLayerTag)
 	return S_OK;
 }
 
+HRESULT CLevel_GamePlay::Ready_Layer_NavMesh(const _wstring& strLayerTag)
+{
+	NAVMESH_SNAPSHOT Snapshot{};
+
+	if (FAILED(CNavMesh::Load_NavDataSnapshot(
+		m_SceneData.szNavDataPath,
+		&Snapshot)))
+		return E_FAIL;
+
+	CNavMeshObject::NAVMESHOBJECT_DESC Desc{};
+	Desc.pInitialSnapshot = &Snapshot;
+
+	if (FAILED(m_pGameInstance->Add_GameObject(
+		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_NavMeshObject"),
+		ETOUI(LEVEL::GAMEPLAY), strLayerTag, &Desc)))
+		return E_FAIL;
+
+	return S_OK;
+}
+
 HRESULT CLevel_GamePlay::Ready_Layer_Monster(const _wstring& strLayerTag)
 {
-	if (FAILED(m_pGameInstance->Add_GameObject(
-		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Monster"),
-		ETOUI(LEVEL::GAMEPLAY), strLayerTag)))
-		return E_FAIL;
+	if (false == m_bSceneDataLoaded)
+		return S_OK;
+
+	CNavMesh* pNavMesh = Find_GamePlayNavMesh();
+
+	for (const SPAWN_POINT& SpawnPoint : m_SceneData.SpawnPoints)
+	{
+		const _tchar* pPrototypeTag = Get_MonsterPrototypeTag(SpawnPoint.eType);
+		if (nullptr == pPrototypeTag)
+			continue;
+
+		CMonster::MONSTER_DESC Desc{};
+		Desc.pNavMesh = pNavMesh;
+
+		if (false == Apply_MonsterSpawnPoint(Desc, pNavMesh, SpawnPoint))
+			continue;
+
+		if (FAILED(m_pGameInstance->Add_GameObject(
+			ETOUI(LEVEL::GAMEPLAY), pPrototypeTag,
+			ETOUI(LEVEL::GAMEPLAY), strLayerTag, &Desc)))
+			return E_FAIL;
+	}
 
 	return S_OK;
 }
@@ -129,13 +306,26 @@ HRESULT CLevel_GamePlay::Ready_Layer_Monster(const _wstring& strLayerTag)
 HRESULT CLevel_GamePlay::Ready_Layer_Player(const _wstring& strLayerTag)
 {
 	CPlayer::PLAYER_DESC Desc{};
-	Desc.vPosition			= _float3(0.f, 1.f, 0.f);
-	Desc.vRotationDeg		= _float3(0.f, 0.f, 0.f);
-	Desc.vScale				= _float3(1.f, 1.f, 1.f);
-	Desc.fSpeedPerSec		= 10.f;
-	Desc.fRotationPerSec	= XMConvertToRadians(1440.f);
 
-	// Prototype_GameObject_Player
+	CNavMesh* pNavMesh = Find_GamePlayNavMesh();
+
+	Desc.pNavMesh = pNavMesh;
+	Desc.iStartCellIndex = NAVMESH_INVALID_INDEX;
+
+	Desc.vPosition = _float3(0.f, 1.f, 0.f);
+	Desc.vRotationDeg = _float3(0.f, 0.f, 0.f);
+	Desc.vScale = _float3(1.f, 1.f, 1.f);
+	Desc.fSpeedPerSec = 5.f;
+	Desc.fRotationPerSec = XMConvertToRadians(1440.f);
+
+	const SPAWN_POINT* pPlayerSpawnPoint = nullptr;
+
+	if (m_bSceneDataLoaded)
+		pPlayerSpawnPoint = CSceneSerializer::Find_FirstSpawnPoint(m_SceneData, SPAWN_TYPE::PLAYER);
+
+	if (false == Apply_PlayerSpawnPoint(Desc, pNavMesh, pPlayerSpawnPoint))
+		Apply_PlayerSpawnFromCell(Desc, pNavMesh, PLAYER_START_CELL_INDEX);
+
 	if (FAILED(m_pGameInstance->Add_GameObject(
 		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Player"),
 		ETOUI(LEVEL::GAMEPLAY), strLayerTag, &Desc)))

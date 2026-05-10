@@ -20,6 +20,7 @@ using namespace DirectX;
 #include <string>
 #include <unordered_map>
 #include <ctime>
+#include <cmath>
 
 using namespace std;
 

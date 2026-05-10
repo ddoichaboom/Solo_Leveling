@@ -19,6 +19,7 @@ public:
 private:
     void                        Render_CameraShortcuts();
     void                        Render_GizmoShortcuts();
+    void                        Render_NavMeshShortcuts();
 
 public:
     static CPanel_Shortcuts*    Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

@@ -3,6 +3,10 @@
 #include "Editor_Defines.h"
 #include "Panel.h"
 
+NS_BEGIN(Engine)
+class CGameObject;
+NS_END
+
 NS_BEGIN(Editor)
 
 class CPanel_Viewport final : public CPanel
@@ -48,7 +52,15 @@ private:
 
 #pragma region PICKING
 private:
+    typedef struct tagPickResult
+    {
+        CGameObject*      pObject = { nullptr };
+        _float3			        vPosition = {};
+        _float			        fDistance = {};
+    }PICK_RESULT;
+
     void                        Pick_Object();
+    _bool                       Pick_Surface(PICK_RESULT* pOutResult, _bool bMapOnly = false);
 
     _float                      m_fPickX = {};
     _float                      m_fPickY = {};

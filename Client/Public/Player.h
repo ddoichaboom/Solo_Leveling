@@ -2,6 +2,12 @@
 
 #include "Client_Defines.h"
 #include "ContainerObject.h"
+#include "NavMesh_Types.h"
+
+NS_BEGIN(Engine)
+class CNavMesh;
+class CNavigationAgent;
+NS_END
 
 NS_BEGIN(Client)
 
@@ -15,7 +21,8 @@ class CLIENT_DLL CPlayer final : public CContainerObject
 public:
     typedef struct tagPlayerDesc : public CGameObject::GAMEOBJECT_DESC
     {
-
+        CNavMesh* pNavMesh = { nullptr };
+        _int  iStartCellIndex = { NAVMESH_INVALID_INDEX };
     }PLAYER_DESC;
 
 private:
@@ -71,6 +78,9 @@ private:
 private:
     HRESULT                 Ready_PartObjects();
     HRESULT                 Ready_StateMachine();
+    HRESULT                 Ready_Components(const PLAYER_DESC& Desc);
+    _bool                   Try_ApplyNavigationPosition(const _float3& vCandidatePosition);
+
     void                    Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw);
     void                    Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDelta);
 
@@ -78,6 +88,9 @@ private:
     void                    Apply_Loadout();
 
     void                    Refresh_WeaponVisibility();
+
+private:
+    CNavigationAgent*       m_pNavigationAgent = { nullptr };
 
 private:
     _float                  m_fIdleThreshold = { 3.f };

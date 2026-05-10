@@ -167,7 +167,9 @@ call ClientSDK_Update.bat</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\BackGround.h" />
+    <ClInclude Include="..\Public\Body_Monster.h" />
     <ClInclude Include="..\Public\Body_Player.h" />
+    <ClInclude Include="..\Public\Boss_Monster.h" />
     <ClInclude Include="..\Public\Camera_Follow.h" />
     <ClInclude Include="..\Public\Camera_Free.h" />
     <ClInclude Include="..\Public\CharacterAnimTable.h" />
@@ -175,6 +177,7 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Client_Enum.h" />
     <ClInclude Include="..\Public\Client_Func.h" />
     <ClInclude Include="..\Public\Client_Struct.h" />
+    <ClInclude Include="..\Public\Elite_Monster.h" />
     <ClInclude Include="..\Public\IntentResolver.h" />
     <ClInclude Include="..\Public\Level_GamePlay.h" />
     <ClInclude Include="..\Public\Level_Loading.h" />
@@ -184,18 +187,25 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\MapObject.h" />
     <ClInclude Include="..\Public\MapStaticObject.h" />
     <ClInclude Include="..\Public\ModelObject.h" />
+    <ClInclude Include="..\Public\Monster.h" />
     <ClInclude Include="..\Public\MonsterAnimTable.h" />
+    <ClInclude Include="..\Public\NavMeshObject.h" />
+    <ClInclude Include="..\Public\Normal_Monster.h" />
     <ClInclude Include="..\Public\Player.h" />
     <ClInclude Include="..\Public\Player_StateMachine.h" />
+    <ClInclude Include="..\Public\SceneSerializer.h" />
     <ClInclude Include="..\Public\Terrain.h" />
     <ClInclude Include="..\Public\Weapon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp" />
+    <ClCompile Include="..\Private\Body_Monster.cpp" />
     <ClCompile Include="..\Private\Body_Player.cpp" />
+    <ClCompile Include="..\Private\Boss_Monster.cpp" />
     <ClCompile Include="..\Private\Camera_Follow.cpp" />
     <ClCompile Include="..\Private\Camera_Free.cpp" />
     <ClCompile Include="..\Private\CharacterAnimTable.cpp" />
+    <ClCompile Include="..\Private\Elite_Monster.cpp" />
     <ClCompile Include="..\Private\IntentResolver.cpp" />
     <ClCompile Include="..\Private\Level_GamePlay.cpp" />
     <ClCompile Include="..\Private\Level_Loading.cpp" />
@@ -205,9 +215,13 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\MapObject.cpp" />
     <ClCompile Include="..\Private\MapStaticObject.cpp" />
     <ClCompile Include="..\Private\ModelObject.cpp" />
+    <ClCompile Include="..\Private\Monster.cpp" />
     <ClCompile Include="..\Private\MonsterAnimTable.cpp" />
+    <ClCompile Include="..\Private\NavMeshObject.cpp" />
+    <ClCompile Include="..\Private\Normal_Monster.cpp" />
     <ClCompile Include="..\Private\Player.cpp" />
     <ClCompile Include="..\Private\Player_StateMachine.cpp" />
+    <ClCompile Include="..\Private\SceneSerializer.cpp" />
     <ClCompile Include="..\Private\Terrain.cpp" />
     <ClCompile Include="..\Private\Weapon.cpp" />
   </ItemGroup>
@@ -238,6 +252,16 @@ call ClientSDK_Update.bat</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Effect</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
+    <FxCompile Include="..\..\Resources\ShaderFiles\Shader_VtxPosColor.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Effect</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Effect</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="..\..\Resources\ShaderFiles\Shader_VtxTex.hlsl">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\Resources\ShaderFiles\</AdditionalIncludeDirectories>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Effect</ShaderType>
@@ -248,6 +272,7 @@ call ClientSDK_Update.bat</Command>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\Resources\NavMesh\ThroneRoom.navdata" />
     <None Include="..\..\Resources\ShaderFiles\Shader_Defines.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

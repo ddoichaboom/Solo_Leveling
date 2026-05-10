@@ -1,4 +1,6 @@
 #include "Panel_Shortcuts.h"
+#include "Panel_Manager.h"
+
 
 CPanel_Shortcuts::CPanel_Shortcuts(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPanel{ pDevice, pContext }
@@ -21,7 +23,8 @@ void CPanel_Shortcuts::Render()
 {
     ImGui::Begin(m_szName, &m_bOpen);
 
-    _bool bCameraMode = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    const _bool bCameraMode = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    const _bool bNavMeshEditMode = CPanel_Manager::GetInstance()->Is_NavMeshEditMode();
 
     // ===== 활성 모드 (강조 표시) =====
     if (bCameraMode)
@@ -31,6 +34,15 @@ void CPanel_Shortcuts::Render()
         ImGui::PopStyleColor();
         ImGui::Separator();
         Render_CameraShortcuts();
+    }
+    else if (bNavMeshEditMode)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.f, 0.55f, 1.f));
+        ImGui::Text("[ NavMesh Edit - ACTIVE ]");
+        ImGui::PopStyleColor();
+
+        ImGui::Separator();
+        Render_NavMeshShortcuts();
     }
     else
     {
@@ -49,10 +61,20 @@ void CPanel_Shortcuts::Render()
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.55f, 0.55f, 1.f));
     if (bCameraMode)
     {
-        ImGui::Text("Gizmo (release RMB):");
-        ImGui::BulletText("W / E / R : Translate / Rotate / Scale");
-        ImGui::BulletText("X : Local / World toggle");
-        ImGui::BulletText("Ctrl + Gizmo Drag : Snap");
+        if (bNavMeshEditMode)
+        {
+            ImGui::Text("NavMesh Edit (release RMB):");
+            ImGui::BulletText("LMB : Pick NavMesh point");
+            ImGui::BulletText("Ctrl + LMB : Select Cell");
+            ImGui::BulletText("C : Create Cell from 3 picked points");
+        }
+        else
+        {
+            ImGui::Text("Gizmo (release RMB):");
+            ImGui::BulletText("W / E / R : Translate / Rotate / Scale");
+            ImGui::BulletText("X : Local / World toggle");
+            ImGui::BulletText("Ctrl + Gizmo Drag : Snap");
+        }
     }
     else
     {
@@ -86,6 +108,20 @@ void CPanel_Shortcuts::Render_GizmoShortcuts()
 
     ImGui::Spacing();
     ImGui::TextDisabled("Hold RMB to enter camera mode");
+}
+
+void CPanel_Shortcuts::Render_NavMeshShortcuts()
+{
+    ImGui::BulletText("LMB : Pick NavMesh point");
+    ImGui::BulletText("Ctrl + LMB : Select Cell");
+    ImGui::BulletText("Alt + LMB : Select Vertex");
+    ImGui::BulletText("Shift + LMB : Move Selected Vertex");
+    ImGui::BulletText("C : Create Cell from 3 picked points");
+    ImGui::BulletText("Delete Cell : Delete selected cell");
+    ImGui::BulletText("Undo / Redo : Restore NavMesh snapshot");
+
+    ImGui::Spacing();
+    ImGui::TextDisabled("Hold RMB to move camera");
 }
 
 CPanel_Shortcuts* CPanel_Shortcuts::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
