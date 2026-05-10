@@ -7,6 +7,7 @@
 #include "Player_StateMachine.h"
 #include "NavigationAgent.h"
 #include "NavMesh.h"
+#include "Monster.h"
 
 namespace
 {

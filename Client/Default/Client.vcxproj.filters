@@ -103,6 +103,21 @@
     <Filter Include="01. Levels\Data\SceneData">
       <UniqueIdentifier>{4e507786-3894-4a32-9443-3a644810590e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. GameObject\Monster">
+      <UniqueIdentifier>{e247078d-4031-461c-b65f-a127e5f2ecec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Normal">
+      <UniqueIdentifier>{dc4ecd0c-116b-4277-86f2-45e16a6c9e29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Elite">
+      <UniqueIdentifier>{c6646e75-22d6-4353-9ead-2c06d1440649}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Boss">
+      <UniqueIdentifier>{a582a9fe-9009-48a6-97ef-8adc551c5c66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Body">
+      <UniqueIdentifier>{f5e35640-413d-4b37-b07d-13f8d4c8d0c6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -180,6 +195,21 @@
     <ClInclude Include="..\Public\SceneSerializer.h">
       <Filter>01. Levels\Data\SceneData</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Monster.h">
+      <Filter>02. GameObject\Monster</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Body_Monster.h">
+      <Filter>02. GameObject\Monster\Body</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Normal_Monster.h">
+      <Filter>02. GameObject\Monster\Normal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Boss_Monster.h">
+      <Filter>02. GameObject\Monster\Boss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Elite_Monster.h">
+      <Filter>02. GameObject\Monster\Elite</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -244,6 +274,21 @@
     </ClCompile>
     <ClCompile Include="..\Private\SceneSerializer.cpp">
       <Filter>01. Levels\Data\SceneData</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Monster.cpp">
+      <Filter>02. GameObject\Monster</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Body_Monster.cpp">
+      <Filter>02. GameObject\Monster\Body</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Normal_Monster.cpp">
+      <Filter>02. GameObject\Monster\Normal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Boss_Monster.cpp">
+      <Filter>02. GameObject\Monster\Boss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Elite_Monster.cpp">
+      <Filter>02. GameObject\Monster\Elite</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

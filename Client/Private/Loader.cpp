@@ -13,11 +13,15 @@
 #include "Camera_Free.h"
 #include "Player.h"
 #include "Body_Player.h"
+#include "Body_Monster.h"
 #include "Weapon.h"
 #include "MapObject.h"
 #include "MapStaticObject.h"
 #include "Camera_Follow.h"
 #include "NavMeshObject.h"
+#include "Normal_Monster.h"
+#include "Elite_Monster.h"
+#include "Boss_Monster.h"
 
 
 CLoader::CLoader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -218,6 +222,10 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 		CBody_Player::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
+	// Prototype_GameObject_Body_Monster
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Body_Monster"),
+		CBody_Monster::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
 	// Prototype_GameObject_Weapon
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Weapon"),
 		CWeapon::Create(m_pDevice, m_pContext))))
@@ -236,6 +244,21 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 	// Prototype_GameObject_MapStaticObject
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_MapStaticObject"),
 		CMapStaticObject::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_Normal_Monster
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Normal_Monster"),
+		CNormal_Monster::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_Elite_Monster
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Elite_Monster"),
+		CElite_Monster::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_Boss_Monster
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Boss_Monster"),
+		CBoss_Monster::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	lstrcpy(m_szLoadingText, TEXT("로딩이 완료되었습니다."));

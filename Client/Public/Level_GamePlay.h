@@ -2,6 +2,8 @@
 
 #include "Client_Defines.h"
 #include "Level.h"
+#include "Player.h"
+#include "Monster.h"
 
 NS_BEGIN(Client)
 
@@ -24,6 +26,13 @@ public:
 	HRESULT						Ready_Layer_NavMesh(const _wstring& strLayerTag);
 	HRESULT						Ready_Layer_Monster(const _wstring& strLayerTag);
 	HRESULT						Ready_Layer_Player(const _wstring& strLayerTag);
+
+private:
+	_bool						Apply_PlayerSpawnFromCell(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, _int iCellIndex);
+	_bool						Apply_PlayerSpawnPoint(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, const SPAWN_POINT* pSpawnPoint);
+	CNavMesh*					Find_GamePlayNavMesh();
+	const _tchar*				Get_MonsterPrototypeTag(SPAWN_TYPE eType) const;
+	_bool						Apply_MonsterSpawnPoint(CMonster::MONSTER_DESC& Desc, CNavMesh* pNavMesh, const SPAWN_POINT& SpawnPoint);
 
 private:
 	SCENE_DATA					m_SceneData = {};

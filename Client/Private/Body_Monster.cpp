@@ -1,0 +1,181 @@
+#include "Body_Monster.h"
+#include "GameInstance.h"
+#include "Model.h"
+#include "Shader.h"
+
+CBody_Monster::CBody_Monster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+	: CPartObject{ pDevice, pContext }
+{
+}
+
+CBody_Monster::CBody_Monster(const CBody_Monster& Prototype)
+	: CPartObject{ Prototype }
+{
+}
+
+HRESULT CBody_Monster::Initialize_Prototype()
+{
+	return S_OK;
+}
+
+HRESULT CBody_Monster::Initialize(void* pArg)
+{
+	if (nullptr == pArg)
+		return E_FAIL;
+
+	BODY_MONSTER_DESC Desc = *static_cast<BODY_MONSTER_DESC*>(pArg);
+	if (nullptr == Desc.pModelPrototypeTag)
+		return E_FAIL;
+
+	m_strName = TEXT("Body_Monster");
+	m_strTag = TEXT("Body_Monster");
+	m_strModelPrototypeTag = Desc.pModelPrototypeTag;
+	m_eAnimSet = Desc.eAnimSet;
+
+	if (FAILED(__super::Initialize(&Desc)))
+		return E_FAIL;
+
+	if (FAILED(Ready_Components(Desc)))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+void CBody_Monster::Priority_Update(_float fTimeDelta)
+{
+}
+
+void CBody_Monster::Update(_float fTimeDelta)
+{
+	if (nullptr != m_pModelCom && MODEL::ANIM == m_pModelCom->Get_ModelType())
+		m_pModelCom->Play_Animation(fTimeDelta);
+}
+
+void CBody_Monster::Late_Update(_float fTimeDelta)
+{
+	__super::Compute_CombinedWorldMatrix(XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr()));
+
+	if (nullptr != m_pModelCom)
+		m_pGameInstance->Add_RenderGroup(RENDERID::NONBLEND, this);
+}
+
+HRESULT CBody_Monster::Render()
+{
+	if (nullptr == m_pShaderCom || nullptr == m_pModelCom)
+		return S_OK;
+
+	if (FAILED(Bind_ShaderResources()))
+		return E_FAIL;
+
+	const _uint iNumMeshes = m_pModelCom->Get_NumMeshes();
+
+	for (_uint i = 0; i < iNumMeshes; ++i)
+	{
+		if (MODEL::ANIM == m_pModelCom->Get_ModelType())
+		{
+			if (FAILED(m_pModelCom->Bind_BoneMatrices(m_pShaderCom, "g_BoneMatrices", i)))
+				return E_FAIL;
+		}
+
+		if (FAILED(m_pModelCom->Bind_Material(m_pShaderCom, "g_DiffuseTexture", i, TEXTURE_TYPE::DIFFUSE)))
+			return E_FAIL;
+
+		if (FAILED(m_pShaderCom->Begin(0)))
+			return E_FAIL;
+
+		if (FAILED(m_pModelCom->Render(i)))
+			return E_FAIL;
+	}
+
+	return S_OK;
+}
+
+HRESULT CBody_Monster::Ready_Components(const BODY_MONSTER_DESC& Desc)
+{
+	if (FAILED(__super::Add_Component(
+		ETOUI(LEVEL::GAMEPLAY),
+		Desc.pModelPrototypeTag,
+		TEXT("Com_Model"),
+		reinterpret_cast<CComponent**>(&m_pModelCom))))
+		return E_FAIL;
+
+	const _tchar* pShaderPrototypeTag = (MODEL::ANIM == m_pModelCom->Get_ModelType())
+		? TEXT("Prototype_Component_Shader_VtxAnimMesh")
+		: TEXT("Prototype_Component_Shader_VtxMesh");
+
+	if (FAILED(__super::Add_Component(
+		ETOUI(LEVEL::GAMEPLAY),
+		pShaderPrototypeTag,
+		TEXT("Com_Shader"),
+		reinterpret_cast<CComponent**>(&m_pShaderCom))))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT CBody_Monster::Bind_ShaderResources()
+{
+	if (FAILED(m_pShaderCom->Bind_Matrix("g_WorldMatrix", &m_CombinedWorldMatrix)))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_Matrix("g_ViewMatrix", m_pGameInstance->Get_Transform(D3DTS::VIEW))))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_Matrix("g_ProjMatrix", m_pGameInstance->Get_Transform(D3DTS::PROJ))))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_vCamPosition", m_pGameInstance->Get_CamPosition(), sizeof(_float4))))
+		return E_FAIL;
+
+	const LIGHT_DESC* pLightDesc = m_pGameInstance->Get_LightDesc(0);
+	if (nullptr == pLightDesc)
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_vLightDir", &pLightDesc->vDirection, sizeof(_float4))))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_vLightDiffuse", &pLightDesc->vDiffuse, sizeof(_float4))))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_vLightAmbient", &pLightDesc->vAmbient, sizeof(_float4))))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_vLightSpecular", &pLightDesc->vSpecular, sizeof(_float4))))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+CBody_Monster* CBody_Monster::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+{
+	CBody_Monster* pInstance = new CBody_Monster(pDevice, pContext);
+
+	if (FAILED(pInstance->Initialize_Prototype()))
+	{
+		MSG_BOX("Failed to Created : CBody_Monster");
+		Safe_Release(pInstance);
+	}
+
+	return pInstance;
+}
+
+CGameObject* CBody_Monster::Clone(void* pArg)
+{
+	CBody_Monster* pInstance = new CBody_Monster(*this);
+
+	if (FAILED(pInstance->Initialize(pArg)))
+	{
+		MSG_BOX("Failed to Cloned : CBody_Monster");
+		Safe_Release(pInstance);
+	}
+
+	return pInstance;
+}
+
+void CBody_Monster::Free()
+{
+	__super::Free();
+
+	Safe_Release(m_pModelCom);
+	Safe_Release(m_pShaderCom);
+}
