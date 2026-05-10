@@ -188,6 +188,7 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\NavMeshObject.h" />
     <ClInclude Include="..\Public\Player.h" />
     <ClInclude Include="..\Public\Player_StateMachine.h" />
+    <ClInclude Include="..\Public\SceneSerializer.h" />
     <ClInclude Include="..\Public\Terrain.h" />
     <ClInclude Include="..\Public\Weapon.h" />
   </ItemGroup>
@@ -210,6 +211,7 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\NavMeshObject.cpp" />
     <ClCompile Include="..\Private\Player.cpp" />
     <ClCompile Include="..\Private\Player_StateMachine.cpp" />
+    <ClCompile Include="..\Private\SceneSerializer.cpp" />
     <ClCompile Include="..\Private\Terrain.cpp" />
     <ClCompile Include="..\Private\Weapon.cpp" />
   </ItemGroup>
@@ -260,6 +262,7 @@ call ClientSDK_Update.bat</Command>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\Resources\NavMesh\ThroneRoom.navdata" />
     <None Include="..\..\Resources\ShaderFiles\Shader_Defines.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

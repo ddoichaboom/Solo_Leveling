@@ -1,6 +1,8 @@
 #ifndef Client_Struct_h
 #define Client_Struct_h
 
+#include "NavMesh_Types.h"
+
 namespace Client
 {
 	typedef struct tagCharacterAnimBindDesc
@@ -92,6 +94,20 @@ namespace Client
 
 	}PLAYER_INTENT_FRAME;
 
+	typedef struct tagSpawnPoint
+	{
+		SPAWN_TYPE		eType = { SPAWN_TYPE::END };
+		_float3			vPosition = {};
+		_float3			vRotationDeg = {};
+		_int			iNavCellIndex = { NAVMESH_INVALID_INDEX };
+		_tchar			szName[MAX_PATH] = {};
+	}SPAWN_POINT;
+
+	typedef struct tagSceneData
+	{
+		_tchar					szNavDataPath[MAX_PATH] = { };
+		vector<SPAWN_POINT>		SpawnPoints;
+	}SCENE_DATA;
 }
 
 #endif // Client_Struct_h

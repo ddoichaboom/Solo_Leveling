@@ -8,7 +8,49 @@
 #include "PartObject.h"
 #include "NavMeshObject.h"
 #include "NavMesh.h"
+#include "Cell.h"
+#include "SceneSerializer.h"
 
+
+namespace
+{
+	static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/ThroneRoom.scene");
+	static const _tchar* DEFAULT_NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
+
+	const char* Get_SpawnTypeLabel(SPAWN_TYPE eType)
+	{
+		switch (eType)
+		{
+		case SPAWN_TYPE::PLAYER:
+			return "Player";
+		case SPAWN_TYPE::MONSTER_NORMAL:
+			return "Normal";
+		case SPAWN_TYPE::MONSTER_ELITE:
+			return "Elite";
+		case SPAWN_TYPE::MONSTER_BOSS:
+			return "Boss";
+		default:
+			return "Unknown";
+		}
+	}
+
+	ImU32 Get_SpawnColor(SPAWN_TYPE eType)
+	{
+		switch (eType)
+		{
+		case SPAWN_TYPE::PLAYER:
+			return IM_COL32(80, 200, 255, 255);
+		case SPAWN_TYPE::MONSTER_NORMAL:
+			return IM_COL32(120, 255, 120, 255);
+		case SPAWN_TYPE::MONSTER_ELITE:
+			return IM_COL32(255, 210, 64, 255);
+		case SPAWN_TYPE::MONSTER_BOSS:
+			return IM_COL32(255, 80, 80, 255);
+		default:
+			return IM_COL32(255, 255, 255, 255);
+		}
+	}
+}
 
 CPanel_Viewport::CPanel_Viewport(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPanel{ pDevice, pContext }
@@ -208,6 +250,7 @@ void CPanel_Viewport::Render()
 
 		if (bNavMeshEditMode)
 		{
+			Render_SpawnPoints(vImagePos);
 			Render_SelectedNavMeshCell(vImagePos);
 			Render_SelectedNavMeshVertex(vImagePos);
 			Render_NavMesh_PickPreview(vImagePos);
@@ -439,6 +482,47 @@ _bool CPanel_Viewport::Render_NavMeshEditToolbar(const ImVec2& vImagePos)
 		Load_NavMeshData();
 	}
 
+	ImGui::Separator();
+
+	const _bool bSpawnCellDisabled = (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex);
+	if (bSpawnCellDisabled)
+		ImGui::BeginDisabled();
+
+	if (ImGui::Button("Set Player Spawn"))
+		Set_PlayerSpawnPoint();
+
+	if (bSpawnCellDisabled)
+		ImGui::EndDisabled();
+
+	if (bSpawnCellDisabled)
+		ImGui::BeginDisabled();
+
+	if (ImGui::Button("Add Normal Spawn"))
+		Add_MonsterSpawnPoint(SPAWN_TYPE::MONSTER_NORMAL);
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Add Elite Spawn"))
+		Add_MonsterSpawnPoint(SPAWN_TYPE::MONSTER_ELITE);
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Add Boss Spawn"))
+		Add_MonsterSpawnPoint(SPAWN_TYPE::MONSTER_BOSS);
+
+	if (bSpawnCellDisabled)
+		ImGui::EndDisabled();
+
+	if (ImGui::Button("Save SceneData"))
+		Save_SceneData();
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Load SceneData"))
+		Load_SceneData();
+
+	ImGui::Text("SpawnPoints: %u", static_cast<_uint>(m_SpawnPoints.size()));
+
 	ImGui::Text("Selected Cell : %d", m_iSelectedNavMeshCellIndex);
 	ImGui::Text("Selected Vertex : %d", m_iSelectedNavMeshVertexIndex);
 	ImGui::Text("Pending Points: %u", static_cast<_uint>(m_NavMeshPickedPoints.size()));
@@ -606,6 +690,167 @@ void CPanel_Viewport::Render_SelectedNavMeshVertex(const ImVec2& vImagePos)
 		IM_COL32(255, 255, 255, 255),
 		16,
 		2.f);
+}
+
+void CPanel_Viewport::Render_SpawnPoints(const ImVec2& vImagePos)
+{
+	ImDrawList* pDrawList = ImGui::GetWindowDrawList();
+	if (nullptr == pDrawList)
+		return;
+
+	for (_uint i = 0; i < static_cast<_uint>(m_SpawnPoints.size()); ++i)
+	{
+		const SPAWN_POINT& Point = m_SpawnPoints[i];
+
+		ImVec2 vScreenPosition{};
+		if (false == World_To_Viewport(Point.vPosition, vImagePos, &vScreenPosition))
+			continue;
+
+		const ImU32 Color = Get_SpawnColor(Point.eType);
+
+		pDrawList->AddCircleFilled(vScreenPosition, 6.f, Color, 16);
+		pDrawList->AddCircle(vScreenPosition, 11.f, IM_COL32(255, 255, 255, 255), 16, 2.f);
+
+		_char szLabel[64] = {};
+		sprintf_s(szLabel, "%s %u / Cell %d", Get_SpawnTypeLabel(Point.eType), i, Point.iNavCellIndex);
+
+		pDrawList->AddText(
+			ImVec2(vScreenPosition.x + 10.f, vScreenPosition.y - 8.f),
+			Color,
+			szLabel);
+	}
+}
+
+_bool CPanel_Viewport::Build_SpawnPointFromSelectedCell(SPAWN_TYPE eType, const _tchar* pName, SPAWN_POINT* pOutPoint)
+{
+	if (nullptr == pOutPoint)
+		return false;
+
+	if (NAVMESH_INVALID_INDEX == m_iSelectedNavMeshCellIndex)
+	{
+		Log_EditStatus(LOG_LEVEL::WARNING, "No selected cell.");
+		return false;
+	}
+
+	CNavMesh* pNavMesh = Find_NavMesh();
+	if (nullptr == pNavMesh)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "NavMeshObject not found.");
+		return false;
+	}
+
+	const CCell* pCell = pNavMesh->Get_Cell(m_iSelectedNavMeshCellIndex);
+	if (nullptr == pCell)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Invalid selected cell.");
+		return false;
+	}
+
+	SPAWN_POINT Point{};
+	Point.eType = eType;
+	Point.iNavCellIndex = m_iSelectedNavMeshCellIndex;
+	Point.vPosition = pCell->Get_Center();
+	Point.vPosition.y = pNavMesh->Compute_Height(m_iSelectedNavMeshCellIndex, Point.vPosition);
+	Point.vRotationDeg = _float3(0.f, 0.f, 0.f);
+
+	if (nullptr != pName)
+		wcscpy_s(Point.szName, pName);
+
+	*pOutPoint = Point;
+
+	return true;
+}
+
+void CPanel_Viewport::Push_OrReplacePlayerSpawnPoint(const SPAWN_POINT& Point)
+{
+	for (SPAWN_POINT& SpawnPoint : m_SpawnPoints)
+	{
+		if (SPAWN_TYPE::PLAYER == SpawnPoint.eType)
+		{
+			SpawnPoint = Point;
+			return;
+		}
+	}
+
+	m_SpawnPoints.push_back(Point);
+}
+
+HRESULT CPanel_Viewport::Set_PlayerSpawnPoint()
+{
+	SPAWN_POINT Point{};
+
+	if (false == Build_SpawnPointFromSelectedCell(SPAWN_TYPE::PLAYER, TEXT("PlayerSpawn"), &Point))
+		return E_FAIL;
+
+	Push_OrReplacePlayerSpawnPoint(Point);
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Set Player SpawnPoint.");
+
+	return S_OK;
+}
+
+HRESULT CPanel_Viewport::Add_MonsterSpawnPoint(SPAWN_TYPE eType)
+{
+	_uint iSameTypeCount = {};
+
+	for (const SPAWN_POINT& Point : m_SpawnPoints)
+	{
+		if (Point.eType == eType)
+			++iSameTypeCount;
+	}
+
+	_tchar szName[MAX_PATH] = {};
+	swprintf_s(szName, TEXT("%S_%02u"), Get_SpawnTypeLabel(eType), iSameTypeCount);
+
+	SPAWN_POINT Point{};
+
+	if (false == Build_SpawnPointFromSelectedCell(eType, szName, &Point))
+		return E_FAIL;
+
+	m_SpawnPoints.push_back(Point);
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Added Monster SpawnPoint.");
+
+	return S_OK;
+}
+
+HRESULT CPanel_Viewport::Save_SceneData()
+{
+	std::error_code ErrorCode{};
+	std::filesystem::create_directories(std::filesystem::path(TEXT("../../Resources/Scenes")), ErrorCode);
+
+	if (ErrorCode)
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to create Scenes directory.");
+		return E_FAIL;
+	}
+
+	SCENE_DATA SceneData{};
+
+	if (FAILED(CSceneSerializer::Save(SCENEDATA_PATH, SceneData)))
+	{
+
+		Log_EditStatus(LOG_LEVEL::INFO, "Saved SceneData: ../../Resources/Scenes/ThroneRoom.scene");
+
+		return S_OK;
+	}
+}
+
+HRESULT CPanel_Viewport::Load_SceneData()
+{
+	SCENE_DATA SceneData{};
+
+	if (FAILED(CSceneSerializer::Load(SCENEDATA_PATH, &SceneData)))
+	{
+		Log_EditStatus(LOG_LEVEL::ERROR_, "Failed to load SceneData.");
+		return E_FAIL;
+	}
+
+	m_SpawnPoints = SceneData.SpawnPoints;
+
+	Log_EditStatus(LOG_LEVEL::INFO, "Loaded SceneData: ../../Resources/Scenes/ThroneRoom.scene");
+
+	return S_OK;
 }
 
 void CPanel_Viewport::Select_NavMeshVertex()

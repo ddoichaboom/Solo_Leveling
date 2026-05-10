@@ -94,6 +94,15 @@
     <Filter Include="02. GameObject\Navigation\NavMeshObject">
       <UniqueIdentifier>{da03b798-fdee-4e13-9f15-ab1afd3d3c24}</UniqueIdentifier>
     </Filter>
+    <Filter Include="01. Levels\Data">
+      <UniqueIdentifier>{3419172c-b145-4b2d-8d3e-fd2776e0850a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Levels\Data\NavData">
+      <UniqueIdentifier>{cd96e730-6253-438d-a400-7cb4870f83fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Levels\Data\SceneData">
+      <UniqueIdentifier>{4e507786-3894-4a32-9443-3a644810590e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -168,6 +177,9 @@
     <ClInclude Include="..\Public\NavMeshObject.h">
       <Filter>02. GameObject\Navigation\NavMeshObject</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\SceneSerializer.h">
+      <Filter>01. Levels\Data\SceneData</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -230,6 +242,9 @@
     <ClCompile Include="..\Private\NavMeshObject.cpp">
       <Filter>02. GameObject\Navigation\NavMeshObject</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\SceneSerializer.cpp">
+      <Filter>01. Levels\Data\SceneData</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\Resources\ShaderFiles\Shader_VtxTex.hlsl">
@@ -251,6 +266,9 @@
   <ItemGroup>
     <None Include="..\..\Resources\ShaderFiles\Shader_Defines.hlsli">
       <Filter>98. ShaderFiles\Defines</Filter>
+    </None>
+    <None Include="..\..\Resources\NavMesh\ThroneRoom.navdata">
+      <Filter>01. Levels\Data\NavData</Filter>
     </None>
   </ItemGroup>
 </Project>

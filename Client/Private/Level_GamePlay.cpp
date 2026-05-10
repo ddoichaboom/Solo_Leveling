@@ -6,10 +6,53 @@
 #include "NavMeshObject.h"
 #include "NavMesh.h"
 #include "Cell.h"
+#include "SceneSerializer.h"
 
 namespace
 {
 	static constexpr _int PLAYER_START_CELL_INDEX = { 40 };
+
+	static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/ThroneRoom.scene");
+	static const _tchar* DEFAULT_NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
+
+	_bool Apply_PlayerSpawnFromCell(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, _int iCellIndex)
+	{
+		if (nullptr == pNavMesh)
+			return false;
+
+		const CCell* pStartCell = pNavMesh->Get_Cell(iCellIndex);
+		if (nullptr == pStartCell)
+			return false;
+
+		Desc.vPosition = pStartCell->Get_Center();
+		Desc.vPosition.y = pNavMesh->Compute_Height(iCellIndex, Desc.vPosition);
+		Desc.iStartCellIndex = iCellIndex;
+
+		return true;
+	}
+
+	_bool Apply_PlayerSpawnPoint(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, const SPAWN_POINT* pSpawnPoint)
+	{
+		if (nullptr == pSpawnPoint)
+			return false;
+
+		Desc.vPosition = pSpawnPoint->vPosition;
+		Desc.vRotationDeg = pSpawnPoint->vRotationDeg;
+		Desc.iStartCellIndex = pSpawnPoint->iNavCellIndex;
+
+		if (nullptr != pNavMesh)
+		{
+			if (NAVMESH_INVALID_INDEX == Desc.iStartCellIndex)
+				Desc.iStartCellIndex = pNavMesh->Find_Cell(Desc.vPosition);
+
+			if (NAVMESH_INVALID_INDEX == Desc.iStartCellIndex)
+				return false;
+
+			Desc.vPosition.y = pNavMesh->Compute_Height(Desc.iStartCellIndex, Desc.vPosition);
+		}
+
+		return true;
+	}
 
 	CNavMesh* Find_GamePlayNavMesh()
 	{
@@ -50,6 +93,9 @@ CLevel_GamePlay::CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pCo
 
 HRESULT CLevel_GamePlay::Initialize()
 {
+	if (FAILED(Ready_SceneData()))
+		return E_FAIL;
+
 	if (FAILED(Ready_Lights()))
 		return E_FAIL;
 
@@ -80,6 +126,20 @@ HRESULT CLevel_GamePlay::Render()
 #ifdef _DEBUG
 	SetWindowText(m_pGameInstance->Get_hWnd(), TEXT("게임 플레이 레벨 입니다."));
 #endif
+
+	return S_OK;
+}
+
+HRESULT CLevel_GamePlay::Ready_SceneData()
+{
+	m_SceneData = SCENE_DATA{};
+	m_bSceneDataLoaded = false;
+
+	if (SUCCEEDED(CSceneSerializer::Load(SCENEDATA_PATH, &m_SceneData)))
+		m_bSceneDataLoaded = true;
+
+	if (0 == m_SceneData.szNavDataPath[0])
+		wcscpy_s(m_SceneData.szNavDataPath, DEFAULT_NAVDATA_PATH);
 
 	return S_OK;
 }
@@ -162,7 +222,7 @@ HRESULT CLevel_GamePlay::Ready_Layer_NavMesh(const _wstring& strLayerTag)
 	NAVMESH_SNAPSHOT Snapshot{};
 
 	if (FAILED(CNavMesh::Load_NavDataSnapshot(
-		TEXT("../../Resources/NavMesh/ThroneRoom.navdata"),
+		m_SceneData.szNavDataPath,
 		&Snapshot)))
 		return E_FAIL;
 
@@ -202,16 +262,13 @@ HRESULT CLevel_GamePlay::Ready_Layer_Player(const _wstring& strLayerTag)
 	Desc.fSpeedPerSec = 5.f;
 	Desc.fRotationPerSec = XMConvertToRadians(1440.f);
 
-	if (nullptr != pNavMesh)
-	{
-		const CCell* pStartCell = pNavMesh->Get_Cell(PLAYER_START_CELL_INDEX);
-		if (nullptr != pStartCell)
-		{
-			Desc.vPosition = pStartCell->Get_Center();
-			Desc.vPosition.y = pNavMesh->Compute_Height(PLAYER_START_CELL_INDEX, Desc.vPosition);
-			Desc.iStartCellIndex = PLAYER_START_CELL_INDEX;
-		}
-	}
+	const SPAWN_POINT* pPlayerSpawnPoint = nullptr;
+
+	if (m_bSceneDataLoaded)
+		pPlayerSpawnPoint = CSceneSerializer::Find_FirstSpawnPoint(m_SceneData, SPAWN_TYPE::PLAYER);
+
+	if (false == Apply_PlayerSpawnPoint(Desc, pNavMesh, pPlayerSpawnPoint))
+		Apply_PlayerSpawnFromCell(Desc, pNavMesh, PLAYER_START_CELL_INDEX);
 
 	if (FAILED(m_pGameInstance->Add_GameObject(
 		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Player"),

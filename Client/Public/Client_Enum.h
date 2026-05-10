@@ -61,6 +61,14 @@ namespace Client
 		END
 	};
 
+	enum class SPAWN_TYPE : unsigned int
+	{
+		PLAYER,
+		MONSTER_NORMAL,
+		MONSTER_ELITE,
+		MONSTER_BOSS,
+		END
+	};
 	//enum class CHARACTER_ACTION { };
 
 	//enum class CHARACTER_ACTION : unsigned int

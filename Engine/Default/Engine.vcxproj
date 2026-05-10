@@ -152,6 +152,8 @@ call EngineSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Animation.cpp" />
     <ClCompile Include="..\Private\AnimController.cpp" />
     <ClCompile Include="..\Private\Base.cpp" />
+    <ClCompile Include="..\Private\BinaryReader.cpp" />
+    <ClCompile Include="..\Private\BinaryWriter.cpp" />
     <ClCompile Include="..\Private\Bone.cpp" />
     <ClCompile Include="..\Private\Camera.cpp" />
     <ClCompile Include="..\Private\Cell.cpp" />
@@ -196,6 +198,8 @@ call EngineSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Animation.h" />
     <ClInclude Include="..\Public\AnimController.h" />
     <ClInclude Include="..\Public\Base.h" />
+    <ClInclude Include="..\Public\BinaryReader.h" />
+    <ClInclude Include="..\Public\BinaryWriter.h" />
     <ClInclude Include="..\Public\Bone.h" />
     <ClInclude Include="..\Public\Camera.h" />
     <ClInclude Include="..\Public\Cell.h" />

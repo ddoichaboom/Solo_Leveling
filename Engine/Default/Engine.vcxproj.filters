@@ -148,6 +148,18 @@
     <Filter Include="07. Component\VIBuffer\NavMesh">
       <UniqueIdentifier>{775a8ff4-19e1-4cbc-ae05-2912253afb6a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="90. Utilities">
+      <UniqueIdentifier>{0d36869c-7fd0-4886-b63e-0f07542c1f92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="90. Utilities\FileIO">
+      <UniqueIdentifier>{be337f93-8af9-46f5-a18a-f12b84a5f73d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="90. Utilities\FileIO\Read">
+      <UniqueIdentifier>{733094a7-aad9-4673-8504-a55a7f6e7025}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="90. Utilities\FileIO\Write">
+      <UniqueIdentifier>{adf68420-120e-44ee-a911-f75f0327449d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -275,6 +287,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\VIBuffer_NavMesh.cpp">
       <Filter>07. Component\VIBuffer\NavMesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\BinaryReader.cpp">
+      <Filter>90. Utilities\FileIO\Read</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\BinaryWriter.cpp">
+      <Filter>90. Utilities\FileIO\Write</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -427,6 +445,12 @@
     </ClInclude>
     <ClInclude Include="..\Public\VIBuffer_NavMesh.h">
       <Filter>07. Component\VIBuffer\NavMesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\BinaryReader.h">
+      <Filter>90. Utilities\FileIO\Read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\BinaryWriter.h">
+      <Filter>90. Utilities\FileIO\Write</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

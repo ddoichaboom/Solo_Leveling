@@ -17,6 +17,7 @@ public:
 	virtual HRESULT				Render() override;
 
 public:
+	HRESULT						Ready_SceneData();
 	HRESULT						Ready_Lights();
 	HRESULT						Ready_Layer_Camera(const _wstring& strLayerTag);
 	HRESULT						Ready_Layer_BackGround(const _wstring& strLayerTag);
@@ -24,6 +25,9 @@ public:
 	HRESULT						Ready_Layer_Monster(const _wstring& strLayerTag);
 	HRESULT						Ready_Layer_Player(const _wstring& strLayerTag);
 
+private:
+	SCENE_DATA					m_SceneData = {};
+	_bool						m_bSceneDataLoaded = { false };
 
 public:
 	static CLevel_GamePlay*		Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

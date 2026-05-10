@@ -82,6 +82,15 @@ private:
     void                        Render_SelectedNavMeshCell(const ImVec2& vImagePos);
     void                        Render_SelectedNavMeshVertex(const ImVec2& vImagePos);
 
+    void                        Render_SpawnPoints(const ImVec2& vImagePos);
+    _bool                       Build_SpawnPointFromSelectedCell(SPAWN_TYPE eType, const _tchar* pName, SPAWN_POINT* pOutPoint);
+    void                        Push_OrReplacePlayerSpawnPoint(const SPAWN_POINT& Point);
+
+    HRESULT                     Set_PlayerSpawnPoint();
+    HRESULT                     Add_MonsterSpawnPoint(SPAWN_TYPE eType);
+    HRESULT                     Save_SceneData();
+    HRESULT                     Load_SceneData();
+
     void                        Select_NavMeshVertex();
     HRESULT                     Move_SelectedNavMeshVertex();
 
@@ -117,6 +126,7 @@ private:
     _int                        m_iSelectedNavMeshVertexIndex = { NAVMESH_INVALID_INDEX };
     vector<NAVMESH_SNAPSHOT>    m_NavMeshUndoStack;
     vector<NAVMESH_SNAPSHOT>    m_NavMeshRedoStack;
+    vector<Client::SPAWN_POINT>         m_SpawnPoints;
 
 #pragma endregion
 
