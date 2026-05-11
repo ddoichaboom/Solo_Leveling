@@ -2,8 +2,7 @@
 
 #include "GameInstance.h"
 #include "Level_Loading.h"
-#include "AnimController.h"
-#include "SpringArm.h"
+#include "UI_Image.h"
 
 CMainApp::CMainApp()
 	: m_pGameInstance{ CGameInstance::GetInstance() }
@@ -73,14 +72,8 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 
 	if (FAILED(m_pGameInstance->Add_Prototype(
 				ETOUI(LEVEL::STATIC),
-				TEXT("Prototype_Component_AnimController"),
-				CAnimController::Create(m_pDevice, m_pContext))))
-		return E_FAIL;
-
-	if (FAILED(m_pGameInstance->Add_Prototype(
-				ETOUI(LEVEL::STATIC),
-				TEXT("Prototype_Component_SpringArm"),
-				CSpringArm::Create(m_pDevice, m_pContext))))
+				TEXT("Prototype_GameObject_UI_Image"),
+				CUI_Image::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	return S_OK;

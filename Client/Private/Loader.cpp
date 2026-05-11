@@ -1,15 +1,9 @@
 #include "Loader.h"
-
-// ENGINE
 #include "GameInstance.h"
 #include "Model.h"
 #include "NavMesh.h"
 #include "NavigationAgent.h"
-
-// LOGO
 #include "BackGround.h"
-
-// GAMEOBJECT
 #include "Camera_Free.h"
 #include "Player.h"
 #include "Body_Player.h"
@@ -22,7 +16,8 @@
 #include "Normal_Monster.h"
 #include "Elite_Monster.h"
 #include "Boss_Monster.h"
-
+#include "AnimController.h"
+#include "SpringArm.h"
 
 CLoader::CLoader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: m_pDevice{ pDevice }
@@ -148,6 +143,20 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 		CShader::Create(m_pDevice, m_pContext,
 			TEXT("../../Resources/ShaderFiles/Shader_VtxPosColor.hlsl"),
 			VTXPOS::Elements, VTXPOS::iNumElements))))
+		return E_FAIL;
+
+	lstrcpy(m_szLoadingText, TEXT("컴포넌트 로드 중"));
+
+	// Prototype_Component_AnimController
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY),
+		TEXT("Prototype_Component_AnimController"),
+		CAnimController::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_Component_SpringArm
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::GAMEPLAY),
+		TEXT("Prototype_Component_SpringArm"),
+		CSpringArm::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	lstrcpy(m_szLoadingText, TEXT("내비게이션 로드 중"));

@@ -55,6 +55,12 @@ DepthStencilState DSS_Z_Disable
     DepthWriteMask = Zero;
 };
 
+DepthStencilState DSS_NONE
+{
+    DepthEnable = false;
+    DepthWriteMask = Zero;
+};
+
 // Blend States
 BlendState BS_Default
 {

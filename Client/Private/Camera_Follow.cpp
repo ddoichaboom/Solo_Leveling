@@ -98,7 +98,7 @@ HRESULT CCamera_Follow::Ready_Components(const CAMERA_FOLLOW_DESC& Desc)
 	ArmDesc.fMouseSensor = Desc.fMouseSensor;
 
 	if (FAILED(__super::Add_Component(
-				ETOUI(LEVEL::STATIC),
+				ETOUI(LEVEL::GAMEPLAY),
 				TEXT("Prototype_Component_SpringArm"),
 				TEXT("Com_SpringArm"),
 				reinterpret_cast<CComponent**>(&m_pSpringArm),

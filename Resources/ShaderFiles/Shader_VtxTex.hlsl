@@ -71,6 +71,17 @@ PS_OUT PS_MAIN(PS_IN In)
     return Out;
 }
 
+PS_OUT PS_UI(PS_IN In)
+{
+    PS_OUT Out; 
+    Out.vColor = g_Texture.Sample(LinearSampler, In.vTexcoord);
+    
+    if (Out.vColor.a < 0.05f)
+        discard;
+    
+    return Out;
+}
+
 technique11 DefaultTechnique
 {
     pass DefaultPass
@@ -83,4 +94,16 @@ technique11 DefaultTechnique
         PixelShader = compile ps_5_0 PS_MAIN();
     }
 
+    pass UIPass
+    {
+        SetRasterizerState(RS_Default);
+        SetDepthStencilState(DSS_NONE, 0);
+        SetBlendState(BS_AlphaBlend, float4(0.f, 0.f, 0.f, 0.f), 0xffffffff);
+
+        VertexShader = compile vs_5_0 VS_MAIN();
+        PixelShader = compile ps_5_0 PS_UI();
+
+    }
+
 }
+

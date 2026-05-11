@@ -127,7 +127,7 @@ HRESULT CBody_Player::Ready_Components()
         TEXT("Com_Model"), reinterpret_cast<CComponent**>(&m_pModelCom))))
         return E_FAIL;
 
-    if (FAILED(__super::Add_Component(ETOUI(LEVEL::STATIC),
+    if (FAILED(__super::Add_Component(ETOUI(LEVEL::GAMEPLAY),
         TEXT("Prototype_Component_AnimController"),
         TEXT("Com_AnimController"),
         reinterpret_cast<CComponent**>(&m_pAnimController))))

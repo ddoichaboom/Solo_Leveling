@@ -13,9 +13,6 @@
     <Filter Include="98. ShaderFiles">
       <UniqueIdentifier>{cf145b5d-2c14-474d-8fbc-89df86340225}</UniqueIdentifier>
     </Filter>
-    <Filter Include="99. Defines">
-      <UniqueIdentifier>{72b78b70-3a54-4f6c-a26d-ab3628ed36e9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="02. GameObject\BackGround">
       <UniqueIdentifier>{c58998fb-588f-44cc-a9b7-a33021ab5d13}</UniqueIdentifier>
     </Filter>
@@ -118,6 +115,15 @@
     <Filter Include="02. GameObject\Monster\Body">
       <UniqueIdentifier>{f5e35640-413d-4b37-b07d-13f8d4c8d0c6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="03. UI">
+      <UniqueIdentifier>{c0eea72f-a0c9-4bf7-93cd-9d3d78ac9745}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\Image">
+      <UniqueIdentifier>{7f0875ab-2a66-432a-902e-4b58bfd8b01f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="99. Defines">
+      <UniqueIdentifier>{72b78b70-3a54-4f6c-a26d-ab3628ed36e9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -210,6 +216,9 @@
     <ClInclude Include="..\Public\Elite_Monster.h">
       <Filter>02. GameObject\Monster\Elite</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\UI_Image.h">
+      <Filter>03. UI\Image</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -289,6 +298,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Elite_Monster.cpp">
       <Filter>02. GameObject\Monster\Elite</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI_Image.cpp">
+      <Filter>03. UI\Image</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
