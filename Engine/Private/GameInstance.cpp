@@ -7,6 +7,7 @@
 #include "PipeLine.h"
 #include "Input_Device.h"
 #include "Light_Manager.h"
+#include "Font_Manager.h"
 
 IMPLEMENT_SINGLETON(CGameInstance)
 
@@ -334,8 +335,23 @@ HRESULT	CGameInstance::Add_Light(const LIGHT_DESC& LightDesc)
 
 #pragma endregion
 
+#pragma region Font_MANAGER
+HRESULT CGameInstance::Add_Font(const _wstring& strFontTag, const _tchar* pFontFilePath)
+{
+	return m_pFont_Manager->Add_Font(strFontTag, pFontFilePath);
+}
+
+HRESULT CGameInstance::Render_Font(const _wstring& strFontTag, const _tchar* pText, const _float2& vPosition,
+	_fvector vColor, _float fRotation, const _float2& vOrigin, const _float2& vScale)
+{
+	return m_pFont_Manager->Draw(strFontTag, pText, vPosition, vColor, fRotation, vOrigin, vScale);
+}
+
+#pragma endregion
+
 void CGameInstance::Release_Engine()
 {
+	Safe_Release(m_pFont_Manager);
 	Safe_Release(m_pLight_Manager);
 	Safe_Release(m_pInput_Device);
 	Safe_Release(m_pPipeLine);
