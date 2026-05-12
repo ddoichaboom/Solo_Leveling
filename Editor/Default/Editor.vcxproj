@@ -32,6 +32,7 @@
     <ClCompile Include="..\Private\Model_Converter.cpp" />
     <ClCompile Include="..\Private\NavMeshEditorTool.cpp" />
     <ClCompile Include="..\Private\Panel.cpp" />
+    <ClCompile Include="..\Private\Panel_2DCanvas.cpp" />
     <ClCompile Include="..\Private\Panel_ContentBrowser.cpp" />
     <ClCompile Include="..\Private\Panel_Hierarchy.cpp" />
     <ClCompile Include="..\Private\Panel_Inspector.cpp" />
@@ -41,6 +42,7 @@
     <ClCompile Include="..\Private\Panel_Shortcuts.cpp" />
     <ClCompile Include="..\Private\Panel_Viewport.cpp" />
     <ClCompile Include="..\Private\RTTR_Registration.cpp" />
+    <ClCompile Include="..\Private\UICanvasTool.cpp" />
     <ClCompile Include="Editor.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -62,6 +64,7 @@
     <ClInclude Include="..\Public\Model_Converter.h" />
     <ClInclude Include="..\Public\NavMeshEditorTool.h" />
     <ClInclude Include="..\Public\Panel.h" />
+    <ClInclude Include="..\Public\Panel_2DCanvas.h" />
     <ClInclude Include="..\Public\Panel_ContentBrowser.h" />
     <ClInclude Include="..\Public\Panel_Hierarchy.h" />
     <ClInclude Include="..\Public\Panel_Inspector.h" />
@@ -70,6 +73,7 @@
     <ClInclude Include="..\Public\Panel_NavMeshEditor.h" />
     <ClInclude Include="..\Public\Panel_Shortcuts.h" />
     <ClInclude Include="..\Public\Panel_Viewport.h" />
+    <ClInclude Include="..\Public\UICanvasTool.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />

@@ -124,6 +124,24 @@
     <Filter Include="99. Defines">
       <UniqueIdentifier>{72b78b70-3a54-4f6c-a26d-ab3628ed36e9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="03. UI\SceneData">
+      <UniqueIdentifier>{517c2edc-f348-4c8b-b346-0f267e234937}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\Video">
+      <UniqueIdentifier>{4c10351c-18c1-40ef-968c-b2ee1fd15419}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\Text">
+      <UniqueIdentifier>{fb5c3cdb-c458-4a18-a2df-48f699290ace}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\SpriteAnim">
+      <UniqueIdentifier>{43c567b2-fcea-41fe-8bf7-1cf612ca4d52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\SceneData\Serializer">
+      <UniqueIdentifier>{0044f168-0fcb-4a14-bb28-d43f4eeb4fd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\SceneData\Loader">
+      <UniqueIdentifier>{1411f57b-2255-48b4-84d2-1a8ad2a3c0ed}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -219,6 +237,21 @@
     <ClInclude Include="..\Public\UI_Image.h">
       <Filter>03. UI\Image</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\UI_Video.h">
+      <Filter>03. UI\Video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI_Text.h">
+      <Filter>03. UI\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI_SpriteAnim.h">
+      <Filter>03. UI\SpriteAnim</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UISceneSerializer.h">
+      <Filter>03. UI\SceneData\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UISceneLoader.h">
+      <Filter>03. UI\SceneData\Loader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -301,6 +334,21 @@
     </ClCompile>
     <ClCompile Include="..\Private\UI_Image.cpp">
       <Filter>03. UI\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI_Video.cpp">
+      <Filter>03. UI\Video</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI_Text.cpp">
+      <Filter>03. UI\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI_SpriteAnim.cpp">
+      <Filter>03. UI\SpriteAnim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UISceneSerializer.cpp">
+      <Filter>03. UI\SceneData\Serializer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UISceneLoader.cpp">
+      <Filter>03. UI\SceneData\Loader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

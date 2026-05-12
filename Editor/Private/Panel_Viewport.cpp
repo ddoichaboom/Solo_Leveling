@@ -9,6 +9,8 @@
 #include "VIBuffer.h"
 #include "Panel_NavMeshEditor.h"
 #include "NavMeshEditorTool.h"
+#include "Panel_2DCanvas.h"
+#include "UICanvasTool.h"
 
 
 namespace
@@ -82,6 +84,8 @@ void CPanel_Viewport::Render()
 		const _bool bNavMeshToolbarHovered = false;
 		CNavMeshEditorTool* pNavMeshEditorTool = Find_NavMeshEditorTool(m_pPanel_Manager);
 		const _bool bNavMeshEditMode = m_pPanel_Manager->Is_NavMeshEditMode();
+		CUICanvasTool* pUICanvasTool = Find_UICanvasTool();
+		const _bool bUICanvasMode = m_pPanel_Manager->Is_UICanvasMode();
 
 		// ImGuizmo 오버레이 세팅
 		// (1) 기즈모 드로잉을 현재 Viewport 윈도우 drawlist에 연결
@@ -108,7 +112,7 @@ void CPanel_Viewport::Render()
 
 		// 기즈모 단축키 처리
 		// Viewport 포커스 상태 + RMB(카메라 모드) 비활성 시에만 반응
-		if (bWindowFocused && !bNavMeshEditMode && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+		if (bWindowFocused && !bNavMeshEditMode && !bUICanvasMode  && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		{
 			if (ImGui::IsKeyPressed(ImGuiKey_W))
 				m_eGizmoOperation = ImGuizmo::TRANSLATE;
@@ -127,7 +131,7 @@ void CPanel_Viewport::Render()
 
 		_bool bGizmoBlocking = { false };
 
-		if (false == bNavMeshEditMode)
+		if (false == bNavMeshEditMode && false == bUICanvasMode)
 		{
 			// 선택 오브젝트에 대한 기즈모 조작
 			CGameObject* pSelected = m_pPanel_Manager->Get_SelectedObject();
@@ -185,6 +189,7 @@ void CPanel_Viewport::Render()
 
 		if (bViewportImageHovered &&
 			false == bNavMeshToolbarHovered &&
+			false == bUICanvasMode &&
 			ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
 			!bGizmoBlocking)
 		{
@@ -206,6 +211,11 @@ void CPanel_Viewport::Render()
 		if (bNavMeshEditMode && nullptr != pNavMeshEditorTool)
 		{
 			pNavMeshEditorTool->Render_Overlay(vImagePos, m_iRTWidth, m_iRTHeight);
+		}
+		else if (bUICanvasMode && nullptr != pUICanvasTool)
+		{
+			pUICanvasTool->Handle_Interaction(vImagePos, m_iRTWidth, m_iRTHeight, bViewportImageHovered);
+			pUICanvasTool->Render_Overlay(vImagePos, m_iRTWidth, m_iRTHeight);
 		}
 	}
 
@@ -449,6 +459,19 @@ _bool CPanel_Viewport::Pick_Surface(PICK_RESULT* pOutResult, _bool bMapOnly)
 }
 
 
+
+CUICanvasTool* CPanel_Viewport::Find_UICanvasTool()
+{
+	if (nullptr == m_pPanel_Manager)
+		return nullptr;
+
+	CPanel* pPanel = m_pPanel_Manager->Get_Panel(TEXT("Panel_2DCanvas"));
+	CPanel_2DCanvas* pCanvas = dynamic_cast<CPanel_2DCanvas*>(pPanel);
+	if (nullptr == pCanvas)
+		return nullptr;
+
+	return pCanvas->Get_Tool();
+}
 
 CPanel_Viewport* CPanel_Viewport::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {

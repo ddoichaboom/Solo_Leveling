@@ -17,7 +17,7 @@ public:
                                                 _float fRotation = 0.f,
                                                 const _float2& vOrigin = _float2(0.f, 0.f),
                                                 const _float2& vScale = _float2(1.f, 1.f));
-
+    HRESULT                     Measure(const _tchar* pText, _float2* pOutSize);
 private:
     ID3D11Device*               m_pDevice = { nullptr };
     ID3D11DeviceContext*        m_pContext = { nullptr };

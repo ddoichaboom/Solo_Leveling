@@ -3,6 +3,7 @@
 // HLSL 코드 내에서 사용할 전역 변수 선언
 float4x4 g_WorldMatrix, g_ViewMatrix, g_ProjMatrix;
 texture2D g_Texture;
+float4 g_vUVOffsetScale = float4(0.f, 0.f, 1.f, 1.f);
 
 // 셰이더의 입력 구조체는 C++ 측 정점 구조체 VTXTEX와 1:1 대응 해야 함.
 struct VS_IN
@@ -35,6 +36,20 @@ VS_OUT VS_MAIN(VS_IN In)
     Out.vPosition = vPosition;
     Out.vTexcoord = In.vTexcoord;
     
+    return Out;
+}
+
+VS_OUT VS_SPRITEANIM(VS_IN In)
+{
+    VS_OUT Out;
+    
+    float4 vPosition = mul(float4(In.vPosition, 1.f), g_WorldMatrix);
+    vPosition = mul(vPosition, g_ViewMatrix);
+    vPosition = mul(vPosition, g_ProjMatrix);
+
+    Out.vPosition = vPosition;
+    Out.vTexcoord = In.vTexcoord * g_vUVOffsetScale.zw + g_vUVOffsetScale.xy;
+
     return Out;
 }
 
@@ -102,7 +117,16 @@ technique11 DefaultTechnique
 
         VertexShader = compile vs_5_0 VS_MAIN();
         PixelShader = compile ps_5_0 PS_UI();
+    }
 
+    pass SpriteAnimPass
+    {
+        SetRasterizerState(RS_Default);
+        SetDepthStencilState(DSS_NONE, 0);
+        SetBlendState(BS_AlphaBlend, float4(0.f, 0.f, 0.f, 0.f), 0xffffffff);
+
+        VertexShader = compile vs_5_0 VS_SPRITEANIM();
+        PixelShader = compile ps_5_0 PS_UI();
     }
 
 }

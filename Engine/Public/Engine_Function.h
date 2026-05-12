@@ -53,6 +53,22 @@ namespace Engine
 		return iRefCnt;
 	}
 
+	inline void     WCharToChar(const wchar_t* pSrc, char* pDst, unsigned int iCap)
+	{
+		if (nullptr == pSrc || nullptr == pDst || 0 == iCap)
+			return;
+		WideCharToMultiByte(CP_UTF8, 0, pSrc, -1, pDst, static_cast<int>(iCap), nullptr, nullptr);
+		pDst[iCap - 1] = '\0';
+	}
+
+	inline void     CharToWChar(const char* pSrc, wchar_t* pDst, unsigned int iCap)
+	{
+		if (nullptr == pSrc || nullptr == pDst || 0 == iCap)
+			return;
+		MultiByteToWideChar(CP_UTF8, 0, pSrc, -1, pDst, static_cast<int>(iCap));
+		pDst[iCap - 1] = L'\0';
+	}
+
 }
 
 #endif // Engine_Function_h__

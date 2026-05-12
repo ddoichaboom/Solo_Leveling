@@ -77,6 +77,10 @@ private:
     _float                      m_fSnapScale        = { 0.1f };
 #pragma endregion
 
+#pragma region UICANVAS
+private:
+    class CUICanvasTool*              Find_UICanvasTool();
+#pragma endregion
 
 
 public:

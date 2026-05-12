@@ -6,6 +6,8 @@
 #include "Level_Loading.h"
 #include "Camera_Free.h"
 #include "SpringArm.h"
+#include "Panel_2DCanvas.h"
+#include "UICanvasTool.h"
 
 
 CEditorApp::CEditorApp()
@@ -111,6 +113,7 @@ HRESULT CEditorApp::Ready_ImGui(HWND hWnd)
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
+
 	// ImGuizmo가 사용할 ImGui 컨텍스트 지정 
 	ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
 
@@ -119,6 +122,12 @@ HRESULT CEditorApp::Ready_ImGui(HWND hWnd)
 	// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // 멀티 뷰포트 (필요 시)
 
 	ImGui::StyleColorsDark();
+
+	io.Fonts->AddFontFromFileTTF(
+		"C:/Windows/Fonts/malgun.ttf",
+		16.f,
+		nullptr,
+		io.Fonts->GetGlyphRangesKorean());
 
 	if (!ImGui_ImplWin32_Init(hWnd))
 		return E_FAIL;
@@ -258,6 +267,10 @@ HRESULT CEditorApp::Ready_Panels()
 	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_NavMeshEditor"), CPanel_NavMeshEditor::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
+	// Panel_2DCanvas
+	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_2DCanvas"), CPanel_2DCanvas::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
 	// Panel_Hierarchy
 	if (FAILED(m_pPanel_Manager->Add_Panel(TEXT("Panel_Hierarchy"), CPanel_Hierarchy::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
@@ -294,6 +307,18 @@ HRESULT CEditorApp::Render_Scene()
 	// 3D 오브젝트 렌더
 	m_pGameInstance->Draw();
 
+	if (m_pPanel_Manager->Is_UICanvasMode())
+	{
+		CPanel* pPanel = m_pPanel_Manager->Get_Panel(TEXT("Panel_2DCanvas"));
+		CPanel_2DCanvas* pCanvas = dynamic_cast<CPanel_2DCanvas*>(pPanel);
+		if (nullptr != pCanvas && nullptr != pCanvas->Get_Tool())
+		{
+			pCanvas->Get_Tool()->Render_TextPreview_ToRT(
+				m_pViewport->Get_RTWidth(),
+				m_pViewport->Get_RTHeight());
+		}
+	}
+
 	// RT 바인딩 해제
 	m_pViewport->End_RT();
 
@@ -302,6 +327,33 @@ HRESULT CEditorApp::Render_Scene()
 
 HRESULT CEditorApp::Ready_BootScene()
 {
+#pragma region ADD_FONT
+	// 영문/숫자 강조 - HUD 수치, 데미지, 카운터
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_NumericEN"),
+		TEXT("../../Resources/Fonts/agencyb_48.spritefont"))))
+		return E_FAIL;
+
+	// 굵은 한글 제목/버튼/메뉴 헤더
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_HeaderKR"),
+		TEXT("../../Resources/Fonts/nanumsquareb_48.spritefont"))))
+		return E_FAIL;
+
+	// 굵은 한글 일반 UI - 리스트, 라벨
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_LabelKR"),
+		TEXT("../../Resources/Fonts/nanumgothic_32.spritefont"))))
+		return E_FAIL;
+
+	// 기본 한글 본문 - 시스템 메시지, 범용 UI (Default)
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_Default"),
+		TEXT("../../Resources/Fonts/notosanskr_32.spritefont"))))
+		return E_FAIL;
+
+	// 한글 강조/ 포인트 텍스트 (둥근 느낌)
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_AccentKR"),
+		TEXT("../../Resources/Fonts/binggrae2_32.spritefont"))))
+		return E_FAIL;
+#pragma endregion
+
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC),
 		TEXT("Prototype_Component_VIBuffer_Rect"),
 		CVIBuffer_Rect::Create(m_pDevice, m_pContext))))

@@ -11,6 +11,7 @@
 #include "Panel_Viewport.h"
 #include "Panel_Shortcuts.h"
 #include "Panel_NavMeshEditor.h"
+#include "Panel_2DCanvas.h"
 
 NS_BEGIN(Engine)
 class CGameObject;
@@ -36,6 +37,7 @@ public:
 public:
 	EDITOR_TOOL_MODE		Get_Tool_Mode() const { return m_eToolMode; }
 	_bool					Is_NavMeshEditMode() const { return EDITOR_TOOL_MODE::NAVMESH == m_eToolMode; }
+	_bool					Is_UICanvasMode() const { return EDITOR_TOOL_MODE::UI_CANVAS == m_eToolMode; }
 
 	void					Set_ToolMode(EDITOR_TOOL_MODE eMode);
 

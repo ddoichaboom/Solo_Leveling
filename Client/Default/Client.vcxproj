@@ -195,7 +195,12 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Player_StateMachine.h" />
     <ClInclude Include="..\Public\SceneSerializer.h" />
     <ClInclude Include="..\Public\Terrain.h" />
+    <ClInclude Include="..\Public\UISceneLoader.h" />
+    <ClInclude Include="..\Public\UISceneSerializer.h" />
     <ClInclude Include="..\Public\UI_Image.h" />
+    <ClInclude Include="..\Public\UI_SpriteAnim.h" />
+    <ClInclude Include="..\Public\UI_Text.h" />
+    <ClInclude Include="..\Public\UI_Video.h" />
     <ClInclude Include="..\Public\Weapon.h" />
   </ItemGroup>
   <ItemGroup>
@@ -224,7 +229,12 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Player_StateMachine.cpp" />
     <ClCompile Include="..\Private\SceneSerializer.cpp" />
     <ClCompile Include="..\Private\Terrain.cpp" />
+    <ClCompile Include="..\Private\UISceneLoader.cpp" />
+    <ClCompile Include="..\Private\UISceneSerializer.cpp" />
     <ClCompile Include="..\Private\UI_Image.cpp" />
+    <ClCompile Include="..\Private\UI_SpriteAnim.cpp" />
+    <ClCompile Include="..\Private\UI_Text.cpp" />
+    <ClCompile Include="..\Private\UI_Video.cpp" />
     <ClCompile Include="..\Private\Weapon.cpp" />
   </ItemGroup>
   <ItemGroup>

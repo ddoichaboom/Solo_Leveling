@@ -241,6 +241,20 @@ void CPanel_ContentBrowser::Render_Contents()
 		if (ImGui::Selectable(label.c_str(), m_SelectedPath == file.path()))
 			m_SelectedPath = file.path();
 
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+		{
+			fs::path RelFromRoot = fs::relative(file.path(), m_RootPath);
+			string strPath = "../../Resources/" +
+				RelFromRoot.generic_string();   // 슬래시 정규화
+
+			ImGui::SetDragDropPayload(DND_FILE_PATH,
+				strPath.c_str(),
+				strPath.size() + 1);
+
+			ImGui::Text("%s", file.path().filename().string().c_str());
+			ImGui::EndDragDropSource();
+		}
+
 		// .fbx 파일 우클릭 컨텍스트 메뉴
 		string extLower = file.path().extension().string();
 		for (auto& c : extLower)

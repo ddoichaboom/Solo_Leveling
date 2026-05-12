@@ -64,6 +64,12 @@
     <Filter Include="95. Tools\NavMeshEditorTool">
       <UniqueIdentifier>{9ba69ec4-767d-4f46-bbca-2ea417407ed9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="95. Tools\UICanvasTool">
+      <UniqueIdentifier>{0354fb23-43b6-44f5-aafd-6cbc3c7be70d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Panel\2DCanvas">
+      <UniqueIdentifier>{321d00bb-b54c-4587-b26d-3d3a62e341be}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp">
@@ -134,6 +140,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\NavMeshEditorTool.cpp">
       <Filter>95. Tools\NavMeshEditorTool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UICanvasTool.cpp">
+      <Filter>95. Tools\UICanvasTool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Panel_2DCanvas.cpp">
+      <Filter>01. Panel\2DCanvas</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -226,6 +238,12 @@
     </ClInclude>
     <ClInclude Include="..\Public\NavMeshEditorTool.h">
       <Filter>95. Tools\NavMeshEditorTool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UICanvasTool.h">
+      <Filter>95. Tools\UICanvasTool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Panel_2DCanvas.h">
+      <Filter>01. Panel\2DCanvas</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

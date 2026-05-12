@@ -61,6 +61,10 @@ HRESULT CGameInstance::Initialize_Engine(const ENGINE_DESC& EngineDesc, ID3D11De
 	if (nullptr == m_pLight_Manager)
 		return E_FAIL;
 
+	m_pFont_Manager = CFont_Manager::Create(*ppDevice, *ppContext);
+	if (nullptr == m_pFont_Manager)
+		return E_FAIL;
+
 	return S_OK;
 }
 
@@ -336,6 +340,13 @@ HRESULT	CGameInstance::Add_Light(const LIGHT_DESC& LightDesc)
 #pragma endregion
 
 #pragma region Font_MANAGER
+
+void CGameInstance::Get_FontTags(vector<_wstring>* pOut)
+{
+	if (nullptr != m_pFont_Manager) 
+		m_pFont_Manager->Get_FontTags(pOut);
+}
+
 HRESULT CGameInstance::Add_Font(const _wstring& strFontTag, const _tchar* pFontFilePath)
 {
 	return m_pFont_Manager->Add_Font(strFontTag, pFontFilePath);
@@ -345,6 +356,11 @@ HRESULT CGameInstance::Render_Font(const _wstring& strFontTag, const _tchar* pTe
 	_fvector vColor, _float fRotation, const _float2& vOrigin, const _float2& vScale)
 {
 	return m_pFont_Manager->Draw(strFontTag, pText, vPosition, vColor, fRotation, vOrigin, vScale);
+}
+
+HRESULT CGameInstance::Measure_Font(const _wstring& strFontTag, const _tchar* pText, _float2* pOutSize)
+{
+	return m_pFont_Manager->Measure(strFontTag, pText, pOutSize);
 }
 
 #pragma endregion

@@ -157,14 +157,20 @@
     <Filter Include="10. Fonts">
       <UniqueIdentifier>{9bda156c-277a-466f-a134-966ef9406ec0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="11. StateMachine">
-      <UniqueIdentifier>{930eecb1-69f8-4b69-b03e-2461de18f010}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="12. Notify">
-      <UniqueIdentifier>{4cfe06a5-fc5f-4271-9af5-2e65ff25ef1a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="10. Fonts\Manager">
       <UniqueIdentifier>{17695d02-8daf-4a20-b42b-40af6a145041}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="12. StateMachine">
+      <UniqueIdentifier>{930eecb1-69f8-4b69-b03e-2461de18f010}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="13. Notify">
+      <UniqueIdentifier>{4cfe06a5-fc5f-4271-9af5-2e65ff25ef1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. Video">
+      <UniqueIdentifier>{79703281-966a-4e82-be63-307cdce5b6b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. Video\Texture">
+      <UniqueIdentifier>{4da3a915-3590-4726-9bf5-b9d1c55f85b4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -277,7 +283,7 @@
       <Filter>07. Component\AnimController</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\StateMachine.cpp">
-      <Filter>11. StateMachine</Filter>
+      <Filter>12. StateMachine</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\SpringArm.cpp">
       <Filter>07. Component\SpringArm</Filter>
@@ -305,6 +311,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\CustomFont.cpp">
       <Filter>10. Fonts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\VideoTexture.cpp">
+      <Filter>11. Video\Texture</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -435,10 +444,10 @@
       <Filter>07. Component\AnimController</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\StateMachine.h">
-      <Filter>11. StateMachine</Filter>
+      <Filter>12. StateMachine</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\NotifyListener.h">
-      <Filter>12. Notify</Filter>
+      <Filter>13. Notify</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\SpringArm.h">
       <Filter>07. Component\SpringArm</Filter>
@@ -469,6 +478,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\CustomFont.h">
       <Filter>10. Fonts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\VideoTexture.h">
+      <Filter>11. Video\Texture</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

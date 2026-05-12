@@ -163,5 +163,14 @@ namespace Client
 
 		END
 	};
+
+	enum class UI_ELEMENT_TYPE : unsigned int
+	{
+		IMAGE = 0,
+		TEXT, 
+		SPRITE_ANIM,
+		VIDEO,
+		END
+	};
 }
 #endif // Client_Enum_h__

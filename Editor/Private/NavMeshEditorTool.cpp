@@ -10,11 +10,12 @@
 #include "NavMesh.h"
 #include "Cell.h"
 #include "SceneSerializer.h"
+#include "UICanvasTool.h"
 
 namespace
 {
 	static const _tchar* NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
-	static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/ThroneRoom.scene");
+	static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/Map/ThroneRoom.scene");
 
 	const char* Get_SpawnTypeLabel(SPAWN_TYPE eType)
 	{
@@ -63,6 +64,120 @@ void CNavMeshEditorTool::Render_Overlay(const ImVec2& vImagePos, _uint iViewport
 	Render_SelectedCell(vImagePos, iViewportWidth, iViewportHeight);
 	Render_SelectedVertex(vImagePos, iViewportWidth, iViewportHeight);
 	Render_PickPreview(vImagePos, iViewportWidth, iViewportHeight);
+}
+
+void CUICanvasTool::Render_Overlay(const ImVec2& vImagePos, _uint iViewportW, _uint iViewportH)
+{
+	ImDrawList* pDraw = ImGui::GetWindowDrawList();
+
+	// 1) Äµ¹ö½º ¿Ü°û (cyan)
+	const ImVec2 vCanvasTL = Canvas_To_Screen(0.f, 0.f, vImagePos, iViewportW, iViewportH);
+	const ImVec2 vCanvasBR = Canvas_To_Screen(m_SceneData.fAuthoringWidth, m_SceneData.fAuthoringHeight, vImagePos, iViewportW, iViewportH);
+	pDraw->AddRect(vCanvasTL, vCanvasBR, IM_COL32(0, 200, 255, 200), 0.f, 0, 2.f);
+
+	// 2) ¿¤¸®¸ÕÆ®µé
+	for (_int i = 0; i < static_cast<_int>(m_SceneData.Elements.size()); ++i)
+	{
+		const UI_ELEMENT& E = m_SceneData.Elements[i];
+		const _float fHalfX = E.fSizeX * 0.5f;
+		const _float fHalfY = E.fSizeY * 0.5f;
+		const ImVec2 vTL = Canvas_To_Screen(E.fCenterX - fHalfX, E.fCenterY - fHalfY, vImagePos, iViewportW, iViewportH);
+		const ImVec2 vBR = Canvas_To_Screen(E.fCenterX + fHalfX, E.fCenterY + fHalfY, vImagePos, iViewportW, iViewportH);
+
+		const _bool bSel = (i == m_iSelectedIndex);
+		const ImU32 cBorder = bSel ? IM_COL32(255, 220, 0, 255) : IM_COL32(180, 180, 180, 180);
+		const ImU32 cFill = bSel ? IM_COL32(255, 220, 0, 30) : IM_COL32(180, 180, 180, 15);
+
+		pDraw->AddRectFilled(vTL, vBR, cFill);
+		pDraw->AddRect(vTL, vBR, cBorder, 0.f, 0, bSel ? 2.f : 1.f);
+
+		if (bSel)
+		{
+			const ImVec2 vTR = ImVec2(vBR.x, vTL.y);
+			const ImVec2 vBL = ImVec2(vTL.x, vBR.y);
+			const _float fH = 5.f;
+			const ImU32 cHandle = IM_COL32(255, 255, 255, 255);
+			const ImU32 cHandleBorder = IM_COL32(255, 100, 0, 255);
+
+			auto DrawHandle = [&](const ImVec2& p)
+				{
+					pDraw->AddRectFilled(ImVec2(p.x - fH, p.y - fH), ImVec2(p.x + fH, p.y + fH), cHandle);
+					pDraw->AddRect(ImVec2(p.x - fH, p.y - fH), ImVec2(p.x + fH, p.y + fH), cHandleBorder, 0.f, 0, 1.f);
+				};
+
+			DrawHandle(vTL);
+			DrawHandle(vTR);
+			DrawHandle(vBL);
+			DrawHandle(vBR);
+		}
+	}
+}
+
+void CUICanvasTool::Handle_Interaction(const ImVec2& vImagePos, _uint iViewportW, _uint iViewportH, _bool bImageHovered)
+{
+	const ImVec2 vMouse = ImGui::GetMousePos();
+
+	if (DRAG_MODE::NONE == m_eDragMode)
+	{
+		if (bImageHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		{
+			DRAG_MODE eMode = DRAG_MODE::NONE;
+			_int iHit = Pick_Element(vMouse, vImagePos, iViewportW, iViewportH, &eMode);
+			if (iHit >= 0)
+			{
+				m_iSelectedIndex = iHit;
+				m_eDragMode = eMode;
+				UI_ELEMENT* pE = Get_SelectedElement();
+				if (nullptr != pE)
+				{
+					m_vDragStart = vMouse;
+					m_fStartCX = pE->fCenterX;
+					m_fStartCY = pE->fCenterY;
+					m_fStartSX = pE->fSizeX;
+					m_fStartSY = pE->fSizeY;
+				}
+			}
+			else
+			{
+				m_iSelectedIndex = -1;
+			}
+		}
+	}
+	else
+	{
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+		{
+			m_eDragMode = DRAG_MODE::NONE;
+		}
+		else
+		{
+			const ImVec2 vDelta = ImVec2(vMouse.x - m_vDragStart.x, vMouse.y - m_vDragStart.y);
+			Apply_Drag(vDelta, iViewportW, iViewportH);
+		}
+	}
+}
+
+void CUICanvasTool::Render_TextPreview_ToRT(_uint iRTWidth, _uint iRTHeight)
+{
+	if (m_SceneData.Elements.empty()) return;
+
+	CGameInstance* pInstance = CGameInstance::GetInstance();
+	if (nullptr == pInstance) return;
+
+	const _float fScaleX = static_cast<_float>(iRTWidth) / m_SceneData.fAuthoringWidth;
+	const _float fScaleY = static_cast<_float>(iRTHeight) / m_SceneData.fAuthoringHeight;
+
+	for (const UI_ELEMENT& E : m_SceneData.Elements)
+	{
+		if (UI_ELEMENT_TYPE::TEXT != E.eType) continue;
+		if (0 == E.szText[0] || 0 == E.szFontTag[0]) continue;
+
+		const _float fHalfX = E.fSizeX * 0.5f;
+		const _float fHalfY = E.fSizeY * 0.5f;
+		const _float2 vPos((E.fCenterX - fHalfX) * fScaleX, (E.fCenterY - fHalfY) * fScaleY);
+
+		pInstance->Render_Font(E.szFontTag, E.szText, vPos);
+	}
 }
 
 void CNavMeshEditorTool::Handle_ViewportClick(_float fPickX, _float fPickY, _uint iViewportWidth, _uint iViewportHeight)
@@ -397,7 +512,7 @@ void CNavMeshEditorTool::Clear_SpawnPoints()
 HRESULT CNavMeshEditorTool::Save_SceneData()
 {
 	std::error_code ErrorCode{};
-	std::filesystem::create_directories(std::filesystem::path(TEXT("../../Resources/Scenes")), ErrorCode);
+	std::filesystem::create_directories(std::filesystem::path(TEXT("../../Resources/Scenes/Map")), ErrorCode);
 
 	if (ErrorCode)
 	{
@@ -415,7 +530,7 @@ HRESULT CNavMeshEditorTool::Save_SceneData()
 		return E_FAIL;
 	}
 
-	Log_EditStatus(LOG_LEVEL::INFO, "Saved SceneData: ../../Resources/Scenes/ThroneRoom.scene");
+	Log_EditStatus(LOG_LEVEL::INFO, "Saved SceneData: ../../Resources/Scenes/Map/ThroneRoom.scene");
 
 	return S_OK;
 }
@@ -433,7 +548,7 @@ HRESULT CNavMeshEditorTool::Load_SceneData()
 	m_SpawnPoints = SceneData.SpawnPoints;
 	m_iSelectedSpawnPointIndex = NAVMESH_INVALID_INDEX;
 
-	Log_EditStatus(LOG_LEVEL::INFO, "Loaded SceneData: ../../Resources/Scenes/ThroneRoom.scene");
+	Log_EditStatus(LOG_LEVEL::INFO, "Loaded SceneData: ../../Resources/Scenes/Map/ThroneRoom.scene");
 
 	return S_OK;
 }

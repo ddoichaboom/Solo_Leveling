@@ -104,12 +104,14 @@ public:
 #pragma endregion
 
 #pragma region Font_MANAGER
+	void                        Get_FontTags(vector<_wstring>* pOut);
 	HRESULT						Add_Font(const _wstring& strFontTag, const _tchar* pFontFilePath);
 	HRESULT						Render_Font(const _wstring& strFontTag, const _tchar* pText, const _float2& vPosition,
 												_fvector vColor = XMVectorSet(1.f, 1.f, 1.f, 1.f),
 												_float fRotation = 0.f,
 												const _float2& vOrigin = _float2(0.f, 0.f),
 												const _float2& vScale = _float2(1.f, 1.f));
+	HRESULT                     Measure_Font(const _wstring& strFontTag, const _tchar* pText, _float2* pOutSize);
 #pragma endregion
 
 private:

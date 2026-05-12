@@ -9,6 +9,15 @@ CFont_Manager::CFont_Manager(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 	Safe_AddRef(m_pContext);
 }
 
+void CFont_Manager::Get_FontTags(vector<_wstring>* pOut) const
+{
+	if (nullptr == pOut) return;
+	pOut->clear();
+	pOut->reserve(m_Fonts.size());
+	for (const auto& Pair : m_Fonts)
+		pOut->push_back(Pair.first);
+}
+
 HRESULT CFont_Manager::Add_Font(const _wstring& strFontTag, const _tchar* pFontFilePath)
 {
 	if (nullptr != Find_Font(strFontTag))
@@ -29,6 +38,15 @@ HRESULT CFont_Manager::Draw(const _wstring& strFontTag, const _tchar* pText, con
 		return E_FAIL;
 
 	return pFont->Draw(pText, vPosition, vColor, fRotation, vOrigin, vScale);
+}
+
+HRESULT CFont_Manager::Measure(const _wstring& strFontTag, const _tchar* pText, _float2* pOutSize)
+{
+	CCustomFont* pFont = Find_Font(strFontTag);
+	if (nullptr == pFont)
+		return E_FAIL;
+
+	return pFont->Measure(pText, pOutSize);
 }
 
 CCustomFont* CFont_Manager::Find_Font(const _wstring& strFontTag)

@@ -34,6 +34,7 @@ namespace Editor
 {
 	static unsigned int     g_iWinSizeX = { 1600 };  
 	static unsigned int     g_iWinSizeY = { 900 };
+	constexpr const char*	DND_FILE_PATH = "DND_FILE_PATH";
 }
 
 

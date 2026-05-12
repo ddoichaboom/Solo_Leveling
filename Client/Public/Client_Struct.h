@@ -108,6 +108,36 @@ namespace Client
 		_tchar					szNavDataPath[MAX_PATH] = { };
 		vector<SPAWN_POINT>		SpawnPoints;
 	}SCENE_DATA;
+
+	typedef struct tagUIElemet
+	{
+		UI_ELEMENT_TYPE		eType = { UI_ELEMENT_TYPE::IMAGE };
+		_tchar              szName[MAX_PATH] = {};
+		_tchar              szTexturePath[MAX_PATH] = {};
+
+		_float              fCenterX = { 0.f };
+		_float              fCenterY = { 0.f };
+		_float              fSizeX = { 100.f };
+		_float              fSizeY = { 100.f };
+		_uint               iZOrder = { 0 };
+
+		_tchar				szFontTag[MAX_PATH] = {};
+		_tchar				szText[MAX_PATH] = {};
+		_uint				iAtlasCols = { 1 };
+		_uint				iAtlasRows = { 1 };
+		_float				fFrameDuration = { 0.1f };
+
+		_bool				bLoop = { true };
+		_float				fPlaybackSpeed = { 1.f };
+	}UI_ELEMENT;
+
+	typedef struct tagUISceneData
+	{
+		_tchar                  szName[MAX_PATH] = {};
+		_float                  fAuthoringWidth = { 1280.f };
+		_float                  fAuthoringHeight = { 720.f };
+		vector<UI_ELEMENT>      Elements;
+	}UI_SCENE_DATA;
 }
 
 #endif // Client_Struct_h

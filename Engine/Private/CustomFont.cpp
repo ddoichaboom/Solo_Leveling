@@ -28,6 +28,17 @@ HRESULT CCustomFont::Draw(const _tchar* pText, const _float2& vPosition, _fvecto
 	return S_OK;
 }
 
+HRESULT CCustomFont::Measure(const _tchar* pText, _float2* pOutSize)
+{
+	if (nullptr == m_pFont || nullptr == pText || nullptr == pOutSize)
+		return E_FAIL;
+
+	XMVECTOR vSize = m_pFont->MeasureString(pText);
+	pOutSize->x = XMVectorGetX(vSize);
+	pOutSize->y = XMVectorGetY(vSize);
+	return S_OK;
+}
+
 CCustomFont* CCustomFont::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, const _tchar* pFontFilePath)
 {
 	CCustomFont* pInstance = new CCustomFont(pDevice, pContext);

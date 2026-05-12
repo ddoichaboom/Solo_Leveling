@@ -2,7 +2,11 @@
 
 #include "GameInstance.h"
 #include "Level_Loading.h"
+#include "Level_Logo.h"
 #include "UI_Image.h"
+#include "UI_Video.h"
+#include "UI_Text.h"
+#include "UI_SpriteAnim.h"
 
 CMainApp::CMainApp()
 	: m_pGameInstance{ CGameInstance::GetInstance() }
@@ -57,23 +61,71 @@ HRESULT CMainApp::Render()
 
 HRESULT CMainApp::Ready_Prototype_For_Static()
 {
+	const LEVEL eLevel = LEVEL::STATIC;
+
+#pragma region ADD_FONT
+	// 영문/숫자 강조 - HUD 수치, 데미지, 카운터
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_NumericEN"),
+		TEXT("../../Resources/Fonts/agencyb_48.spritefont"))))
+		return E_FAIL;
+
+	// 굵은 한글 제목/버튼/메뉴 헤더
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_HeaderKR"),
+		TEXT("../../Resources/Fonts/nanumsquareb_48.spritefont"))))
+		return E_FAIL;
+
+	// 굵은 한글 일반 UI - 리스트, 라벨
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_LabelKR"),
+		TEXT("../../Resources/Fonts/nanumgothic_32.spritefont"))))
+		return E_FAIL;
+
+	// 기본 한글 본문 - 시스템 메시지, 범용 UI (Default)
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_Default"),
+		TEXT("../../Resources/Fonts/notosanskr_32.spritefont"))))
+		return E_FAIL;
+
+	// 한글 강조/ 포인트 텍스트 (둥근 느낌)
+	if (FAILED(m_pGameInstance->Add_Font(TEXT("Font_AccentKR"),
+		TEXT("../../Resources/Fonts/binggrae2_32.spritefont"))))
+		return E_FAIL;
+#pragma endregion
+
 	// (1) VIBuffer_Rect 프로토타입 등록 (STATIC 레벨)
 	if (FAILED(m_pGameInstance->Add_Prototype(
-				ETOUI(LEVEL::STATIC),
+				ETOUI(eLevel),
 				TEXT("Prototype_Component_VIBuffer_Rect"),
 				CVIBuffer_Rect::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	// (2) Shader 프로토타입 등록 (STATIC 레벨)
-	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC), TEXT("Prototype_Component_Shader_VtxTex"),
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_Component_Shader_VtxTex"),
 					CShader::Create(m_pDevice, m_pContext, TEXT("../../Resources/ShaderFiles/Shader_VtxTex.hlsl"),
 					VTXTEX::Elements, VTXTEX::iNumElements))))
 		return E_FAIL;
 
+	// Prototype_GameObject_UI_Image
 	if (FAILED(m_pGameInstance->Add_Prototype(
-				ETOUI(LEVEL::STATIC),
-				TEXT("Prototype_GameObject_UI_Image"),
-				CUI_Image::Create(m_pDevice, m_pContext))))
+		ETOUI(eLevel),
+		TEXT("Prototype_GameObject_UI_Image"),
+		CUI_Image::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_UI_SpriteAnim
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_GameObject_UI_SpriteAnim"),
+		CUI_SpriteAnim::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_UI_Video 
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_GameObject_UI_Video"),
+		CUI_Video::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_UI_Text 
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_GameObject_UI_Text"),
+		CUI_Text::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	return S_OK;
