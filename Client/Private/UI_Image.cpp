@@ -33,6 +33,8 @@ void CUI_Image::Set_Progress(_float fProgress)
 	const _float fLeft = m_fBaseCenterX - m_fBaseSizeX * 0.5f;
 	m_fSizeX = fNewSizeX;
 	m_fCenterX = fLeft + fNewSizeX * 0.5f;
+
+	Update_UIState();
 }
 
 HRESULT CUI_Image::Initialize_Prototype()

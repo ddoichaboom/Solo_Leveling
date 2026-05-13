@@ -18,6 +18,7 @@
 #include "Boss_Monster.h"
 #include "AnimController.h"
 #include "SpringArm.h"
+#include "Texture.h"
 
 CLoader::CLoader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: m_pDevice{ pDevice }
@@ -101,10 +102,18 @@ HRESULT CLoader::Ready_Resources_For_Logo()
 		CTexture::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Default%d.jpg"), 2))))
 		return E_FAIL;
 
+	// Prototype_Component_Texture_Title_Logo
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Texture_Title_Logo"),
+		CTexture::Create(m_pDevice, m_pContext,
+		TEXT("../../Resources/Textures/Title/Title_Logo.png"), 1))))
+		return E_FAIL;
+
 	lstrcpy(m_szLoadingText, TEXT("셰이더 로딩 중"));
 	m_fProgress = 0.3f;
 
 	lstrcpy(m_szLoadingText, TEXT("정점, 인덱스 버퍼 로딩 중"));
+
 
 	lstrcpy(m_szLoadingText, TEXT("객체원형 로딩 중"));
 	m_fProgress = 0.75f;
@@ -125,6 +134,8 @@ HRESULT CLoader::Ready_Resources_For_Logo()
 HRESULT CLoader::Ready_Resources_For_GamePlay()
 {
 	const LEVEL eLevel = LEVEL::GAMEPLAY;
+
+	m_fProgress = 0.f;
 
 	lstrcpy(m_szLoadingText, TEXT("셰이더 로드 중"));
 
@@ -151,6 +162,8 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 			TEXT("../../Resources/ShaderFiles/Shader_VtxPosColor.hlsl"),
 			VTXPOS::Elements, VTXPOS::iNumElements))))
 		return E_FAIL;
+
+	m_fProgress = 0.25f;
 
 	lstrcpy(m_szLoadingText, TEXT("컴포넌트 로드 중"));
 
@@ -180,7 +193,11 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 		CNavigationAgent::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
+	m_fProgress = 0.5f;
+
 	lstrcpy(m_szLoadingText, TEXT("모델 로드 중"));
+
+	m_fProgress = 0.85f;
 
 	// Prototype_Component_NavMesh
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
@@ -224,6 +241,8 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 		return E_FAIL;
 
 	lstrcpy(m_szLoadingText, TEXT("객체원형 로드 중"));
+
+	m_fProgress = 0.9f;
 
 	// Prototype_GameObject_Camera_Follow
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Camera_Follow"),
@@ -283,6 +302,8 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Boss_Monster"),
 		CBoss_Monster::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
+
+	m_fProgress = 1.f;
 
 	lstrcpy(m_szLoadingText, TEXT("로딩이 완료되었습니다."));
 

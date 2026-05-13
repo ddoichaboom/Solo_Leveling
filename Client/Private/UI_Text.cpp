@@ -75,11 +75,14 @@ HRESULT CUI_Text::Render()
     _float fOffsetX = 0.f;
     switch (m_eHAlign)
     {
-    case UI_TEXT_HALIGN::LEFT:   fOffsetX = 0.f; 
+    case UI_TEXT_HALIGN::LEFT:   
+        fOffsetX = 0.f; 
         break;
-    case UI_TEXT_HALIGN::CENTER: fOffsetX = (m_fSizeX - fDrawW) * 0.5f; 
+    case UI_TEXT_HALIGN::CENTER: 
+        fOffsetX = (m_fSizeX - fDrawW) * 0.5f; 
         break;
-    case UI_TEXT_HALIGN::RIGHT:  fOffsetX = m_fSizeX - fDrawW; 
+    case UI_TEXT_HALIGN::RIGHT:  
+        fOffsetX = m_fSizeX - fDrawW; 
         break;
     default: break;
     }
@@ -87,11 +90,14 @@ HRESULT CUI_Text::Render()
     _float fOffsetY = 0.f;
     switch (m_eVAlign)
     {
-    case UI_TEXT_VALIGN::TOP:    fOffsetY = 0.f; 
+    case UI_TEXT_VALIGN::TOP:    
+        fOffsetY = 0.f; 
         break;
-    case UI_TEXT_VALIGN::MIDDLE: fOffsetY = (m_fSizeY - fDrawH) * 0.5f; 
+    case UI_TEXT_VALIGN::MIDDLE: 
+        fOffsetY = (m_fSizeY - fDrawH) * 0.5f; 
         break;
-    case UI_TEXT_VALIGN::BOTTOM: fOffsetY = m_fSizeY - fDrawH; 
+    case UI_TEXT_VALIGN::BOTTOM: 
+        fOffsetY = m_fSizeY - fDrawH; 
         break;
     default: break;
     }

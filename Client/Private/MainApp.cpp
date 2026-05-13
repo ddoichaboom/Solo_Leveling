@@ -135,7 +135,7 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 
 HRESULT CMainApp::Ready_Prototype_For_Loading()
 {
-	const LEVEL eLevel = LEVEL::LOADING;
+	const LEVEL eLevel = LEVEL::STATIC;
 
 	struct LoadingTextureEntry
 	{
@@ -144,12 +144,14 @@ HRESULT CMainApp::Ready_Prototype_For_Loading()
 	};
 
 	static const LoadingTextureEntry aEntries[] =
-	{
+	{ 
 		// === 배경 ===
 		{ TEXT("Prototype_Component_Texture_BG_BlackScreen"),
 		  TEXT("../../Resources/Textures/Loading/BG_BlackScreen.png") },
 		{ TEXT("Prototype_Component_Texture_BG_Loading"),
 		  TEXT("../../Resources/Textures/Loading/BG_Loading.png") },
+		{ TEXT("Prototype_Component_Texture_BG_ThroneRoom"),
+		  TEXT("../../Resources/Textures/Loading/BG_ThroneRoom.png") },
 
 		  // === 애니메이션 ===
 		{ TEXT("Prototype_Component_Texture_Img_Tank_Atlas"),

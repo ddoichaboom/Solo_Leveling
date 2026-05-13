@@ -73,9 +73,15 @@ HRESULT CUIObject::Render()
 
 void CUIObject::Update_UIState()
 {
-    m_pTransformCom->Set_Scale(m_fSizeX, m_fSizeY, 1.f);
+    // Size = 0 °¡µå
+    const _float fEps = 1e-3f;
+    const _float fSafeSizeX = (m_fSizeX > fEps) ? m_fSizeX : fEps;
+    const _float fSafeSizeY = (m_fSizeY > fEps) ? m_fSizeY : fEps;
+
+    m_pTransformCom->Set_Scale(fSafeSizeX, fSafeSizeY, 1.f);
     m_pTransformCom->Set_State(STATE::POSITION,
-        XMVectorSet(m_fCenterX - m_fViewWidth * 0.5f, -m_fCenterY + m_fViewHeight * 0.5f, 0.f, 1.f));
+        XMVectorSet(m_fCenterX - m_fViewWidth * 0.5f,
+            -m_fCenterY + m_fViewHeight * 0.5f, 0.f, 1.f));
 
 }
 
