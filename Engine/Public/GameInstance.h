@@ -32,6 +32,7 @@ public:
 	void						Set_WinMode(WINMODE eMode) { m_eWinMode = eMode; }
 
 	_float						Random(_float fMin, _float fMax);
+
 #pragma endregion
 
 #pragma region TIMER_MANAGER

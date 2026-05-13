@@ -115,6 +115,9 @@ namespace Client
 		_tchar              szName[MAX_PATH] = {};
 		_tchar              szTexturePath[MAX_PATH] = {};
 
+		_tchar				szTextureProtoTag[MAX_PATH] = {};
+		_uint				iTextureProtoLevel = { 0 };
+
 		_float              fCenterX = { 0.f };
 		_float              fCenterY = { 0.f };
 		_float              fSizeX = { 100.f };
@@ -129,6 +132,10 @@ namespace Client
 
 		_bool				bLoop = { true };
 		_float				fPlaybackSpeed = { 1.f };
+
+		UI_TEXT_HALIGN		eHAlign = UI_TEXT_HALIGN::CENTER;
+		UI_TEXT_VALIGN		eVAlign = UI_TEXT_VALIGN::MIDDLE;
+		_bool				bAutoFit = false;
 	}UI_ELEMENT;
 
 	typedef struct tagUISceneData

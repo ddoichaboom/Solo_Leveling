@@ -65,6 +65,10 @@ HRESULT CUISceneLoader::Add_Image(CGameInstance* pInstance, const UI_ELEMENT& E,
     Desc.fSizeY = E.fSizeY * fScaleY;
     Desc.pTexturePath = E.szTexturePath;
     Desc.iZOrder = E.iZOrder;
+    Desc.pObjectName = E.szName;
+
+    Desc.pTextureProtoTag = E.szTextureProtoTag;
+    Desc.iTextureProtoLevel = (0 != E.iTextureProtoLevel) ? E.iTextureProtoLevel : ETOUI(LEVEL::STATIC);
 
     return CGameInstance::GetInstance()->Add_GameObject(
         ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_Image"),
@@ -82,6 +86,11 @@ HRESULT CUISceneLoader::Add_Text(CGameInstance* pInstance, const UI_ELEMENT& E, 
     Desc.pText = E.szText;
     Desc.fScale = 1.f;
     Desc.iZOrder = E.iZOrder;
+    Desc.pObjectName = E.szName;
+
+    Desc.eHAlign = E.eHAlign;
+    Desc.eVAlign = E.eVAlign;
+    Desc.bAutoFit = E.bAutoFit;
 
     return CGameInstance::GetInstance()->Add_GameObject(
         ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_Text"),
@@ -101,6 +110,8 @@ HRESULT CUISceneLoader::Add_SpriteAnim(CGameInstance* pInstance, const UI_ELEMEN
     Desc.iAtlasRows = E.iAtlasRows ? E.iAtlasRows : 1;
     Desc.fFrameDuration = (E.fFrameDuration > 0.f) ? E.fFrameDuration : 0.1f;
     Desc.bLoop = E.bLoop;
+    Desc.pObjectName = E.szName;
+
 
     return CGameInstance::GetInstance()->Add_GameObject(
         ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_SpriteAnim"),
@@ -118,6 +129,8 @@ HRESULT CUISceneLoader::Add_Video(CGameInstance* pInstance, const UI_ELEMENT& E,
     Desc.iZOrder = E.iZOrder;
     Desc.bLoop = E.bLoop;
     Desc.fPlaybackSpeed = (E.fPlaybackSpeed > 0.f) ? E.fPlaybackSpeed : 1.f;
+    Desc.pObjectName = E.szName;
+
 
     return CGameInstance::GetInstance()->Add_GameObject(
         ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_Video"),

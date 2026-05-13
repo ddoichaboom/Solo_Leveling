@@ -16,6 +16,10 @@ public:
         _float4         vColor = { 1.f, 1.f, 1.f, 1.f };
         _float          fRotation = { 0.f };
         _uint           iZOrder = { 0 };
+
+        UI_TEXT_HALIGN  eHAlign = { UI_TEXT_HALIGN::CENTER };
+        UI_TEXT_VALIGN  eVAlign = { UI_TEXT_VALIGN::MIDDLE };
+        _bool           bAutoFit = { false };
     }UI_TEXT_DESC;
 
 protected:
@@ -42,6 +46,9 @@ private:
     _float4                 m_vColor = { 1.f, 1.f, 1.f, 1.f };
     _float                  m_fRotation = { 0.f };
     _uint                   m_iZOrder = { 0 };
+    UI_TEXT_HALIGN          m_eHAlign = { UI_TEXT_HALIGN::CENTER };
+    UI_TEXT_VALIGN          m_eVAlign = { UI_TEXT_VALIGN::MIDDLE };
+    _bool                   m_bAutoFit = { false };
 
 public:
     static CUI_Text*        Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

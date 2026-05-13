@@ -2,6 +2,10 @@
 #include "Editor_Defines.h"
 #include "Panel.h"
 
+NS_BEGIN(Engine)
+class CTexture;
+NS_END
+
 NS_BEGIN(Editor)
 
 class CUICanvasTool;
@@ -33,7 +37,9 @@ private:
 
 private:
     CUICanvasTool*                          m_pTool = { nullptr };
-    _char                                   m_szFilePath[MAX_PATH] = { "../../Resources/Scenes/UI/Default.uiscene" };
+    _char                                   m_szFilePath[MAX_PATH] = { };
+
+    unordered_map<_wstring, CTexture*>      m_PreviewCache;
 
 
 public:

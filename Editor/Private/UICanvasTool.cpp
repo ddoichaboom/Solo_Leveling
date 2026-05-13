@@ -1,8 +1,14 @@
 ﻿#include "UICanvasTool.h"
 #include "UISceneSerializer.h"
+#include "Texture.h"
+#include "GameInstance.h"
 
-CUICanvasTool::CUICanvasTool()
+CUICanvasTool::CUICanvasTool(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+    : m_pDevice { pDevice }
+    , m_pContext{ pContext }
 {
+    Safe_AddRef(m_pDevice);
+    Safe_AddRef(m_pContext);
 }
 
 _int CUICanvasTool::Add_Element_Image()
@@ -159,6 +165,201 @@ void CUICanvasTool::Set_SelectedIndex(_int iIndex)
     if (iIndex < -1 || iIndex >= static_cast<_int>(m_SceneData.Elements.size()))
         return;
     m_iSelectedIndex = iIndex;
+}
+
+void CUICanvasTool::Render_Overlay(const ImVec2& vImagePos, _uint iViewportW, _uint iViewportH)
+{
+    ImDrawList* pDraw = ImGui::GetWindowDrawList();
+
+    // 1) 캔버스 외곽 (cyan)
+    const ImVec2 vCanvasTL = Canvas_To_Screen(0.f, 0.f, vImagePos, iViewportW, iViewportH);
+    const ImVec2 vCanvasBR = Canvas_To_Screen(m_SceneData.fAuthoringWidth, m_SceneData.fAuthoringHeight, vImagePos, iViewportW, iViewportH);
+    pDraw->AddRect(vCanvasTL, vCanvasBR, IM_COL32(0, 200, 255, 200), 0.f, 0, 2.f);
+
+    // 2) 엘리먼트들
+    for (_int i = 0; i < static_cast<_int>(m_SceneData.Elements.size()); ++i)
+    {
+        const UI_ELEMENT& E = m_SceneData.Elements[i];
+        const _float fHalfX = E.fSizeX * 0.5f;
+        const _float fHalfY = E.fSizeY * 0.5f;
+        const ImVec2 vTL = Canvas_To_Screen(E.fCenterX - fHalfX, E.fCenterY - fHalfY, vImagePos, iViewportW, iViewportH);
+        const ImVec2 vBR = Canvas_To_Screen(E.fCenterX + fHalfX, E.fCenterY + fHalfY, vImagePos, iViewportW, iViewportH);
+
+        if (m_bShowOverlayImages &&
+            (UI_ELEMENT_TYPE::IMAGE == E.eType || UI_ELEMENT_TYPE::SPRITE_ANIM == E.eType))
+        {
+            if (ID3D11ShaderResourceView* pSRV = Get_PreviewSRV(E.szTexturePath))
+            {
+                ImVec2 uv0(0.f, 0.f), uv1(1.f, 1.f);
+                if (UI_ELEMENT_TYPE::SPRITE_ANIM == E.eType)
+                {
+                    const _uint iCols = (E.iAtlasCols < 1 ? 1 : E.iAtlasCols);
+                    const _uint iRows = (E.iAtlasRows < 1 ? 1 : E.iAtlasRows);
+                    uv1.x = 1.f / static_cast<_float>(iCols);
+                    uv1.y = 1.f / static_cast<_float>(iRows);
+                }
+                pDraw->AddImage(reinterpret_cast<ImTextureID>(pSRV), vTL, vBR, uv0, uv1,
+                    IM_COL32(255, 255, 255, 220));
+            }
+        }
+
+        const _bool bSel = (i == m_iSelectedIndex);
+        const ImU32 cBorder = bSel ? IM_COL32(255, 220, 0, 255) : IM_COL32(180, 180, 180, 180);
+        const ImU32 cFill = bSel ? IM_COL32(255, 220, 0, 30) : IM_COL32(180, 180, 180, 15);
+
+        pDraw->AddRectFilled(vTL, vBR, cFill);
+        pDraw->AddRect(vTL, vBR, cBorder, 0.f, 0, bSel ? 2.f : 1.f);
+
+        if (bSel)
+        {
+            const ImVec2 vTR = ImVec2(vBR.x, vTL.y);
+            const ImVec2 vBL = ImVec2(vTL.x, vBR.y);
+            const _float fH = 5.f;
+            const ImU32 cHandle = IM_COL32(255, 255, 255, 255);
+            const ImU32 cHandleBorder = IM_COL32(255, 100, 0, 255);
+
+            auto DrawHandle = [&](const ImVec2& p)
+                {
+                    pDraw->AddRectFilled(ImVec2(p.x - fH, p.y - fH), ImVec2(p.x + fH, p.y + fH), cHandle);
+                    pDraw->AddRect(ImVec2(p.x - fH, p.y - fH), ImVec2(p.x + fH, p.y + fH), cHandleBorder, 0.f, 0, 1.f);
+                };
+
+            DrawHandle(vTL);
+            DrawHandle(vTR);
+            DrawHandle(vBL);
+            DrawHandle(vBR);
+        }
+    }
+}
+
+void CUICanvasTool::Handle_Interaction(const ImVec2& vImagePos, _uint iViewportW, _uint iViewportH, _bool bImageHovered)
+{
+    const ImVec2 vMouse = ImGui::GetMousePos();
+
+    if (DRAG_MODE::NONE == m_eDragMode)
+    {
+        if (bImageHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            DRAG_MODE eMode = DRAG_MODE::NONE;
+            _int iHit = Pick_Element(vMouse, vImagePos, iViewportW, iViewportH, &eMode);
+            if (iHit >= 0)
+            {
+                m_iSelectedIndex = iHit;
+                m_eDragMode = eMode;
+                UI_ELEMENT* pE = Get_SelectedElement();
+                if (nullptr != pE)
+                {
+                    m_vDragStart = vMouse;
+                    m_fStartCX = pE->fCenterX;
+                    m_fStartCY = pE->fCenterY;
+                    m_fStartSX = pE->fSizeX;
+                    m_fStartSY = pE->fSizeY;
+                }
+            }
+            else
+            {
+                m_iSelectedIndex = -1;
+            }
+        }
+    }
+    else
+    {
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            m_eDragMode = DRAG_MODE::NONE;
+        }
+        else
+        {
+            const ImVec2 vDelta = ImVec2(vMouse.x - m_vDragStart.x, vMouse.y - m_vDragStart.y);
+            Apply_Drag(vDelta, iViewportW, iViewportH);
+        }
+    }
+}
+
+void CUICanvasTool::Render_TextPreview_ToRT(_uint iRTWidth, _uint iRTHeight)
+{
+    if (m_SceneData.Elements.empty()) return;
+
+    CGameInstance* pInstance = CGameInstance::GetInstance();
+    if (nullptr == pInstance) return;
+
+    const _float fScaleX = static_cast<_float>(iRTWidth) / m_SceneData.fAuthoringWidth;
+    const _float fScaleY = static_cast<_float>(iRTHeight) / m_SceneData.fAuthoringHeight;
+
+    for (const UI_ELEMENT& E : m_SceneData.Elements)
+    {
+        if (UI_ELEMENT_TYPE::TEXT != E.eType) continue;
+        if (0 == E.szText[0] || 0 == E.szFontTag[0]) continue;
+
+        // 1. 텍스트 네이티브 크기 측정 (스케일 1)
+        _float2 vTextSize{};
+        if (FAILED(pInstance->Measure_Font(E.szFontTag, E.szText, &vTextSize)))
+            continue;
+
+        // 2. AutoFit 시 박스 비율로 축소 (canvas 좌표 기준)
+        _float fFinalScale = 1.f;   // 런타임 UI_Text 의 m_fScale 디폴트
+        if (E.bAutoFit && vTextSize.x > 0.f && vTextSize.y > 0.f &&
+            E.fSizeX > 0.f && E.fSizeY > 0.f)
+        {
+            const _float fFitX = E.fSizeX / vTextSize.x;
+            const _float fFitY = E.fSizeY / vTextSize.y;
+            fFinalScale = (fFitX < fFitY) ? fFitX : fFitY;
+        }
+
+        const _float fDrawW = vTextSize.x * fFinalScale;   // canvas 단위
+        const _float fDrawH = vTextSize.y * fFinalScale;
+
+        // 3. 박스 좌상단 (canvas)
+        const _float fBoxLeft = E.fCenterX - E.fSizeX * 0.5f;
+        const _float fBoxTop = E.fCenterY - E.fSizeY * 0.5f;
+
+        // 4. 정렬 오프셋 (canvas)
+        _float fOffsetX = 0.f;
+        switch (E.eHAlign)
+        {
+        case UI_TEXT_HALIGN::LEFT:   fOffsetX = 0.f; break;
+        case UI_TEXT_HALIGN::CENTER: fOffsetX = (E.fSizeX - fDrawW) * 0.5f; break;
+        case UI_TEXT_HALIGN::RIGHT:  fOffsetX = E.fSizeX - fDrawW; break;
+        default: break;
+        }
+        _float fOffsetY = 0.f;
+        switch (E.eVAlign)
+        {
+        case UI_TEXT_VALIGN::TOP:    fOffsetY = 0.f; break;
+        case UI_TEXT_VALIGN::MIDDLE: fOffsetY = (E.fSizeY - fDrawH) * 0.5f; break;
+        case UI_TEXT_VALIGN::BOTTOM: fOffsetY = E.fSizeY - fDrawH; break;
+        default: break;
+        }
+
+        // 5. canvas → viewport 좌표 변환
+        const _float2 vPos((fBoxLeft + fOffsetX) * fScaleX,
+            (fBoxTop + fOffsetY) * fScaleY);
+
+        // 6. 스케일도 viewport 환산 (canvas->RT)
+        // X/Y 다른 비율이면 평균 또는 최소값 사용 — 일반적으로 같으니 평균
+        const _float2 vRenderScale(fFinalScale * fScaleX, fFinalScale * fScaleY);
+
+        pInstance->Render_Font(E.szFontTag, E.szText, vPos,
+            XMVectorSet(1.f, 1.f, 1.f, 1.f),
+            0.f,
+            _float2(0.f, 0.f),
+            vRenderScale);
+    }
+}
+
+ID3D11ShaderResourceView* CUICanvasTool::Get_PreviewSRV(const _tchar* pPath)
+{
+    if (nullptr == pPath || 0 == pPath[0])
+        return nullptr;
+
+    _wstring strKey = pPath;
+    auto it = m_PreviewCache.find(strKey);
+    if (m_PreviewCache.end() != it)
+        return (nullptr != it->second) ? it->second->Get_SRV(0) : nullptr;
+
+    CTexture* pTex = CTexture::Create(m_pDevice, m_pContext, pPath, 1);
+    m_PreviewCache[strKey] = pTex;
+    return (nullptr != pTex) ? pTex->Get_SRV(0) : nullptr;
 }
 
 _int CUICanvasTool::Add_Element(UI_ELEMENT_TYPE eType)
@@ -328,9 +529,9 @@ void CUICanvasTool::Reindex_ZOrders()
         m_SceneData.Elements[i].iZOrder = static_cast<_uint>(i);
 }
 
-CUICanvasTool* CUICanvasTool::Create()
+CUICanvasTool* CUICanvasTool::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-    CUICanvasTool* pInstance = new CUICanvasTool();
+    CUICanvasTool* pInstance = new CUICanvasTool(pDevice, pContext);
     wcscpy_s(pInstance->m_SceneData.szName, TEXT("UIScene"));
     pInstance->m_SceneData.fAuthoringWidth = 1280.f;
     pInstance->m_SceneData.fAuthoringHeight = 720.f;
@@ -340,4 +541,11 @@ CUICanvasTool* CUICanvasTool::Create()
 void CUICanvasTool::Free()
 {
     __super::Free();
+
+    for (auto& Pair : m_PreviewCache)
+        Safe_Release(Pair.second);
+    m_PreviewCache.clear();
+
+    Safe_Release(m_pDevice);
+    Safe_Release(m_pContext);
 }

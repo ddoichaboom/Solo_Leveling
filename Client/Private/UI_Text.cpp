@@ -30,6 +30,10 @@ HRESULT CUI_Text::Initialize(void* pArg)
     m_fRotation = pDesc->fRotation;
     m_iZOrder = pDesc->iZOrder;
 
+    m_eHAlign = pDesc->eHAlign;
+    m_eVAlign = pDesc->eVAlign;
+    m_bAutoFit = pDesc->bAutoFit;
+
     if (FAILED(__super::Initialize(pArg)))
         return E_FAIL;
 
@@ -46,14 +50,55 @@ HRESULT CUI_Text::Render()
     if (m_strFontTag.empty() || m_strText.empty())
         return S_OK;
 
-    // 중심 정렬: Measure → top-left = Center - (size * scale) / 2
     _float2 vTextSize{};
     if (FAILED(m_pGameInstance->Measure_Font(m_strFontTag, m_strText.c_str(), &vTextSize)))
         return E_FAIL;
 
+    // 최종 스케일 결정 (AutoFit 시 박스 비율로 축소)
+    _float fFinalScale = m_fScale;
+    if (m_bAutoFit && vTextSize.x > 0.f && vTextSize.y > 0.f && m_fSizeX > 0.f && m_fSizeY > 0.f)
+    {
+        const _float fFitX = m_fSizeX / (vTextSize.x * m_fScale);
+        const _float fFitY = m_fSizeY / (vTextSize.y * m_fScale);
+        const _float fFit = (fFitX < fFitY) ? fFitX : fFitY;
+        fFinalScale = m_fScale * fFit;
+    }
+
+    const _float fDrawW = vTextSize.x * fFinalScale;
+    const _float fDrawH = vTextSize.y * fFinalScale;
+
+    // 박스 좌측 상단
+    const _float fBoxLeft = m_fCenterX - m_fSizeX * 0.5f;
+    const _float fBoxTop = m_fCenterY - m_fSizeY * 0.5f;
+
+    // 정렬에 따른 오프셋
+    _float fOffsetX = 0.f;
+    switch (m_eHAlign)
+    {
+    case UI_TEXT_HALIGN::LEFT:   fOffsetX = 0.f; 
+        break;
+    case UI_TEXT_HALIGN::CENTER: fOffsetX = (m_fSizeX - fDrawW) * 0.5f; 
+        break;
+    case UI_TEXT_HALIGN::RIGHT:  fOffsetX = m_fSizeX - fDrawW; 
+        break;
+    default: break;
+    }
+
+    _float fOffsetY = 0.f;
+    switch (m_eVAlign)
+    {
+    case UI_TEXT_VALIGN::TOP:    fOffsetY = 0.f; 
+        break;
+    case UI_TEXT_VALIGN::MIDDLE: fOffsetY = (m_fSizeY - fDrawH) * 0.5f; 
+        break;
+    case UI_TEXT_VALIGN::BOTTOM: fOffsetY = m_fSizeY - fDrawH; 
+        break;
+    default: break;
+    }
+
     _float2 vPosition;
-    vPosition.x = m_fCenterX - vTextSize.x * m_fScale * 0.5f;
-    vPosition.y = m_fCenterY - vTextSize.y * m_fScale * 0.5f;
+    vPosition.x = fBoxLeft + fOffsetX;
+    vPosition.y = fBoxTop + fOffsetY;
 
     return m_pGameInstance->Render_Font(
         m_strFontTag,
@@ -62,7 +107,7 @@ HRESULT CUI_Text::Render()
         XMLoadFloat4(&m_vColor),
         m_fRotation,
         _float2(0.f, 0.f),
-        _float2(m_fScale, m_fScale));
+        _float2(fFinalScale, fFinalScale));
 }
 
 CUI_Text* CUI_Text::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

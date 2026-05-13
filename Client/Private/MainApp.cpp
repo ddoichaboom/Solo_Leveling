@@ -30,8 +30,10 @@ HRESULT CMainApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _u
 		return E_FAIL;
 	}
 
-	// 엔진 초기화 후 STATIC 레벨 프로토타입 등록
 	if (FAILED(Ready_Prototype_For_Static()))
+		return E_FAIL;
+
+	if (FAILED(Ready_Prototype_For_Loading()))
 		return E_FAIL;
 
 	if (FAILED(Start_Level(LEVEL::LOGO)))
@@ -127,6 +129,61 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 		TEXT("Prototype_GameObject_UI_Text"),
 		CUI_Text::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT CMainApp::Ready_Prototype_For_Loading()
+{
+	const LEVEL eLevel = LEVEL::LOADING;
+
+	struct LoadingTextureEntry
+	{
+		const _tchar* pProtoTag;
+		const _tchar* pFilePath;
+	};
+
+	static const LoadingTextureEntry aEntries[] =
+	{
+		// === 배경 ===
+		{ TEXT("Prototype_Component_Texture_BG_BlackScreen"),
+		  TEXT("../../Resources/Textures/Loading/BG_BlackScreen.png") },
+		{ TEXT("Prototype_Component_Texture_BG_Loading"),
+		  TEXT("../../Resources/Textures/Loading/BG_Loading.png") },
+
+		  // === 애니메이션 ===
+		{ TEXT("Prototype_Component_Texture_Img_Tank_Atlas"),
+			TEXT("../../Resources/Textures/Loading/Img_Tank_Atlas.png") },
+
+		// === 게이지 본체 ===
+		{ TEXT("Prototype_Component_Texture_LoadingGauge"),
+		  TEXT("../../Resources/Textures/Loading/LoadingGauge.png") },
+
+		  // === 게이지 배경 (원본 + 3-slice 분할) ===
+		 { TEXT("Prototype_Component_Texture_LoadingGauge_Bg"),
+		TEXT("../../Resources/Textures/Loading/LoadingGauge_Bg.png") },
+		 { TEXT("Prototype_Component_Texture_LoadingGauge_Bg_L"),
+		TEXT("../../Resources/Textures/Loading/LoadingGauge_Bg_L.png") },
+		 { TEXT("Prototype_Component_Texture_LoadingGauge_Bg_M"),
+		TEXT("../../Resources/Textures/Loading/LoadingGauge_Bg_M.png") },
+		 { TEXT("Prototype_Component_Texture_LoadingGauge_Bg_R"),
+		TEXT("../../Resources/Textures/Loading/LoadingGauge_Bg_R.png") },
+
+		// === 게이지 양 끝 장식 ===
+		{ TEXT("Prototype_Component_Texture_LoadingGauge_Deco_L"),
+		  TEXT("../../Resources/Textures/Loading/LoadingGauge_Deco_L.png") },
+		{ TEXT("Prototype_Component_Texture_LoadingGauge_Deco_R"),
+		  TEXT("../../Resources/Textures/Loading/LoadingGauge_Deco_R.png") },
+	};
+
+	for (const LoadingTextureEntry& Entry : aEntries)
+	{
+		if (FAILED(m_pGameInstance->Add_Prototype(
+			ETOUI(eLevel),
+			Entry.pProtoTag,
+			CTexture::Create(m_pDevice, m_pContext, Entry.pFilePath, 1))))
+			return E_FAIL;
+	}
 
 	return S_OK;
 }

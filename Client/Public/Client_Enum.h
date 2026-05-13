@@ -172,5 +172,9 @@ namespace Client
 		VIDEO,
 		END
 	};
+
+	enum class UI_TEXT_HALIGN { LEFT, CENTER, RIGHT, END };
+
+	enum class UI_TEXT_VALIGN { TOP, MIDDLE, BOTTOM, END };
 }
 #endif // Client_Enum_h__

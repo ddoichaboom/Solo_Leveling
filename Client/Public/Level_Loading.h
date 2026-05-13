@@ -23,6 +23,12 @@ public:
 private:
 	LEVEL						m_eNextLevelID = { LEVEL::END };
 	class CLoader*				m_pLoader = { nullptr };
+	class CUI_Image*			m_pGaugeFill = { nullptr };
+	class CUI_Text*				m_pPercentText = { nullptr };
+	class CUI_Text*				m_pStatusText = { nullptr };
+
+private:
+	static const _tchar*		Get_Loading_UIScene_Path(LEVEL eTarget);
 
 public:
 	static CLevel_Loading*		Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, LEVEL eNextLevelID);

@@ -27,6 +27,7 @@ private:
 
 private:
 	HRESULT					Ready_Prototype_For_Static();
+	HRESULT					Ready_Prototype_For_Loading();
 	HRESULT					Start_Level(LEVEL eStartLevelID);
 
 

@@ -3,6 +3,7 @@
 #include "Client_Defines.h"
 #include "UICanvasTool.h"
 #include "GameInstance.h"
+#include "Texture.h"
 
 CPanel_2DCanvas::CPanel_2DCanvas(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CPanel{ pDevice, pContext }
@@ -13,7 +14,7 @@ HRESULT CPanel_2DCanvas::Initialize()
 {
     strcpy_s(m_szName, "2D Canvas");
 
-    m_pTool = CUICanvasTool::Create();
+    m_pTool = CUICanvasTool::Create(m_pDevice, m_pContext);
     if (nullptr == m_pTool)
         return E_FAIL;
 
@@ -45,6 +46,16 @@ void CPanel_2DCanvas::Render()
     ImGui::Separator();
 
     ImGui::InputText("File", m_szFilePath, sizeof(m_szFilePath));
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload(DND_FILE_PATH))
+        {
+            const _char* pCStr = static_cast<const _char*>(pPayload->Data);
+            strncpy_s(m_szFilePath, sizeof(m_szFilePath), pCStr, _TRUNCATE);
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     if (ImGui::Button("Save"))
     {
         _tchar szPath[MAX_PATH] = {};
@@ -58,6 +69,13 @@ void CPanel_2DCanvas::Render()
         CharToWChar(m_szFilePath, szPath, MAX_PATH);
         m_pTool->Load(szPath);
     }
+    ImGui::SameLine();
+
+    _bool bShowOverlay = m_pTool->Get_ShowOverlayImages();
+
+    if (ImGui::Checkbox("Show Images in Viewport", &bShowOverlay))
+        m_pTool->Set_ShowOverlayImages(bShowOverlay);
+
     ImGui::SameLine();
     if (ImGui::Button("Clear"))
         m_pTool->Clear();
@@ -206,7 +224,6 @@ void CPanel_2DCanvas::Render_Image_Properties(UI_ELEMENT* pElement)
     if (ImGui::InputText("Texture", szPath, MAX_PATH))
         CharToWChar(szPath, pElement->szTexturePath, MAX_PATH);
 
-    // ▼ 추가: 드롭 타겟
     if (ImGui::BeginDragDropTarget())
     {
         if (const ImGuiPayload* pPayload = ImGui::AcceptDragDropPayload(DND_FILE_PATH))
@@ -216,6 +233,68 @@ void CPanel_2DCanvas::Render_Image_Properties(UI_ELEMENT* pElement)
         }
         ImGui::EndDragDropTarget();
     }
+
+    if (UI_ELEMENT_TYPE::VIDEO != pElement->eType)
+    {
+        ID3D11ShaderResourceView* pPreviewSRV = m_pTool->Get_PreviewSRV(pElement->szTexturePath);        
+        if (nullptr != pPreviewSRV)
+        {
+            constexpr _float fThumbSize = 128.f;
+            ImGui::Image(reinterpret_cast<ImTextureID>(pPreviewSRV),
+                ImVec2(fThumbSize, fThumbSize));
+        }
+        else if (0 != pElement->szTexturePath[0])
+        {
+            ImGui::TextDisabled("(preview unavailable)");
+        }
+    }
+
+    if (UI_ELEMENT_TYPE::VIDEO == pElement->eType)
+        return;
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Pattern A (Prototype Pool)");
+
+    // ProtoTag 텍스트 입력
+    _char szProtoTag[MAX_PATH] = {};
+    WCharToChar(pElement->szTextureProtoTag, szProtoTag, MAX_PATH);
+    if (ImGui::InputText("ProtoTag", szProtoTag, MAX_PATH))
+        CharToWChar(szProtoTag, pElement->szTextureProtoTag, MAX_PATH);
+
+    static const _char* aLevelNames[] = { "STATIC", "LOADING", "LOGO", "GAMEPLAY" };
+    static const _uint  aLevelValues[] = {
+        ETOUI(LEVEL::STATIC), ETOUI(LEVEL::LOADING),
+        ETOUI(LEVEL::LOGO),   ETOUI(LEVEL::GAMEPLAY)
+    };
+    constexpr _int iNumLevels = static_cast<_int>(sizeof(aLevelValues) / sizeof(aLevelValues[0]));
+
+    _int iCurrent = 0;
+    for (_int i = 0; i < iNumLevels; ++i)
+    {
+        if (aLevelValues[i] == pElement->iTextureProtoLevel)
+        {
+            iCurrent = i;
+            break;
+        }
+    }
+
+    if (ImGui::BeginCombo("ProtoLevel", aLevelNames[iCurrent]))
+    {
+        for (_int i = 0; i < iNumLevels; ++i)
+        {
+            const _bool bSelected = (i == iCurrent);
+            if (ImGui::Selectable(aLevelNames[i], bSelected))
+                pElement->iTextureProtoLevel = aLevelValues[i];
+            if (bSelected) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    const _bool bProtoActive = (0 != pElement->szTextureProtoTag[0]);
+    if (bProtoActive)
+        ImGui::TextColored(ImVec4(0.6f, 1.f, 0.6f, 1.f), "Pattern A active (path ignored at runtime)");
+    else
+        ImGui::TextDisabled("Pattern B: path-based (set ProtoTag to use pool)");
 }
 
 void CPanel_2DCanvas::Render_Text_Properties(UI_ELEMENT* pElement)
@@ -248,6 +327,25 @@ void CPanel_2DCanvas::Render_Text_Properties(UI_ELEMENT* pElement)
     WCharToChar(pElement->szText, szText, MAX_PATH);
     if (ImGui::InputText("Text", szText, MAX_PATH))
         CharToWChar(szText, pElement->szText, MAX_PATH);
+
+    // === 정렬 ===
+    static const _char* aHAlign[] = { "Left", "Center", "Right" };
+    static const _char* aVAlign[] = { "Top",  "Middle", "Bottom" };
+
+    _int iH = static_cast<_int>(pElement->eHAlign);
+    if (ImGui::Combo("HAlign", &iH, aHAlign, IM_ARRAYSIZE(aHAlign)))
+        pElement->eHAlign = static_cast<UI_TEXT_HALIGN>(iH);
+
+    _int iV = static_cast<_int>(pElement->eVAlign);
+    if (ImGui::Combo("VAlign", &iV, aVAlign, IM_ARRAYSIZE(aVAlign)))
+        pElement->eVAlign = static_cast<UI_TEXT_VALIGN>(iV);
+
+    // === AutoFit ===
+    ImGui::Checkbox("Auto Fit (Size box)", &pElement->bAutoFit);
+    if (pElement->bAutoFit)
+        ImGui::TextDisabled("Scale is clamped to fit Size box");
+
+
 }
 
 void CPanel_2DCanvas::Render_SpriteAnim_Properties(UI_ELEMENT* pElement)
@@ -283,6 +381,6 @@ CPanel_2DCanvas* CPanel_2DCanvas::Create(ID3D11Device* pDevice, ID3D11DeviceCont
 void CPanel_2DCanvas::Free()
 {
     __super::Free();
-
     Safe_Release(m_pTool);
+
 }

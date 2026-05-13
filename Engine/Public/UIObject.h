@@ -9,9 +9,9 @@ class ENGINE_DLL CUIObject abstract : public CGameObject
 public:
 	typedef struct tagUIObjectDesc : public CGameObject::GAMEOBJECT_DESC
 	{
-		_float fCenterX, fCenterY;
-		_float fSizeX, fSizeY;
-
+		_float			fCenterX, fCenterY;
+		_float			fSizeX, fSizeY;
+		const _tchar*	pObjectName = { nullptr };
 		tagUIObjectDesc() { eTransformType = TRANSFORMTYPE::TRANSFORM_2D; }
 	}UIOBJECT_DESC;
 
@@ -20,6 +20,9 @@ protected:
 	CUIObject(const CUIObject& Prototype);
 	virtual ~CUIObject() = default;
 
+public:
+	const _wstring&			Get_ObjectName() const { return m_strObjectName; }
+	
 public:
 	virtual HRESULT			Initialize_Prototype();
 	virtual HRESULT			Initialize(void* pArg);
@@ -32,6 +35,7 @@ protected:
 	_float					m_fCenterX{}, m_fCenterY{}, m_fSizeX{}, m_fSizeY{};
 	_float					m_fViewWidth{}, m_fViewHeight{};
 	_float4x4				m_TransformMatrices[ETOUI(D3DTS::END)] = {};
+	_wstring				m_strObjectName;
 
 protected:
 	void					Update_UIState();

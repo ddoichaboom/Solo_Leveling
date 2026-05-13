@@ -25,10 +25,11 @@ HRESULT CUIObject::Initialize(void* pArg)
 
     auto pDesc  = static_cast<UIOBJECT_DESC*>(pArg);
 
-    m_fCenterX  = pDesc->fCenterX;
-    m_fCenterY  = pDesc->fCenterY;
-    m_fSizeX    = pDesc->fSizeX;
-    m_fSizeY    = pDesc->fSizeY;
+    m_fCenterX      = pDesc->fCenterX;
+    m_fCenterY      = pDesc->fCenterY;
+    m_fSizeX        = pDesc->fSizeX;
+    m_fSizeY        = pDesc->fSizeY;
+    m_strObjectName = (pDesc->pObjectName ? pDesc->pObjectName : TEXT(""));
 
     // Transform Component »ý¼º
     if (FAILED(__super::Initialize(pArg)))

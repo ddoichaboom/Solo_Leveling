@@ -94,21 +94,26 @@ HRESULT CLoader::Ready_Resources_For_Logo()
 
 	lstrcpy(m_szLoadingText, TEXT("텍스쳐 로딩 중"));
 
+	m_fProgress = 0.f;
+
 	// Prototype_Component_Texture_BackGround
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_Component_Texture_BackGround"),
 		CTexture::Create(m_pDevice, m_pContext, TEXT("../../Resources/Textures/Default%d.jpg"), 2))))
 		return E_FAIL;
 
-
 	lstrcpy(m_szLoadingText, TEXT("셰이더 로딩 중"));
+	m_fProgress = 0.3f;
 
 	lstrcpy(m_szLoadingText, TEXT("정점, 인덱스 버퍼 로딩 중"));
 
 	lstrcpy(m_szLoadingText, TEXT("객체원형 로딩 중"));
+	m_fProgress = 0.75f;
 
 	// Prototype_GameObject_BackGround
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_BackGround"), CBackGround::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
+
+	m_fProgress = 1.0f;
 
 	lstrcpy(m_szLoadingText, TEXT("로딩이 완료되었습니다."));
 

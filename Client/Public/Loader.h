@@ -20,6 +20,10 @@ public:
 	HRESULT					Loading();
 	_bool					isFinished() const { return m_isFinished; }
 
+public:
+	_float					Get_Progress() const { return m_fProgress; }
+	const _tchar*			Get_LoadingText() const { return m_szLoadingText; }
+
 #ifdef _DEBUG
 public:
 	void					Show();
@@ -37,8 +41,7 @@ private:
 private:
 	_tchar					m_szLoadingText[MAX_PATH] = {};
 	_bool					m_isFinished = {};
-
-
+	_float					m_fProgress = { 0.f };
 private:
 	HRESULT					Ready_Resources_For_Logo();
 	HRESULT					Ready_Resources_For_GamePlay();
