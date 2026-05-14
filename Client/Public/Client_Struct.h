@@ -136,6 +136,7 @@ namespace Client
 		UI_TEXT_HALIGN		eHAlign = UI_TEXT_HALIGN::CENTER;
 		UI_TEXT_VALIGN		eVAlign = UI_TEXT_VALIGN::MIDDLE;
 		_bool				bAutoFit = false;
+		_bool				bVisible = { true };
 	}UI_ELEMENT;
 
 	typedef struct tagUISceneData

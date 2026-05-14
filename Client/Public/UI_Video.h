@@ -17,7 +17,6 @@ public:
 	typedef struct tagUI_VideoDesc : public CUIObject::UIOBJECT_DESC
 	{
 		const _tchar*	pVideoPath = { nullptr };
-		_uint			iZOrder = { 0 };
 		_bool			bLoop = { true };
 		_float			fPlaybackSpeed = { 1.f };
 	}UI_VIDEO_DESC;
@@ -38,7 +37,6 @@ private:
 	CShader*					m_pShaderCom = { nullptr };
 	CVIBuffer*					m_pVIBufferCom = { nullptr };
 	CVideoTexture*				m_pVideoTexture = { nullptr };
-	_uint						m_iZOrder = { 0 };
 
 private:
 	HRESULT						Ready_Components(const _tchar* pVideoPath, _bool bLoop, _float fSpeed);

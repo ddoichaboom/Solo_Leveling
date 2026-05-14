@@ -28,7 +28,6 @@ HRESULT CUI_Text::Initialize(void* pArg)
     m_fScale = pDesc->fScale;
     m_vColor = pDesc->vColor;
     m_fRotation = pDesc->fRotation;
-    m_iZOrder = pDesc->iZOrder;
 
     m_eHAlign = pDesc->eHAlign;
     m_eVAlign = pDesc->eVAlign;
@@ -40,8 +39,27 @@ HRESULT CUI_Text::Initialize(void* pArg)
     return S_OK;
 }
 
+void CUI_Text::Update(_float fTimeDelta)
+{
+    if (!m_bAlphaPulse)
+        return;
+
+    m_fPulseTime += fTimeDelta * m_fPulseSpeed;
+
+    if (m_fPulseTime >= 1.f)
+        m_fPulseTime -= floorf(m_fPulseTime);
+
+    const _float fT = 0.5f * (1.f + cosf(m_fPulseTime * XM_2PI));
+    const _float fAlpha = m_fPulseMin + (m_fPulseMax - m_fPulseMin) * fT;
+
+    m_vColor.w = fAlpha;
+}
+
 void CUI_Text::Late_Update(_float fTimeDelta)
 {
+    if (!m_bVisible)
+        return;
+
     m_pGameInstance->Add_RenderGroup(RENDERID::UI, this);
 }
 
@@ -106,14 +124,29 @@ HRESULT CUI_Text::Render()
     vPosition.x = fBoxLeft + fOffsetX;
     vPosition.y = fBoxTop + fOffsetY;
 
+    _float4 vPremul;
+    vPremul.x = m_vColor.x * m_vColor.w;
+    vPremul.y = m_vColor.y * m_vColor.w;
+    vPremul.z = m_vColor.z * m_vColor.w;
+    vPremul.w = m_vColor.w;
+
     return m_pGameInstance->Render_Font(
         m_strFontTag,
         m_strText.c_str(),
         vPosition,
-        XMLoadFloat4(&m_vColor),
+        XMLoadFloat4(&vPremul),
         m_fRotation,
         _float2(0.f, 0.f),
         _float2(fFinalScale, fFinalScale));
+}
+
+void CUI_Text::Set_AlphaPulse(_float fSpeed, _float fMinAlpha, _float fMaxAlpha)
+{
+    m_bAlphaPulse = true;
+    m_fPulseSpeed = fSpeed;
+    m_fPulseMin = fMinAlpha;
+    m_fPulseMax = fMaxAlpha;
+    m_fPulseTime = 0.f;
 }
 
 CUI_Text* CUI_Text::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

@@ -178,6 +178,7 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Client_Func.h" />
     <ClInclude Include="..\Public\Client_Struct.h" />
     <ClInclude Include="..\Public\Elite_Monster.h" />
+    <ClInclude Include="..\Public\FadeOverlay_Helper.h" />
     <ClInclude Include="..\Public\IntentResolver.h" />
     <ClInclude Include="..\Public\Level_GamePlay.h" />
     <ClInclude Include="..\Public\Level_Loading.h" />
@@ -197,6 +198,7 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Terrain.h" />
     <ClInclude Include="..\Public\UISceneLoader.h" />
     <ClInclude Include="..\Public\UISceneSerializer.h" />
+    <ClInclude Include="..\Public\UI_Cursor.h" />
     <ClInclude Include="..\Public\UI_Image.h" />
     <ClInclude Include="..\Public\UI_SpriteAnim.h" />
     <ClInclude Include="..\Public\UI_Text.h" />
@@ -212,6 +214,7 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Camera_Free.cpp" />
     <ClCompile Include="..\Private\CharacterAnimTable.cpp" />
     <ClCompile Include="..\Private\Elite_Monster.cpp" />
+    <ClCompile Include="..\Private\FadeOverlay_Helper.cpp" />
     <ClCompile Include="..\Private\IntentResolver.cpp" />
     <ClCompile Include="..\Private\Level_GamePlay.cpp" />
     <ClCompile Include="..\Private\Level_Loading.cpp" />
@@ -231,6 +234,7 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\Terrain.cpp" />
     <ClCompile Include="..\Private\UISceneLoader.cpp" />
     <ClCompile Include="..\Private\UISceneSerializer.cpp" />
+    <ClCompile Include="..\Private\UI_Cursor.cpp" />
     <ClCompile Include="..\Private\UI_Image.cpp" />
     <ClCompile Include="..\Private\UI_SpriteAnim.cpp" />
     <ClCompile Include="..\Private\UI_Text.cpp" />

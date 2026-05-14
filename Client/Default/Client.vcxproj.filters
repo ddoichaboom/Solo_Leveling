@@ -142,6 +142,12 @@
     <Filter Include="03. UI\SceneData\Loader">
       <UniqueIdentifier>{1411f57b-2255-48b4-84d2-1a8ad2a3c0ed}</UniqueIdentifier>
     </Filter>
+    <Filter Include="03. UI\FadeOverlay">
+      <UniqueIdentifier>{535b0801-e7fe-4fba-b227-a9a62735c3d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\Cursor">
+      <UniqueIdentifier>{55f59345-0ddd-4a53-8730-63a6ae98004c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -252,6 +258,12 @@
     <ClInclude Include="..\Public\UISceneLoader.h">
       <Filter>03. UI\SceneData\Loader</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\FadeOverlay_Helper.h">
+      <Filter>03. UI\FadeOverlay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI_Cursor.h">
+      <Filter>03. UI\Cursor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -349,6 +361,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\UISceneLoader.cpp">
       <Filter>03. UI\SceneData\Loader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FadeOverlay_Helper.cpp">
+      <Filter>03. UI\FadeOverlay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI_Cursor.cpp">
+      <Filter>03. UI\Cursor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

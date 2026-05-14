@@ -7,6 +7,7 @@
 #include "UI_Video.h"
 #include "UI_Text.h"
 #include "UI_SpriteAnim.h"
+#include "UI_Cursor.h"
 
 CMainApp::CMainApp()
 	: m_pGameInstance{ CGameInstance::GetInstance() }
@@ -35,6 +36,14 @@ HRESULT CMainApp::Initialize(HWND hWnd, HINSTANCE hInstance, _uint iWinSizeX, _u
 
 	if (FAILED(Ready_Prototype_For_Loading()))
 		return E_FAIL;
+
+	if (FAILED(Ready_GlobalOverlay()))
+		return E_FAIL;
+
+	if (FAILED(Ready_GlobalCursor()))
+		return E_FAIL;
+
+	ShowCursor(FALSE);
 
 	if (FAILED(Start_Level(LEVEL::LOGO)))
 		return E_FAIL;
@@ -130,6 +139,19 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 		CUI_Text::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
+	// Prototype_Component_Texture_UI_Cursor
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC),
+		TEXT("Prototype_Component_Texture_UI_Cursor"),
+		CTexture::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Textures/Mouse_Cursor.png"), 1))))
+		return E_FAIL;
+
+	// Prototype_GameObject_UI_Cursor
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(LEVEL::STATIC),
+		TEXT("Prototype_GameObject_UI_Cursor"),
+		CUI_Cursor::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
 	return S_OK;
 }
 
@@ -186,6 +208,45 @@ HRESULT CMainApp::Ready_Prototype_For_Loading()
 			CTexture::Create(m_pDevice, m_pContext, Entry.pFilePath, 1))))
 			return E_FAIL;
 	}
+
+	return S_OK;
+}
+
+HRESULT CMainApp::Ready_GlobalCursor()
+{
+	CUI_Image::UI_IMAGE_DESC Desc{};
+	Desc.fCenterX = -1000.f;
+	Desc.fCenterY = -1000.f;
+	Desc.fSizeX = 32.f;   
+	Desc.fSizeY = 32.f;
+	Desc.iZOrder = 10000;  
+	Desc.pObjectName = TEXT("GlobalCursor");
+	Desc.pTextureProtoTag = TEXT("Prototype_Component_Texture_UI_Cursor");
+	Desc.iTextureProtoLevel = ETOUI(LEVEL::STATIC);
+	Desc.bVisible = true;
+
+	return m_pGameInstance->Add_GameObject(
+		ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_Cursor"),
+		ETOUI(LEVEL::STATIC), TEXT("Layer_Global_UI"), &Desc);
+}
+
+HRESULT CMainApp::Ready_GlobalOverlay()
+{
+	CUI_Image::UI_IMAGE_DESC Desc{};
+	Desc.fCenterX = 640.f;        
+	Desc.fCenterY = 360.f;
+	Desc.fSizeX = 1280.f;
+	Desc.fSizeY = 720.f;
+	Desc.iZOrder = 9999;         
+	Desc.pObjectName = TEXT("FadeOverlay");
+	Desc.pTextureProtoTag = TEXT("Prototype_Component_Texture_BG_BlackScreen");
+	Desc.iTextureProtoLevel = ETOUI(LEVEL::STATIC);
+	Desc.bVisible = true;         // 항상 그려짐. 알파로 가시/비가시 제어
+
+	if (FAILED(m_pGameInstance->Add_GameObject(
+		ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_Image"),
+		ETOUI(LEVEL::STATIC), TEXT("Layer_Global_UI"), &Desc)))
+		return E_FAIL;
 
 	return S_OK;
 }

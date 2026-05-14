@@ -13,6 +13,18 @@ CUIObject::CUIObject(const CUIObject& Prototype)
 
 }
 
+_bool CUIObject::Is_Hovered(_float fScreenX, _float fScreenY) const
+{
+    if (!m_bVisible)
+        return false;
+
+    const _float fHalfW = m_fSizeX * 0.5f;
+    const _float fHalfH = m_fSizeY * 0.5f;
+
+    return (fScreenX >= m_fCenterX - fHalfW) && (fScreenX <= m_fCenterX + fHalfW)
+        && (fScreenY >= m_fCenterY - fHalfH) && (fScreenY <= m_fCenterY + fHalfH);
+}
+
 HRESULT CUIObject::Initialize_Prototype()
 {
     return S_OK;
@@ -30,6 +42,8 @@ HRESULT CUIObject::Initialize(void* pArg)
     m_fSizeX        = pDesc->fSizeX;
     m_fSizeY        = pDesc->fSizeY;
     m_strObjectName = (pDesc->pObjectName ? pDesc->pObjectName : TEXT(""));
+    m_bVisible      = pDesc->bVisible;
+    m_iZOrder       = pDesc->iZOrder;
 
     // Transform Component »ý¼º
     if (FAILED(__super::Initialize(pArg)))

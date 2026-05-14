@@ -29,7 +29,6 @@ HRESULT CUI_Video::Initialize(void* pArg)
         return E_FAIL;
 
     auto pDesc = static_cast<UI_VIDEO_DESC*>(pArg);
-    m_iZOrder = pDesc->iZOrder;
 
     if (FAILED(__super::Initialize(pArg)))
         return E_FAIL;
@@ -48,6 +47,9 @@ void CUI_Video::Update(_float fTimeDelta)
 
 void CUI_Video::Late_Update(_float fTimeDelta)
 {
+    if (!m_bVisible)
+        return;
+
     m_pGameInstance->Add_RenderGroup(RENDERID::UI, this);
 }
 
@@ -104,6 +106,10 @@ HRESULT CUI_Video::Bind_ShaderResources()
         return E_FAIL;
 
     if (FAILED(m_pShaderCom->Bind_SRV("g_Texture", pSRV)))
+        return E_FAIL;
+
+    const _float fOne = 1.f;
+    if (FAILED(m_pShaderCom->Bind_RawValue("g_fAlpha", &fOne, sizeof(_float))))
         return E_FAIL;
 
     return S_OK;

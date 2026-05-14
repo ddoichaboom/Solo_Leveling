@@ -11,7 +11,10 @@ public:
 	{
 		_float			fCenterX, fCenterY;
 		_float			fSizeX, fSizeY;
+		_uint			iZOrder = { 0 };
 		const _tchar*	pObjectName = { nullptr };
+		_bool			bVisible = { true };
+
 		tagUIObjectDesc() { eTransformType = TRANSFORMTYPE::TRANSFORM_2D; }
 	}UIOBJECT_DESC;
 
@@ -21,8 +24,15 @@ protected:
 	virtual ~CUIObject() = default;
 
 public:
-	const _wstring&			Get_ObjectName() const { return m_strObjectName; }
+	const _wstring& Get_ObjectName() const { return m_strObjectName; }
+
+	_bool					Is_Visible() const { return m_bVisible; }
+	void					Set_Visible(_bool bVisible) { m_bVisible = bVisible; }
+	_bool					Is_Hovered(_float fScreenX, _float fScreenY) const;
 	
+	_uint					Get_ZOrder() const { return m_iZOrder; }
+	void					Set_ZOrder(_uint iZOrder) { m_iZOrder = iZOrder; }
+
 public:
 	virtual HRESULT			Initialize_Prototype();
 	virtual HRESULT			Initialize(void* pArg);
@@ -36,6 +46,9 @@ protected:
 	_float					m_fViewWidth{}, m_fViewHeight{};
 	_float4x4				m_TransformMatrices[ETOUI(D3DTS::END)] = {};
 	_wstring				m_strObjectName;
+	_bool					m_bVisible = { true };
+
+	_uint					m_iZOrder = { 0 };
 
 protected:
 	void					Update_UIState();

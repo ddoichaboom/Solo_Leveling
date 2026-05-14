@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "GameObject.h"
+#include "UIObject.h"
 
 CRenderer::CRenderer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: m_pDevice { pDevice }
@@ -93,7 +94,21 @@ HRESULT CRenderer::Render_Blend()
 
 HRESULT CRenderer::Render_UI()
 {
-	for (auto& pRenderObject : m_RenderObjects[ETOUI(RENDERID::UI)])
+	auto& UIObjects = m_RenderObjects[ETOUI(RENDERID::UI)];
+
+	UIObjects.sort(
+		[](CGameObject* pA, CGameObject* pB)
+		{
+			CUIObject* pUIA = dynamic_cast<CUIObject*>(pA);
+			CUIObject* pUIB = dynamic_cast<CUIObject*>(pB);
+
+			const _uint zA = pUIA ? pUIA->Get_ZOrder() : 0;
+			const _uint zB = pUIB ? pUIB->Get_ZOrder() : 0;
+
+			return zA < zB;
+		});
+
+	for (auto& pRenderObject : UIObjects)
 	{
 		if (nullptr != pRenderObject)
 			pRenderObject->Render();
@@ -101,7 +116,7 @@ HRESULT CRenderer::Render_UI()
 		Safe_Release(pRenderObject);
 	}
 
-	m_RenderObjects[ETOUI(RENDERID::UI)].clear();
+	UIObjects.clear();
 
 	return S_OK;
 }

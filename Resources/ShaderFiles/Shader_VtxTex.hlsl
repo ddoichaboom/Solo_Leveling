@@ -4,6 +4,7 @@
 float4x4 g_WorldMatrix, g_ViewMatrix, g_ProjMatrix;
 texture2D g_Texture;
 float4 g_vUVOffsetScale = float4(0.f, 0.f, 1.f, 1.f);
+float g_fAlpha = 1.f;
 
 // 셰이더의 입력 구조체는 C++ 측 정점 구조체 VTXTEX와 1:1 대응 해야 함.
 struct VS_IN
@@ -94,6 +95,7 @@ PS_OUT PS_UI(PS_IN In)
     if (Out.vColor.a < 0.05f)
         discard;
     
+    Out.vColor.a *= g_fAlpha;
     return Out;
 }
 

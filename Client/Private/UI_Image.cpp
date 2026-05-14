@@ -37,6 +37,22 @@ void CUI_Image::Set_Progress(_float fProgress)
 	Update_UIState();
 }
 
+void CUI_Image::Start_Fade(_float fTargetAlpha, _float fDuration, function<void()> OnComplete)
+{
+	m_fFadeFrom = m_fAlpha;
+	m_fFadeTo = fTargetAlpha;
+	m_fFadeDuration = (fDuration > 0.f) ? fDuration : 0.001f;
+	m_fFadeElapsed = 0.f;
+	m_bFading = true;
+	m_OnFadeComplete = move(OnComplete);
+}
+
+void CUI_Image::Stop_Fade()
+{
+	m_bFading = false;
+	m_OnFadeComplete = nullptr;
+}
+
 HRESULT CUI_Image::Initialize_Prototype()
 {
 	return S_OK;
@@ -45,7 +61,6 @@ HRESULT CUI_Image::Initialize_Prototype()
 HRESULT CUI_Image::Initialize(void* pArg)
 {
 	auto pDesc = static_cast<UI_IMAGE_DESC*>(pArg);
-	m_iZOrder = pDesc->iZOrder;
 
 	if (FAILED(__super::Initialize(pArg)))
 		return E_FAIL;
@@ -56,8 +71,35 @@ HRESULT CUI_Image::Initialize(void* pArg)
 	return S_OK;
 }
 
+void CUI_Image::Update(_float fTimeDelta)
+{
+	if (!m_bFading)
+		return;
+
+	m_fFadeElapsed += fTimeDelta;
+	_float fT = (m_fFadeDuration > 0.f) ? (m_fFadeElapsed / m_fFadeDuration) : 1.f;
+
+	if (fT >= 1.f)
+	{
+		fT = 1.f;
+		m_fAlpha = m_fFadeTo;
+		m_bFading = false;
+
+		auto cb = move(m_OnFadeComplete);
+		m_OnFadeComplete = nullptr;
+		if (cb)
+			cb();
+		return;
+	}
+
+	m_fAlpha = m_fFadeFrom + (m_fFadeTo - m_fFadeFrom) * fT;
+}
+
 void CUI_Image::Late_Update(_float fTimeDelta)
 {
+	if (!m_bVisible)
+		return;
+
 	m_pGameInstance->Add_RenderGroup(RENDERID::UI, this);
 }
 
@@ -123,6 +165,9 @@ HRESULT CUI_Image::Bind_ShaderResources()
 		return E_FAIL;
 
 	if (FAILED(m_pTextureCom->Bind_ShaderResource(m_pShaderCom, "g_Texture", 0)))
+		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_fAlpha", &m_fAlpha, sizeof(_float))))
 		return E_FAIL;
 
 	return S_OK;

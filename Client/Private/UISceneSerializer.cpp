@@ -4,7 +4,7 @@
 
 static constexpr char  UISCENE_MAGIC[4] = { 'S', 'L', 'U', 'I' };
 static constexpr _uint UISCENE_VERSION_MIN = { 1 };
-static constexpr _uint UISCENE_VERSION_LATEST = { 4 };
+static constexpr _uint UISCENE_VERSION_LATEST = { 5 };
 
 HRESULT CUISceneSerializer::Save(const _tchar* pUISceneDataPath, const UI_SCENE_DATA& UISceneData)
 {
@@ -151,6 +151,10 @@ HRESULT CUISceneSerializer::Write_Element(CBinaryWriter& Writer, const UI_ELEMEN
     if (FAILED(Writer.Write(iAutoFit)))  
         return E_FAIL;
 
+    const _uint iVisible = Element.bVisible ? 1u : 0u;
+    if (FAILED(Writer.Write(iVisible)))
+        return E_FAIL;
+
     return S_OK;
 }
 
@@ -249,6 +253,19 @@ HRESULT CUISceneSerializer::Read_Element(CBinaryReader& Reader, UI_ELEMENT* pOut
         pOutElement->eVAlign = UI_TEXT_VALIGN::MIDDLE;
         pOutElement->bAutoFit = false;
     }
+
+    if (iVersion >= 5)
+    {
+        _uint iVisible = 1;
+        if (FAILED(Reader.Read(&iVisible)))
+            return E_FAIL;
+        pOutElement->bVisible = (0 != iVisible);
+    }
+    else
+    {
+        pOutElement->bVisible = true;
+    }
+
     pOutElement->eType = static_cast<UI_ELEMENT_TYPE>(iType);
     pOutElement->szName[MAX_PATH - 1] = 0;
     pOutElement->szTexturePath[MAX_PATH - 1] = 0;

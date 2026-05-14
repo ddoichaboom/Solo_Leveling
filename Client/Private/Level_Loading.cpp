@@ -8,6 +8,7 @@
 #include "UI_Image.h"
 #include "UI_Text.h"
 #include "Layer.h"
+#include "FadeOverlay_Helper.h"
 
 CLevel_Loading::CLevel_Loading(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CLevel{ pDevice, pContext }
@@ -59,6 +60,12 @@ HRESULT CLevel_Loading::Initialize(LEVEL eNextLevelID)
 		}
 	}
 
+	if (CUI_Image* pFade = CFadeOverlay_Helper::Find())
+	{
+		pFade->Set_Alpha(1.f);
+		pFade->Start_Fade(0.f, 0.5f);
+	}
+
 	return S_OK;
 }
 
@@ -79,30 +86,46 @@ void CLevel_Loading::Update(_float fTimeDelta)
 	if (m_pStatusText)
 		m_pStatusText->Set_Text(m_pLoader->Get_LoadingText());
 
-	if (m_pGameInstance->Get_KeyState(VK_SPACE) & 0x80 &&
-		true == m_pLoader->isFinished())
+	if (!m_bExitFadeStarted &&
+		m_pLoader->isFinished() &&
+		fProgress >= 1.f)
 	{
-
-		CLevel* pNextLevel = { nullptr };
-
-		switch (m_eNextLevelID)
+		if (CUI_Image* pFade = CFadeOverlay_Helper::Find())
 		{
-		case LEVEL::LOGO:
-			pNextLevel = CLevel_Logo::Create(m_pDevice, m_pContext);
-			break;
-		case LEVEL::GAMEPLAY:
-			pNextLevel = CLevel_GamePlay::Create(m_pDevice, m_pContext);
-			break;
-		}
+			if (pFade->Is_Fading())
+				return;
 
-		if (nullptr == pNextLevel)
+			m_bExitFadeStarted = true;
+		
+			pFade->Start_Fade(1.f, 0.5f, [this]() {
+			CLevel* pNext = nullptr;
+			switch (m_eNextLevelID)
+			{
+			case LEVEL::LOGO:
+				pNext = CLevel_Logo::Create(m_pDevice, m_pContext);
+				break;
+			case LEVEL::GAMEPLAY:
+				pNext = CLevel_GamePlay::Create(m_pDevice, m_pContext);
+				break;
+			default:
+				break;
+			}
+
+			if (nullptr != pNext)
+				m_pGameInstance->Change_Level(ETOI(m_eNextLevelID), pNext);
+			});
+		}
+		else
 		{
-			MSG_BOX("Failed to Changed");
-			return;
-		}
+			CLevel* pNext = nullptr;
+			if (m_eNextLevelID == LEVEL::LOGO)
+				pNext = CLevel_Logo::Create(m_pDevice, m_pContext);
+			else if (m_eNextLevelID == LEVEL::GAMEPLAY)
+				pNext = CLevel_GamePlay::Create(m_pDevice, m_pContext);
 
-		if (SUCCEEDED(m_pGameInstance->Change_Level(ETOI(m_eNextLevelID), pNextLevel)))
-			return;
+			if (nullptr != pNext)
+				m_pGameInstance->Change_Level(ETOI(m_eNextLevelID), pNext);
+		}
 	}
 }
 

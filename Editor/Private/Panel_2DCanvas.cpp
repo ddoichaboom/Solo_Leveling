@@ -215,6 +215,8 @@ void CPanel_2DCanvas::Render_Common_Properties(UI_ELEMENT* pElement)
     }
 
     ImGui::Text("ZOrder (auto): %u", pElement->iZOrder);
+
+    ImGui::Checkbox("Visible (initial)", &pElement->bVisible);
 }
 
 void CPanel_2DCanvas::Render_Image_Properties(UI_ELEMENT* pElement)

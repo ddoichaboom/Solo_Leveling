@@ -19,7 +19,6 @@ public:
 		_uint iTextureProtoLevel = { ETOUI(LEVEL::STATIC) };
 
 		const _tchar*	pTexturePath = { nullptr };
-		_uint			iZOrder = { 0 };
 	}UI_IMAGE_DESC;
 
 protected:
@@ -30,9 +29,17 @@ protected:
 public:
 	void						Set_Progress(_float fProgress);
 
+	void						Set_Alpha(_float fAlpha) { m_fAlpha = fAlpha; }
+	_float                      Get_Alpha() const { return m_fAlpha; }
+	_bool                       Is_Fading() const { return m_bFading; }
+
+	void                        Start_Fade(_float fTargetAlpha, _float fDuration, function<void()> OnComplete = nullptr);
+	void                        Stop_Fade();
+
 public:
 	virtual HRESULT				Initialize_Prototype() override;
 	virtual HRESULT				Initialize(void* pArg) override;
+	virtual void				Update(_float fTimeDelta) override;
 	virtual void				Late_Update(_float fTimeDelta) override;
 	virtual HRESULT				Render() override;
 
@@ -40,10 +47,17 @@ protected:
 	CShader*					m_pShaderCom = { nullptr };
 	CVIBuffer*					m_pVIBufferCom = { nullptr };
 	CTexture*					m_pTextureCom = { nullptr };
-	_uint						m_iZOrder = { 0 };
 	_float						m_fBaseCenterX = { 0.f };
 	_float						m_fBaseSizeX = { 0.f };
 	_bool						m_bBaseCached = { false };
+
+	_float                      m_fAlpha = { 1.f };
+	_bool                       m_bFading = { false };
+	_float                      m_fFadeFrom = { 1.f };
+	_float                      m_fFadeTo = { 0.f };
+	_float                      m_fFadeElapsed = { 0.f };
+	_float                      m_fFadeDuration = { 0.f };
+	function<void()>			m_OnFadeComplete;
 	
 protected:
 	HRESULT						Ready_Components(const UI_IMAGE_DESC* pDesc);

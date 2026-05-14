@@ -10,6 +10,10 @@ namespace Client
 
 	enum class WEAPON_TYPE { DEFAULT, DAGGER, SWORD, BOW, PISTOL, POLE_WEAPON, MAGICAL_WEAPON, TWO_HANDED_WEAPON, END };
 	
+	enum class LOGO_STATE { TITLE, MENU, END };
+
+	enum class MENU_ITEM { START, OPTIONS, QUIT, END };
+
 	enum class EQUIPPED_WEAPON_ID
 	{
 		NONE,					// 미장착 ( DEFAULT 양손 )

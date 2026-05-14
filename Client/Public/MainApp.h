@@ -28,6 +28,8 @@ private:
 private:
 	HRESULT					Ready_Prototype_For_Static();
 	HRESULT					Ready_Prototype_For_Loading();
+	HRESULT					Ready_GlobalCursor();
+	HRESULT					Ready_GlobalOverlay();
 	HRESULT					Start_Level(LEVEL eStartLevelID);
 
 

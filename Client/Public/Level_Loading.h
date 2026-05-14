@@ -28,6 +28,9 @@ private:
 	class CUI_Text*				m_pStatusText = { nullptr };
 
 private:
+	_bool						m_bExitFadeStarted = { false };
+
+private:
 	static const _tchar*		Get_Loading_UIScene_Path(LEVEL eTarget);
 
 public:

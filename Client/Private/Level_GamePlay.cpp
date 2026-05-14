@@ -7,11 +7,16 @@
 #include "NavMesh.h"
 #include "Cell.h"
 #include "SceneSerializer.h"
+#include "UISceneLoader.h"
+#include "UI_Image.h"
+#include "FadeOverlay_Helper.h"
+
 
 static constexpr _int PLAYER_START_CELL_INDEX = { 40 };
 
 static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/Map/ThroneRoom.scene");
 static const _tchar* DEFAULT_NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
+static const _tchar* HUD_SCENE_PATH = TEXT("../../Resources/Scenes/UI/HUD.uiscenes");
 
 _bool CLevel_GamePlay::Apply_PlayerSpawnFromCell(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, _int iCellIndex)
 {
@@ -148,6 +153,15 @@ HRESULT CLevel_GamePlay::Initialize()
 
 	if (FAILED(Ready_Layer_Camera(TEXT("Layer_Camera"))))
 		return E_FAIL;
+
+	if (FAILED(Ready_Layer_UI(TEXT("Layer_UI"))))
+		return E_FAIL;
+
+	if (CUI_Image* pFade = CFadeOverlay_Helper::Find())
+	{
+		pFade->Set_Alpha(1.f);
+		pFade->Start_Fade(0.f, 0.5f);
+	}
 
 	m_pGameInstance->Set_CursorLocked(true);
 
@@ -330,6 +344,20 @@ HRESULT CLevel_GamePlay::Ready_Layer_Player(const _wstring& strLayerTag)
 		ETOUI(LEVEL::GAMEPLAY), TEXT("Prototype_GameObject_Player"),
 		ETOUI(LEVEL::GAMEPLAY), strLayerTag, &Desc)))
 		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT	 CLevel_GamePlay::Ready_Layer_UI(const _wstring& strLayerTag)
+{
+	if (FAILED(CUISceneLoader::Load_Into_Layer(
+		HUD_SCENE_PATH,
+		ETOUI(LEVEL::GAMEPLAY),
+		strLayerTag)))
+	{
+		// 파일 없어도 일단 진행
+		return S_OK;
+	}
 
 	return S_OK;
 }
