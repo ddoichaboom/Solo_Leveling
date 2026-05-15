@@ -157,6 +157,11 @@ HRESULT CLevel_GamePlay::Initialize()
 	if (FAILED(Ready_Layer_UI(TEXT("Layer_UI"))))
 		return E_FAIL;
 
+	m_pGameInstance->Set_CollisionMatrix(
+		COLLISION_GROUP::PLAYER_BODY,
+		COLLISION_GROUP::MONSTER_BODY,
+		true);
+
 	if (CUI_Image* pFade = CFadeOverlay_Helper::Find())
 	{
 		pFade->Set_Alpha(1.f);

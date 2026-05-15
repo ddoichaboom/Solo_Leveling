@@ -70,6 +70,15 @@ public:
 	void						Add_RenderGroup(RENDERID eGroupID, class CGameObject* pGameObject);
 #pragma endregion
 
+#pragma region COLLISION_MANAGER
+public:
+	void						Add_Collider(COLLISION_GROUP eGroup, class CCollider* pCollider);
+	void						Set_CollisionMatrix(COLLISION_GROUP eA, COLLISION_GROUP eB, _bool bValue);
+	void						Set_Debug_Colliders(_bool bValue);
+	_bool						Is_Debug_Colliders() const;
+#pragma endregion
+
+
 #pragma region PIPELINE
 	const _float4x4*			Get_Transform(D3DTS eState) const;
 	const _float4x4*			Get_Transform_Inverse(D3DTS eState) const;
@@ -126,6 +135,7 @@ private:
 	class CInput_Device*		m_pInput_Device = { nullptr };
 	class CLight_Manager*		m_pLight_Manager = { nullptr };
 	class CFont_Manager*		m_pFont_Manager = { nullptr };
+	class CCollision_Manager*	m_pCollision_Manager = { nullptr };
 
 private:
 	_bool						m_bLogicFrozen = { false };

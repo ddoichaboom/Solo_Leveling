@@ -38,18 +38,26 @@ namespace Client
 
 	typedef struct tagMonsterAnimBindDesc
 	{
-		MONSTER_ACTION			eAction = { MONSTER_ACTION::END };
-		MONSTER_PHASE			ePhase = { MONSTER_PHASE::COMMON };
-		const _char* pAnimationName = { nullptr };
-		_bool					bRestartOnEnter = { true };
+		MONSTER_ACTION                  eAction = { MONSTER_ACTION::END };
+		MONSTER_PHASE                   ePhase = { MONSTER_PHASE::COMMON };
+		MONSTER_ACTION_STEP             eStep = { MONSTER_ACTION_STEP::NONE };
+		const _char*					pAnimationName = { nullptr };
+		_bool                           bRestartOnEnter = { true };
 	} MONSTER_ANIM_BIND_DESC;
 
 	typedef struct tagMonsterActionPolicy
 	{
-		MONSTER_ACTION			eAction = { MONSTER_ACTION::END };
-		_uint					iPriority = {};
-		_bool					bAutoReturn = { false };
-		MONSTER_ACTION			eReturnAction = { MONSTER_ACTION::IDLE };
+		MONSTER_ACTION                  eAction = { MONSTER_ACTION::END };
+		MONSTER_ACTION_STEP             eStep = { MONSTER_ACTION_STEP::NONE };
+
+		_uint							iPriority = {};
+		_bool                           bAutoReturn = { false };
+
+		MONSTER_ACTION                  eReturnAction = { MONSTER_ACTION::IDLE };
+		MONSTER_ACTION_STEP             eReturnStep = { MONSTER_ACTION_STEP::NONE };
+
+		_float                          fCooldown = { 0.f };
+		_float                          fEnterBlendTime = { 0.f };
 	} MONSTER_ACTION_POLICY;
 
 	typedef struct tagMonsterAnimTableDesc

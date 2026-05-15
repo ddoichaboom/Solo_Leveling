@@ -32,6 +32,7 @@ HRESULT CBoss_Monster::Initialize(void* pArg)
 
     if (0.f == Desc.fMaxHP)
         Desc.fMaxHP = 1000.f;
+    
 
     return __super::Initialize(&Desc);
 }

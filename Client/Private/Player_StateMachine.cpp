@@ -327,7 +327,12 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
         case ANIM_NOTIFY_TYPE::COMBO_WINDOW_CLOSE:
             m_bComboWindowOpen = false;
             break;
-
+        case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_ON:
+            m_bAttackHitboxActive = true;
+            break;
+        case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_OFF:
+            m_bAttackHitboxActive = false;
+            break;
         case ANIM_NOTIFY_TYPE::NONE:
         case ANIM_NOTIFY_TYPE::END:
         default:
@@ -344,6 +349,8 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
 {
     if (nullptr == m_pOwner)
         return;
+
+    m_bAttackHitboxActive = false;
 
     m_pOwner->Handle_ActionTransition(
         static_cast<CHARACTER_ACTION>(iFrom),

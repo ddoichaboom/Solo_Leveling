@@ -18,6 +18,7 @@ public:
 	{
 		return static_cast<CHARACTER_ACTION>(Get_CurrentAction());
 	}
+	_bool							Is_AttackHitboxActive() const { return m_bAttackHitboxActive; }
 
 public:
 	HRESULT							Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimTable);
@@ -42,6 +43,7 @@ private:
 	_bool							m_bComboWindowOpen = { false };
 	_int							m_iComboStep = { 0 };
 	_bool							m_bLastGuardHeld = { false };
+	_bool							m_bAttackHitboxActive = { false };
 
 
 public:

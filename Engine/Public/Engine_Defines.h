@@ -11,6 +11,10 @@
 #include <DirectXTK/WICTextureLoader.h>
 #include <DirectXTK/SpriteBatch.h>
 #include <DirectXTK/SpriteFont.h>
+#include <DirectXTK/PrimitiveBatch.h>
+#include <DirectXTK/VertexTypes.h>
+#include <DirectXTK/Effects.h>
+#include <DirectXTK/CommonStates.h>
 
 #include <mfapi.h>
 #include <mfidl.h>
@@ -32,6 +36,7 @@ using namespace DirectX;
 #include <unordered_map>
 #include <ctime>
 #include <cmath>
+#include <set>
 
 using namespace std;
 

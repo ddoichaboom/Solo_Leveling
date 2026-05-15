@@ -172,6 +172,27 @@
     <Filter Include="11. Video\Texture">
       <UniqueIdentifier>{4da3a915-3590-4726-9bf5-b9d1c55f85b4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="07. Component\Collider">
+      <UniqueIdentifier>{34cbb8fc-7552-4e5b-a4a2-86673eae3434}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Collider\Bounding">
+      <UniqueIdentifier>{39c27908-4cdf-448b-9f80-220fb926512c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Collider\DebugDraw">
+      <UniqueIdentifier>{797d9dea-bfe2-49bf-9f1b-50345a91bfe4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Collider\Bounding\AABB">
+      <UniqueIdentifier>{c5dd05f7-0b0c-4312-9e58-abdae9b231a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Collider\Bounding\OBB">
+      <UniqueIdentifier>{eb659781-a5e0-4d2b-b196-1ca9d4a699b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Collider\Bounding\Sphere">
+      <UniqueIdentifier>{298b9667-abb0-4d04-aeda-a1caa571a1ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Component\Collider\Manager">
+      <UniqueIdentifier>{5130996d-6a59-4bd3-a74e-82fc1fce5bc4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Base.cpp">
@@ -314,6 +335,27 @@
     </ClCompile>
     <ClCompile Include="..\Private\VideoTexture.cpp">
       <Filter>11. Video\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Collider.cpp">
+      <Filter>07. Component\Collider</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Bounding.cpp">
+      <Filter>07. Component\Collider\Bounding</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Bounding_AABB.cpp">
+      <Filter>07. Component\Collider\Bounding\AABB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Bounding_Sphere.cpp">
+      <Filter>07. Component\Collider\Bounding\Sphere</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Bounding_OBB.cpp">
+      <Filter>07. Component\Collider\Bounding\OBB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\DebugDraw.cpp">
+      <Filter>07. Component\Collider\DebugDraw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Collision_Manager.cpp">
+      <Filter>07. Component\Collider\Manager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -481,6 +523,27 @@
     </ClInclude>
     <ClInclude Include="..\Public\VideoTexture.h">
       <Filter>11. Video\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Collider.h">
+      <Filter>07. Component\Collider</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Bounding.h">
+      <Filter>07. Component\Collider\Bounding</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Bounding_AABB.h">
+      <Filter>07. Component\Collider\Bounding\AABB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Bounding_Sphere.h">
+      <Filter>07. Component\Collider\Bounding\Sphere</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Bounding_OBB.h">
+      <Filter>07. Component\Collider\Bounding\OBB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\DebugDraw.h">
+      <Filter>07. Component\Collider\DebugDraw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Collision_Manager.h">
+      <Filter>07. Component\Collider\Manager</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

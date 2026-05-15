@@ -7,6 +7,7 @@
 NS_BEGIN(Engine)
 class CNavMesh;
 class CNavigationAgent;
+class CCollider;
 NS_END
 
 NS_BEGIN(Client)
@@ -72,6 +73,7 @@ private:
     CWeapon*                m_pWeaponL = { nullptr };
     CIntentResolver*        m_pIntentResolver = { nullptr };
     CPlayer_StateMachine*   m_pStateMachine = { nullptr };
+    CCollider*              m_pCollider = { nullptr };
 
     EQUIPPED_WEAPON_ID      m_eEquippedWeapon = { EQUIPPED_WEAPON_ID::NONE };
 

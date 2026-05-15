@@ -47,11 +47,14 @@ HRESULT CBody_Player::Initialize(void* pArg)
     if (FAILED(Ready_Components()))
         return E_FAIL;
 
-    if (FAILED(Ready_AnimationTable()))
-        return E_FAIL;
+    if (MODEL::ANIM == m_pModelCom->Get_ModelType())
+    {
+        if (FAILED(Ready_AnimationTable()))
+            return E_FAIL;
 
-    if (FAILED(Play_Action(CHARACTER_ACTION::IDLE)))
-        return E_FAIL;
+        if (FAILED(Play_Action(CHARACTER_ACTION::IDLE)))
+            return E_FAIL;
+    }
 
     return S_OK;
 }

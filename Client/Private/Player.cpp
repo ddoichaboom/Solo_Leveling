@@ -8,6 +8,7 @@
 #include "NavigationAgent.h"
 #include "NavMesh.h"
 #include "Monster.h"
+#include "Collider.h"
 
 namespace
 {
@@ -176,6 +177,12 @@ void CPlayer::Late_Update(_float fTimeDelta)
 	{
 		if (nullptr != Pair.second)
 			Pair.second->Late_Update(fTimeDelta);
+	}
+
+	if (nullptr != m_pCollider && nullptr != m_pTransformCom)
+	{
+		m_pCollider->Update(XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr()));
+		m_pCollider->Register();
 	}
 }
 
@@ -427,6 +434,29 @@ HRESULT CPlayer::Ready_Components(const PLAYER_DESC& Desc)
 		m_pNavigationAgent->Find_CurrentCell(vPosition);
 	}
 
+	// Body OBB Collider
+	m_pCollider = CCollider::Create(m_pDevice, m_pContext);
+	if (nullptr == m_pCollider)
+		return E_FAIL;
+
+	CCollider::COLLIDER_DESC ColliderDesc{};
+	ColliderDesc.eBoundingType = COLLIDER::OBB;
+	ColliderDesc.eGroup = COLLISION_GROUP::PLAYER_BODY;
+	ColliderDesc.vCenter = _float3(0.f, 0.9f, 0.f);
+	ColliderDesc.vSize = _float3(0.6f, 1.8f, 0.6f);
+	ColliderDesc.vRadians = _float3(0.f, 0.f, 0.f);
+	ColliderDesc.pOwner = this;
+
+	if (FAILED(m_pCollider->Initialize(&ColliderDesc)))
+		return E_FAIL;
+
+	//m_pCollider->Set_OnHitEnter([](CCollider* pOther) {
+	//	OutputDebugStringA("[Collision] Player Body ENTER\n");
+	//	});
+	//m_pCollider->Set_OnHitExit([](CCollider* pOther) {
+	//	OutputDebugStringA("[Collision] Player Body EXIT\n");
+	//	});
+
 	return S_OK;
 }
 
@@ -637,6 +667,10 @@ void CPlayer::Free()
 {
 	__super::Free();
 
+	if (nullptr != m_pCollider)
+		m_pCollider->Clear_Callbacks();
+
+	Safe_Release(m_pCollider);
 	Safe_Release(m_pNavigationAgent);
 	Safe_Release(m_pStateMachine);
 	Safe_Release(m_pIntentResolver);

@@ -180,6 +180,43 @@ void CPanel_NavMeshEditor::Render()
 	const _bool bNoSpawnPoint = 0 == iNumSpawnPoints;
 	const _bool bNoSelectedSpawnPoint = NAVMESH_INVALID_INDEX == m_pTool->Get_SelectedSpawnPointIndex();
 
+	if (false == bNoSelectedSpawnPoint)
+	{
+		const _int iSelectedSpawnPoint = m_pTool->Get_SelectedSpawnPointIndex();
+
+		const SPAWN_POINT* pSelectedSpawnPoint =
+			m_pTool->Get_SpawnPoint(static_cast<_uint>(iSelectedSpawnPoint));
+
+		if (nullptr != pSelectedSpawnPoint)
+		{
+			ImGui::Separator();
+			ImGui::TextDisabled("Selected Spawn Transform");
+
+			_float3 vRotationDeg = pSelectedSpawnPoint->vRotationDeg;
+
+			if (ImGui::DragFloat3("Rotation Deg", &vRotationDeg.x, 1.f, -360.f, 360.f, "%.1f"))
+				m_pTool->Set_SelectedSpawnPointRotation(vRotationDeg);
+
+			if (ImGui::Button("Yaw 0"))
+				m_pTool->Set_SelectedSpawnPointYaw(0.f);
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Yaw 90"))
+				m_pTool->Set_SelectedSpawnPointYaw(90.f);
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Yaw 180"))
+				m_pTool->Set_SelectedSpawnPointYaw(180.f);
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Yaw -90"))
+				m_pTool->Set_SelectedSpawnPointYaw(-90.f);
+		}
+	}
+
 	if (bNoSelectedSpawnPoint)
 		ImGui::BeginDisabled();
 

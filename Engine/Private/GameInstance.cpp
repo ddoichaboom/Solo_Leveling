@@ -8,6 +8,7 @@
 #include "Input_Device.h"
 #include "Light_Manager.h"
 #include "Font_Manager.h"
+#include "Collision_Manager.h"
 
 IMPLEMENT_SINGLETON(CGameInstance)
 
@@ -65,6 +66,10 @@ HRESULT CGameInstance::Initialize_Engine(const ENGINE_DESC& EngineDesc, ID3D11De
 	if (nullptr == m_pFont_Manager)
 		return E_FAIL;
 
+	m_pCollision_Manager = CCollision_Manager::Create(*ppDevice, *ppContext);
+	if (nullptr == m_pCollision_Manager)
+		return E_FAIL;
+
 	return S_OK;
 }
 
@@ -78,6 +83,8 @@ void CGameInstance::Update_Engine(_float fTimeDelta)
 	m_pPipeLine->Update();								// (4) 역행렬 계산, 카메라 위치 추출
 
 	m_pObject_Manager->Late_Update(fTimeDelta);			// (5) 렌더 등록
+
+	m_pCollision_Manager->Update();
 
 	m_pLevel_Manager->Update(fTimeDelta);
 }
@@ -101,6 +108,9 @@ HRESULT CGameInstance::Draw()
 	if (FAILED(m_pRenderer->Draw()))
 		return E_FAIL;
 
+	if (FAILED(m_pCollision_Manager->Render()))
+		return E_FAIL;
+
 	if (FAILED(m_pLevel_Manager->Render()))
 		return E_FAIL;
 
@@ -109,6 +119,7 @@ HRESULT CGameInstance::Draw()
 
 HRESULT CGameInstance::End_Draw()
 {
+	m_pCollision_Manager->End_Frame();
 	return m_pGraphic_Device->Present();
 }
 
@@ -236,7 +247,28 @@ void CGameInstance::Add_RenderGroup(RENDERID eGroupID, class CGameObject* pGameO
 {
 	m_pRenderer->Add_RenderGroup(eGroupID, pGameObject);
 }
+#pragma endregion
 
+#pragma region COLLISION_MANAGER
+void CGameInstance::Add_Collider(COLLISION_GROUP eGroup, CCollider* pCollider)
+{
+	m_pCollision_Manager->Add_Collider(eGroup, pCollider);
+}
+
+void CGameInstance::Set_CollisionMatrix(COLLISION_GROUP eA, COLLISION_GROUP eB, _bool bValue)
+{
+	m_pCollision_Manager->Set_CollisionMatrix(eA, eB, bValue);
+}
+
+void CGameInstance::Set_Debug_Colliders(_bool bValue)
+{
+	m_pCollision_Manager->Set_DebugDraw(bValue);
+}
+
+_bool CGameInstance::Is_Debug_Colliders() const
+{
+	return m_pCollision_Manager->Is_DebugDraw();
+}
 #pragma endregion
 
 #pragma region PIPELINE
@@ -367,6 +399,7 @@ HRESULT CGameInstance::Measure_Font(const _wstring& strFontTag, const _tchar* pT
 
 void CGameInstance::Release_Engine()
 {
+	Safe_Release(m_pCollision_Manager);
 	Safe_Release(m_pFont_Manager);
 	Safe_Release(m_pLight_Manager);
 	Safe_Release(m_pInput_Device);

@@ -4,6 +4,8 @@
 #include "NavMesh.h"
 #include "PartObject.h"
 #include "Body_Monster.h"
+#include "Weapon.h"
+#include "Collider.h"
 
 CMonster::CMonster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CContainerObject{ pDevice, pContext }
@@ -35,6 +37,12 @@ HRESULT CMonster::Initialize(void* pArg)
 
     if (nullptr == Desc.pBodyModelPrototypeTag)
         Desc.pBodyModelPrototypeTag = Get_DefaultBodyModelPrototypeTag();
+
+    if (nullptr == Desc.pWeaponModelPrototypeTag)
+        Desc.pWeaponModelPrototypeTag = Get_DefaultWeaponModelPrototypeTag();
+
+    if (nullptr == Desc.pWeaponSocketBoneName)
+        Desc.pWeaponSocketBoneName = Get_DefaultWeaponSocketBoneName();
 
     if (0.f == Desc.fMaxHP)
         Desc.fMaxHP = 1.f;
@@ -85,6 +93,12 @@ void CMonster::Late_Update(_float fTimeDelta)
         if (nullptr != Pair.second)
             Pair.second->Late_Update(fTimeDelta);
     }
+
+    if (nullptr != m_pCollider && nullptr != m_pTransformCom)
+    {
+        m_pCollider->Update(XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr()));
+        m_pCollider->Register();
+    }
 }
 
 HRESULT CMonster::Render()
@@ -115,28 +129,87 @@ HRESULT CMonster::Ready_Components(const MONSTER_DESC& Desc)
         m_pNavigationAgent->Find_CurrentCell(vPosition);
     }
 
+    // Body OBB Collider
+    m_pCollider = CCollider::Create(m_pDevice, m_pContext);
+    if (nullptr == m_pCollider)
+        return E_FAIL;
+
+    CCollider::COLLIDER_DESC ColliderDesc{};
+    ColliderDesc.eBoundingType = COLLIDER::OBB;
+    ColliderDesc.eGroup = COLLISION_GROUP::MONSTER_BODY;
+    ColliderDesc.vCenter = _float3(0.f, 1.2f, 0.f);   // Boss 가 더 큼 → 약간 위
+    ColliderDesc.vSize = _float3(1.2f, 2.4f, 1.2f); // Boss Igris 기준 임시값
+    ColliderDesc.vRadians = _float3(0.f, 0.f, 0.f);
+    ColliderDesc.pOwner = this;
+
+    if (FAILED(m_pCollider->Initialize(&ColliderDesc)))
+        return E_FAIL;
+
+    //m_pCollider->Set_OnHitEnter([](CCollider* pOther) {
+    //    OutputDebugStringA("[Collision] Monster Body ENTER\n");
+    //    });
+    //m_pCollider->Set_OnHitExit([](CCollider* pOther) {
+    //    OutputDebugStringA("[Collision] Monster Body EXIT\n");
+    //    });
+
     return S_OK;
 }
 
 HRESULT CMonster::Ready_PartObjects(const MONSTER_DESC& Desc)
 {
-    if (nullptr == Desc.pBodyModelPrototypeTag)
-        return S_OK;
+    if (nullptr != Desc.pBodyModelPrototypeTag)
+    {
+        CBody_Monster::BODY_MONSTER_DESC BodyDesc{};
+        BodyDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
+        BodyDesc.pModelPrototypeTag = Desc.pBodyModelPrototypeTag;
+        BodyDesc.eAnimSet = Desc.eAnimSet;
 
-    CBody_Monster::BODY_MONSTER_DESC BodyDesc{};
-    BodyDesc.pParentMatrix = m_pTransformCom->Get_WorldMatrixPtr();
-    BodyDesc.pModelPrototypeTag = Desc.pBodyModelPrototypeTag;
-    BodyDesc.eAnimSet = Desc.eAnimSet;
+        if (FAILED(__super::Add_PartObject(
+            ETOUI(LEVEL::GAMEPLAY),
+            TEXT("Prototype_GameObject_Body_Monster"),
+            TEXT("Body"),
+            &BodyDesc)))
+            return E_FAIL;
 
-    if (FAILED(__super::Add_PartObject(
-        ETOUI(LEVEL::GAMEPLAY),
-        TEXT("Prototype_GameObject_Body_Monster"),
-        TEXT("Body"),
-        &BodyDesc)))
-        return E_FAIL;
+        m_pBody = dynamic_cast<CBody_Monster*>(m_PartObjects[TEXT("Body")]);
+        Safe_AddRef(m_pBody);
+    }
 
-    m_pBody = dynamic_cast<CBody_Monster*>(m_PartObjects[TEXT("Body")]);
-    Safe_AddRef(m_pBody);
+    if (nullptr != Desc.pWeaponModelPrototypeTag)
+    {
+        if (nullptr == Desc.pWeaponSocketBoneName)
+            return E_FAIL;
+
+        const _float4x4* pSocketBoneMatrix =
+            m_pBody->Get_BoneMatrixPtr(Desc.pWeaponSocketBoneName);
+
+        if (nullptr == pSocketBoneMatrix)
+            return E_FAIL;
+
+        CWeapon::WEAPON_DESC WeaponDesc{};
+        WeaponDesc.pParentMatrix        = m_pTransformCom->Get_WorldMatrixPtr();
+        WeaponDesc.pSocketBoneMatrix    = pSocketBoneMatrix;
+        WeaponDesc.pModelPrototypeTag   = Desc.pWeaponModelPrototypeTag;
+        WeaponDesc.bInitiallyVisible    = Desc.bWeaponInitiallyVisible;
+
+        if (FAILED(__super::Add_PartObject(
+            ETOUI(LEVEL::GAMEPLAY),
+            TEXT("Prototype_GameObject_Weapon"),
+            TEXT("Igris_Weapon"),
+            &WeaponDesc)))
+            return E_FAIL;
+
+        auto iter = m_PartObjects.find(TEXT("Igris_Weapon"));
+        if (m_PartObjects.end() == iter)
+            return E_FAIL;
+
+        m_pWeapon = dynamic_cast<CWeapon*>(iter->second);
+        if (nullptr == m_pWeapon)
+            return E_FAIL;
+
+        Safe_AddRef(m_pWeapon);
+    }
+
 
     return S_OK;
 }
@@ -164,6 +237,11 @@ void CMonster::Free()
 {
     __super::Free();
 
+    if (nullptr != m_pCollider)
+        m_pCollider->Clear_Callbacks();
+
+    Safe_Release(m_pCollider);
+    Safe_Release(m_pWeapon);
     Safe_Release(m_pBody);
     Safe_Release(m_pNavigationAgent);
 }

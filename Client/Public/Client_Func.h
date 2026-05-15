@@ -5,14 +5,31 @@ namespace Client
 {
 	inline _uint64 Make_CharacterAnimKey(CHARACTER_STATE eState, CHARACTER_ACTION eAction, WEAPON_TYPE eWeapon)
 	{
-		return (static_cast<_uint64>(eState) << 32) |
-			(static_cast<_uint64>(eAction) << 16) |
-			static_cast<_uint64>(eWeapon);
+		return (ETOUI64(eState) << 32) |
+			(ETOUI64(eAction) << 16) |
+			ETOUI64(eWeapon);
 	}
 
-	inline _uint64 Make_MonsterAnimKey(MONSTER_ACTION eAction, MONSTER_PHASE ePhase)
+	inline _uint64 Make_MonsterAnimKey(MONSTER_ACTION eAction, MONSTER_PHASE ePhase, MONSTER_ACTION_STEP eStep)
 	{
-		return (ETOUI64(eAction) << 32) | ETOUI64(ePhase);
+		return (ETOUI64(eAction) << 32) |
+			(ETOUI64(ePhase) << 16) |
+			ETOUI64(eStep);
+	}
+
+	inline _uint Make_MonsterStateKey(MONSTER_ACTION eAction, MONSTER_ACTION_STEP eStep = MONSTER_ACTION_STEP::NONE)
+	{
+		return (ETOUI(eAction) << 8) | ETOUI(eStep);
+	}
+
+	inline MONSTER_ACTION Get_MonsterActionFromStateKey(_uint iKey)
+	{
+		return static_cast<MONSTER_ACTION>(iKey >> 8);
+	}
+
+	inline MONSTER_ACTION_STEP Get_MonsterStepFromStateKey(_uint iKey)
+	{
+		return static_cast<MONSTER_ACTION_STEP>(iKey & 0xff);
 	}
 
 	inline _bool Has_MoveIntent(const PLAYER_INTENT_FRAME& Intent)

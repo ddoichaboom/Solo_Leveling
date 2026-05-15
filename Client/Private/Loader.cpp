@@ -240,6 +240,20 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 			TEXT("../../Resources/Models/map/ThroneRoom/ThroneRoom.bin")))))
 		return E_FAIL;
 
+	 //Prototype_Component_Model_Monster_Igris_Body
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Model_Monster_Igris_Body"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/Monster/Igris_boss/Igris_Boss.bin")))))
+		return E_FAIL;
+
+	 //Prototype_Component_Model_Monster_Igris_Weapon
+	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
+		TEXT("Prototype_Component_Model_Monster_Igris_Weapon"),
+		CModel::Create(m_pDevice, m_pContext,
+			TEXT("../../Resources/Models/Monster/Igris_boss/Igris_Weapon.bin")))))
+		return E_FAIL;
+
 	lstrcpy(m_szLoadingText, TEXT("객체원형 로드 중"));
 
 	m_fProgress = 0.9f;
