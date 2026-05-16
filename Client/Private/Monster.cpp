@@ -6,6 +6,8 @@
 #include "Body_Monster.h"
 #include "Weapon.h"
 #include "Collider.h"
+#include "Monster_StateMachine.h"
+#include "MonsterAnimTable.h"
 
 CMonster::CMonster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CContainerObject{ pDevice, pContext }
@@ -15,6 +17,14 @@ CMonster::CMonster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 CMonster::CMonster(const CMonster& Prototype)
     : CContainerObject{ Prototype }
 {
+}
+
+void CMonster::Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep, MONSTER_ACTION eToAction, MONSTER_ACTION_STEP eToStep, _bool bInitial)
+{
+    if (nullptr == m_pBody)
+        return;
+
+    m_pBody->Play_Action(eToAction, eToStep, MONSTER_PHASE::COMMON);
 }
 
 HRESULT CMonster::Initialize_Prototype()
@@ -65,6 +75,9 @@ HRESULT CMonster::Initialize(void* pArg)
     if (FAILED(Ready_PartObjects(Desc)))
         return E_FAIL;
 
+    if (FAILED(Ready_StateMachine()))
+        return E_FAIL;
+
     return S_OK;
 }
 
@@ -79,6 +92,9 @@ void CMonster::Priority_Update(_float fTimeDelta)
 
 void CMonster::Update(_float fTimeDelta)
 {
+    if (nullptr != m_pStateMachine)
+        m_pStateMachine->Update(fTimeDelta);
+
     for (auto& Pair : m_PartObjects)
     {
         if (nullptr != Pair.second)
@@ -214,6 +230,32 @@ HRESULT CMonster::Ready_PartObjects(const MONSTER_DESC& Desc)
     return S_OK;
 }
 
+HRESULT CMonster::Ready_StateMachine()
+{
+    if (nullptr == m_pBody)
+        return S_OK;
+
+    if (MONSTER_ANIM_SET::NONE == m_eAnimSet)
+        return S_OK;
+
+    const MONSTER_ANIM_TABLE_DESC* pAnimTable = Find_MonsterAnimTable(m_eAnimSet);
+    if (nullptr == pAnimTable)
+        return E_FAIL;
+
+    m_pStateMachine = CMonster_StateMachine::Create(pAnimTable);
+    if (nullptr == m_pStateMachine)
+        return E_FAIL;
+
+    m_pStateMachine->Bind_Owner(this);
+
+    m_pBody->Set_Listener(m_pStateMachine);
+
+    if (false == m_pStateMachine->Enter_InitialState(MONSTER_ACTION::IDLE, MONSTER_ACTION_STEP::NONE))
+        return E_FAIL;
+
+    return S_OK;
+}
+
 _bool CMonster::Try_ApplyNavigationPosition(const _float3& vCandidatePosition)
 {
     if (nullptr == m_pTransformCom)
@@ -241,6 +283,7 @@ void CMonster::Free()
         m_pCollider->Clear_Callbacks();
 
     Safe_Release(m_pCollider);
+    Safe_Release(m_pStateMachine);
     Safe_Release(m_pWeapon);
     Safe_Release(m_pBody);
     Safe_Release(m_pNavigationAgent);

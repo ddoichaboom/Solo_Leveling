@@ -264,6 +264,9 @@
     <ClInclude Include="..\Public\UI_Cursor.h">
       <Filter>03. UI\Cursor</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Monster_StateMachine.h">
+      <Filter>96. StateMachine\Monster</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -367,6 +370,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\UI_Cursor.cpp">
       <Filter>03. UI\Cursor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Monster_StateMachine.cpp">
+      <Filter>96. StateMachine\Monster</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

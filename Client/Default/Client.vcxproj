@@ -190,6 +190,7 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\ModelObject.h" />
     <ClInclude Include="..\Public\Monster.h" />
     <ClInclude Include="..\Public\MonsterAnimTable.h" />
+    <ClInclude Include="..\Public\Monster_StateMachine.h" />
     <ClInclude Include="..\Public\NavMeshObject.h" />
     <ClInclude Include="..\Public\Normal_Monster.h" />
     <ClInclude Include="..\Public\Player.h" />
@@ -226,6 +227,7 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\ModelObject.cpp" />
     <ClCompile Include="..\Private\Monster.cpp" />
     <ClCompile Include="..\Private\MonsterAnimTable.cpp" />
+    <ClCompile Include="..\Private\Monster_StateMachine.cpp" />
     <ClCompile Include="..\Private\NavMeshObject.cpp" />
     <ClCompile Include="..\Private\Normal_Monster.cpp" />
     <ClCompile Include="..\Private\Player.cpp" />

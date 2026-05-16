@@ -14,6 +14,7 @@ NS_BEGIN(Client)
 
 class CBody_Monster;
 class CWeapon;
+class CMonster_StateMachine;
 
 class CLIENT_DLL CMonster abstract : public CContainerObject
 {
@@ -45,6 +46,10 @@ public:
 	_float						Get_MaxHP() const { return m_fMaxHP; }
 	_float						Get_CurrentHP() const { return m_fCurrentHP; }
 
+	void						Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep,
+														MONSTER_ACTION eToAction, MONSTER_ACTION_STEP eToStep,
+														_bool bInitial);
+
 public:
 	virtual HRESULT				Initialize_Prototype() override;
 	virtual HRESULT				Initialize(void* pArg) override;
@@ -65,6 +70,7 @@ protected:
 protected:
 	HRESULT						Ready_Components(const MONSTER_DESC& Desc);
 	virtual HRESULT				Ready_PartObjects(const MONSTER_DESC& Desc);
+	HRESULT						Ready_StateMachine();
 
 	_bool						Try_ApplyNavigationPosition(const _float3& vCandidatePosition);
 
@@ -73,6 +79,7 @@ protected:
 	CBody_Monster*				m_pBody = { nullptr };
 	CWeapon*					m_pWeapon = { nullptr };
 	CCollider*					m_pCollider = { nullptr };
+	CMonster_StateMachine*		m_pStateMachine = { nullptr };
 
 	SPAWN_TYPE					m_eSpawnType = { SPAWN_TYPE::END };
 	MONSTER_ANIM_SET			m_eAnimSet = { MONSTER_ANIM_SET::NONE };

@@ -179,6 +179,8 @@ void CPlayer::Late_Update(_float fTimeDelta)
 			Pair.second->Late_Update(fTimeDelta);
 	}
 
+	Update_WeaponHitboxes();
+
 	if (nullptr != m_pCollider && nullptr != m_pTransformCom)
 	{
 		m_pCollider->Update(XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr()));
@@ -634,6 +636,79 @@ void CPlayer::Refresh_WeaponVisibility()
 		m_pWeaponR->Set_Visible(m_bWeaponsVisible);
 	if (nullptr != m_pWeaponL)
 		m_pWeaponL->Set_Visible(m_bWeaponsVisible && m_bLeftVisibleFromLoadOut);
+}
+
+void CPlayer::Update_WeaponHitboxes()
+{
+	if (nullptr == m_pBody)
+		return;
+
+	const _bool bHitboxActive = (nullptr != m_pStateMachine) && m_pStateMachine->Is_AttackHitboxActive();
+
+	static _bool s_bPrevActive = false;
+	if (bHitboxActive != s_bPrevActive)
+	{
+		OutputDebugStringA(bHitboxActive
+			? "[Hitbox] ============ ON ============\n"
+			: "[Hitbox] ============ OFF ===========\n");
+		s_bPrevActive = bHitboxActive;
+	}
+
+	// Body 의 합성 World (PartObject Compute_CombinedWorldMatrix 결과)
+	const _matrix BodyWorld = XMLoadFloat4x4(&m_pBody->Get_CombinedWorldMatrix());
+
+	auto PushBlade = [&](CWeapon* pWeapon, const _char* pBladeBoneName, const _char* pLabel)
+		{
+			if (nullptr == pWeapon)
+				return;
+
+			pWeapon->Set_AttackHitboxActive(bHitboxActive);
+
+			const _float4x4* pBoneCombined = m_pBody->Get_BoneMatrixPtr(pBladeBoneName);
+			if (nullptr == pBoneCombined)
+			{
+				if (bHitboxActive)
+				{
+					char szLog[128] = {};
+					sprintf_s(szLog, "[Hitbox %s] BONE MISS '%s'\n", pLabel, pBladeBoneName);
+					OutputDebugStringA(szLog);
+				}
+
+				pWeapon->Invalidate_BladePoints();
+				pWeapon->Update_BladeCollider();   // 비활성 상태로 갱신 (Register 안 함)
+				return;
+			}
+
+			// 칼날 끝 = Body 본 World
+			_vector vEnd = (XMLoadFloat4x4(pBoneCombined) * BodyWorld).r[3];
+
+			// 칼날 시작 = 무기 합성 World 의 origin (= 손잡이 위치)
+			_vector vStart = XMLoadFloat4x4(&pWeapon->Get_CombinedWorldMatrix()).r[3];
+
+			if (bHitboxActive)
+			{
+				_float4 vS = {}, vE = {};
+				XMStoreFloat4(&vS, vStart);
+				XMStoreFloat4(&vE, vEnd);
+				_float fLen = XMVectorGetX(XMVector3Length(XMVectorSubtract(vEnd, vStart)));
+
+				char szLog[512] = {};
+				sprintf_s(szLog,
+					"[Hitbox %s] Start(%.3f,%.3f,%.3f) End(%.3f,%.3f,%.3f) Len=%.3fm Visible=%d\n",
+					pLabel,
+					vS.x, vS.y, vS.z,
+					vE.x, vE.y, vE.z,
+					fLen,
+					static_cast<int>(pWeapon->Is_Visible()));
+				OutputDebugStringA(szLog);
+			}
+
+			pWeapon->Set_BladePoints(vStart, vEnd);
+			pWeapon->Update_BladeCollider();
+		};
+
+	PushBlade(m_pWeaponR, "FX_Point_R_Weapon", "R");
+	PushBlade(m_pWeaponL, "FX_Point_L_Weapon", "L");
 }
 
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

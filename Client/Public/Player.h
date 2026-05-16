@@ -90,6 +90,7 @@ private:
     void                    Apply_Loadout();
 
     void                    Refresh_WeaponVisibility();
+    void                    Update_WeaponHitboxes();
 
 private:
     CNavigationAgent*       m_pNavigationAgent = { nullptr };

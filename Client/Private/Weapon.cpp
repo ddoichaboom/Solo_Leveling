@@ -2,6 +2,7 @@
 #include "GameInstance.h"
 #include "Shader.h"
 #include "Model.h"
+#include "Collider.h"
 
 CWeapon::CWeapon(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CPartObject{ pDevice, pContext }
@@ -33,6 +34,9 @@ HRESULT CWeapon::Initialize(void* pArg)
         return E_FAIL;
 
     if (FAILED(Ready_Components()))
+        return E_FAIL;
+
+    if (FAILED(Ready_BladeCollider()))
         return E_FAIL;
 
     return S_OK;
@@ -102,6 +106,7 @@ HRESULT CWeapon::Set_Model(const _tchar* pModelPrototypeTag)
             ETOUI(LEVEL::GAMEPLAY),
             pModelPrototypeTag,
             nullptr));
+
     if (nullptr == pNewModel)
         return E_FAIL;
 
@@ -173,6 +178,67 @@ HRESULT CWeapon::Bind_ShaderResources()
     return S_OK;
 }
 
+HRESULT CWeapon::Ready_BladeCollider()
+{
+    m_pBladeCollider = CCollider::Create(m_pDevice, m_pContext);
+    if (nullptr == m_pBladeCollider)
+        return E_FAIL;
+
+    CCollider::COLLIDER_DESC Desc{};
+    Desc.eBoundingType = COLLIDER::OBB;
+    Desc.eGroup = COLLISION_GROUP::PLAYER_ATTACK;
+    Desc.vCenter = _float3(0.f, 0.f, 0.f);
+    Desc.vSize = _float3(1.f, 1.f, 1.f);
+    Desc.vRadians = _float3(0.f, 0.f, 0.f);
+    Desc.pOwner = this;
+
+    if (FAILED(m_pBladeCollider->Initialize(&Desc)))
+        return E_FAIL;
+
+    return S_OK;
+}
+
+void CWeapon::Update_BladeCollider()
+{
+    if (nullptr == m_pBladeCollider)
+        return;
+    if (false == m_bBladeValid)
+        return;
+
+    _vector vStart = XMLoadFloat4(&m_vBladeStartWorld);
+    _vector vEnd = XMLoadFloat4(&m_vBladeEndWorld);
+
+    _vector vDelta = XMVectorSubtract(vEnd, vStart);
+    _float  fLength = XMVectorGetX(XMVector3Length(vDelta));
+    if (fLength < 0.0001f)
+        return;
+
+    _vector vForward = XMVectorScale(vDelta, 1.f / fLength);
+
+    // 무기 World Y 를 Up 후보. Forward 와 평행 시 World X 폴백
+    _matrix WeaponWorld = XMLoadFloat4x4(&m_CombinedWorldMatrix);
+    _vector vUpCandidate = XMVector3Normalize(WeaponWorld.r[1]);
+
+    if (fabsf(XMVectorGetX(XMVector3Dot(vUpCandidate, vForward))) > 0.99f)
+        vUpCandidate = XMVectorSet(1.f, 0.f, 0.f, 0.f);
+
+    _vector vRight = XMVector3Normalize(XMVector3Cross(vUpCandidate, vForward));
+    _vector vUp = XMVector3Cross(vForward, vRight);
+
+    _vector vCenter = XMVectorScale(XMVectorAdd(vStart, vEnd), 0.5f);
+
+    _matrix BladeWorld;
+    BladeWorld.r[0] = XMVectorScale(vRight, BLADE_THICKNESS);
+    BladeWorld.r[1] = XMVectorScale(vUp, BLADE_THICKNESS);
+    BladeWorld.r[2] = XMVectorScale(vForward, fLength);
+    BladeWorld.r[3] = XMVectorSetW(vCenter, 1.f);
+
+    m_pBladeCollider->Update(BladeWorld);
+
+    if (true == m_bAttackHitboxActive)
+        m_pBladeCollider->Register();
+}
+
 CWeapon* CWeapon::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
     CWeapon* pInstance = new CWeapon(pDevice, pContext);
@@ -203,6 +269,7 @@ void CWeapon::Free()
 {
     __super::Free();
 
+    Safe_Release(m_pBladeCollider);
     Safe_Release(m_pModelCom);
     Safe_Release(m_pShaderCom);
 }
