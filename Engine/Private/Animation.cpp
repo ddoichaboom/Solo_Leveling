@@ -146,12 +146,13 @@ _bool CAnimation::Update_TransformationMatrix(const vector<class CBone*>& Bones,
 	return bFinished;
 }
 
-_bool CAnimation::Advance_Time(_float fTimeDelta, _bool isLoop)
+_bool CAnimation::Advance_Time(_float fTimeDelta, _bool isLoop, INotifyListener* pListener)
 {
 	m_fPrevTrackPosition = m_fCurrentTrackPosition;
 	m_fCurrentTrackPosition += m_fTickPerSecond * fTimeDelta;
 
 	_bool bFinished = false;
+	_bool bWrapped = false;
 
 	if (m_fCurrentTrackPosition >= m_fDuration)
 	{
@@ -165,8 +166,11 @@ _bool CAnimation::Advance_Time(_float fTimeDelta, _bool isLoop)
 			m_fCurrentTrackPosition -= m_fDuration;
 			for (auto& iKeyFrameIndex : m_CurrentKeyFrameIndices)
 				iKeyFrameIndex = 0;
+			bWrapped = true;
 		}
 	}
+
+	Tick_Notifies(m_fPrevTrackPosition, m_fCurrentTrackPosition, bWrapped, pListener);
 
 	return bFinished;
 }
@@ -214,7 +218,8 @@ void CAnimation::Tick_Notifies(_float fPrevTick, _float fCurTick, _bool bWrapped
 	}
 	else
 	{
-		fire_in_range(fPrevTick, fCurTick);
+		const _float fLow = (fPrevTick <= 0.f) ? -1.f : fPrevTick;
+		fire_in_range(fLow, fCurTick);
 	}
 }
 

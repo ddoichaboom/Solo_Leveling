@@ -139,13 +139,42 @@ namespace Client
 		IDLE,
 		WALK,
 		RUN,
+		CHASE,
+		TURN,
+		STRAFE_LEFT,
+		STRAFE_RIGHT,
 
-		ATTACK_01,
-		ATTACK_02,
+		BASIC_ATTACK_01,
+		BASIC_ATTACK_02,
+		BASIC_ATTACK_03,
+
 		SKILL_01,
+		SKILL_02,
+		SKILL_03,
+		SKILL_04,
+		SKILL_05,
+		SKILL_06,
+		SKILL_07,
+		SKILL_08,
+		SKILL_09,
+		SKILL_10,
+		SKILL_11,
+		SKILL_12,
+		SKILL_13,
+		SKILL_14,
+		SKILL_15,
+		SKILL_16,
 
-		HIT,
+		HIT_LIGHT,
+		HIT_HEAVY,
 		STUN,
+		KNOCKDOWN,
+		CRASH,
+		RECOVER,
+
+		INTRO,
+		ROAR,
+
 		DEATH,
 
 		END
@@ -161,10 +190,18 @@ namespace Client
 		END
 	};
 
+	enum class MONSTER_ACTION_STEP : unsigned int
+	{
+		NONE,
+		START,
+		LOOP,
+		END,
+	};
+
 	enum class MONSTER_ANIM_SET : unsigned int
 	{
 		NONE,
-
+		IGRIS_BOSS,
 		END
 	};
 

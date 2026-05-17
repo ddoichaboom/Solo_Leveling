@@ -7,6 +7,7 @@
 NS_BEGIN(Engine)
 class CNavMesh;
 class CNavigationAgent;
+class CCollider;
 NS_END
 
 NS_BEGIN(Client)
@@ -72,8 +73,9 @@ private:
     CWeapon*                m_pWeaponL = { nullptr };
     CIntentResolver*        m_pIntentResolver = { nullptr };
     CPlayer_StateMachine*   m_pStateMachine = { nullptr };
+    CCollider*              m_pCollider = { nullptr };
 
-    EQUIPPED_WEAPON_ID      m_eEquippedWeapon = { EQUIPPED_WEAPON_ID::NONE };
+    set<pair<class CWeapon*, CGameObject*>>       m_AttackHitTargets;
 
 private:
     HRESULT                 Ready_PartObjects();
@@ -88,6 +90,9 @@ private:
     void                    Apply_Loadout();
 
     void                    Refresh_WeaponVisibility();
+    void                    Update_WeaponHitboxes();
+
+    void                    On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther);
 
 private:
     CNavigationAgent*       m_pNavigationAgent = { nullptr };
@@ -111,6 +116,9 @@ private:
     _float                  m_fDashRegenTimer = { 0.f };
 
     _float                  m_fSpeedCoeff = { 0.f };
+
+    EQUIPPED_WEAPON_ID      m_eEquippedWeapon = { EQUIPPED_WEAPON_ID::NONE };
+    _bool                   m_bPrevAttackHitboxActive = { false };
 
 public:
     static CPlayer*         Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

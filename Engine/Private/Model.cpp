@@ -434,7 +434,7 @@ _bool CModel::Play_Animation(_float fTimeDelta, INotifyListener* pListener)
 		return false;
 
 	if (true == m_bIsBlending)
-		return Play_Animation_Blended(fTimeDelta);
+		return Play_Animation_Blended(fTimeDelta, pListener);
 
 	// 루프 감지용 : 업데이트 전 트랙 위치 캐시
 	_float fPrevTrackPos = m_Animations[m_iCurrentAnimationIndex]->Get_CurrentTrackPosition();
@@ -622,6 +622,52 @@ ANIM_NOTIFY CModel::Get_Notify(_uint iAnimIndex, _uint iNotifyIndex) const
 	if (iNotifyIndex >= m_Animations[iAnimIndex]->Get_NumNotifies())
 		return Empty;
 	return m_Animations[iAnimIndex]->Get_Notify(iNotifyIndex);
+}
+
+_bool CModel::Get_LocalAABB(_float3& vOutCenter, _float3& vOutHalfExtent) const
+{
+	if (true == m_bLocalAABBCached)
+	{
+		vOutCenter = m_vLocalAABBCenter;
+		vOutHalfExtent = m_vLocalAABBHalfExtent;
+		return true;
+	}
+
+	XMVECTOR vMin = XMVectorSet(FLT_MAX, FLT_MAX, FLT_MAX, 0.f);
+	XMVECTOR vMax = XMVectorSet(-FLT_MAX, -FLT_MAX, -FLT_MAX, 0.f);
+	_bool bAny = false;
+
+	for (auto pMesh : m_Meshes)
+	{
+		if (nullptr == pMesh)
+			continue;
+
+		const PICK_DATA* pPick = pMesh->Get_PickData();
+		if (nullptr == pPick || nullptr == pPick->pVerticesPos || 0 == pPick->iNumVertices)
+			continue;
+
+		for (_uint i = 0; i < pPick->iNumVertices; ++i)
+		{
+			XMVECTOR v = XMLoadFloat3(&pPick->pVerticesPos[i]);
+			vMin = XMVectorMin(vMin, v);
+			vMax = XMVectorMax(vMax, v);
+			bAny = true;
+		}
+	}
+
+	if (false == bAny)
+		return false;
+
+	XMVECTOR vCenter = XMVectorScale(XMVectorAdd(vMin, vMax), 0.5f);
+	XMVECTOR vHalf = XMVectorScale(XMVectorSubtract(vMax, vMin), 0.5f);
+
+	XMStoreFloat3(&m_vLocalAABBCenter, vCenter);
+	XMStoreFloat3(&m_vLocalAABBHalfExtent, vHalf);
+	m_bLocalAABBCached = true;
+
+	vOutCenter = m_vLocalAABBCenter;
+	vOutHalfExtent = m_vLocalAABBHalfExtent;
+	return true;
 }
 
 void CModel::Set_NotifyTick(_uint iAnimIndex, _uint iNotifyIndex, _float fTick)
@@ -903,7 +949,7 @@ void CModel::Reset_RootMotionState()
 	m_vLastRootMotionDelta = {};
 }
 
-_bool CModel::Play_Animation_Blended(_float fTimeDelta)
+_bool CModel::Play_Animation_Blended(_float fTimeDelta, INotifyListener* pListener)
 {
 	// (1) Pose 작업 버퍼 reset
 	auto ResetPose = [](BONE_POSE& p) {
@@ -916,20 +962,22 @@ _bool CModel::Play_Animation_Blended(_float fTimeDelta)
 	if (false == m_bFromIsStatic)
 	{
 		_bool bLoopFrom = m_Animations[m_iBlendFromIndex]->Get_IsLoop();
-		m_Animations[m_iBlendFromIndex]->Advance_Time(fTimeDelta, bLoopFrom);
+		m_Animations[m_iBlendFromIndex]->Advance_Time(fTimeDelta, bLoopFrom, pListener);
 
 		fill(m_bHasPoseFrom.begin(), m_bHasPoseFrom.end(), 0);
-		for (auto& p : m_PoseFrom) ResetPose(p);
+		for (auto& p : m_PoseFrom) 
+			ResetPose(p);
 		m_Animations[m_iBlendFromIndex]->Evaluate_Pose(m_PoseFrom.data(), m_bHasPoseFrom.data());
 	}
 
 	// (3) To 진행
 	{
 		_bool bLoopTo = m_Animations[m_iBlendToIndex]->Get_IsLoop();
-		m_Animations[m_iBlendToIndex]->Advance_Time(fTimeDelta, bLoopTo);
+		m_Animations[m_iBlendToIndex]->Advance_Time(fTimeDelta, bLoopTo, pListener);
 
 		fill(m_bHasPoseTo.begin(), m_bHasPoseTo.end(), 0);
-		for (auto& p : m_PoseTo) ResetPose(p);
+		for (auto& p : m_PoseTo) 
+			ResetPose(p);
 		m_Animations[m_iBlendToIndex]->Evaluate_Pose(m_PoseTo.data(), m_bHasPoseTo.data());
 	}
 

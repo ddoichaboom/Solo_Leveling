@@ -1,7 +1,11 @@
 #include "Body_Monster.h"
 #include "GameInstance.h"
+
 #include "Model.h"
 #include "Shader.h"
+#include "AnimController.h"
+#include "MonsterAnimTable.h"
+#include "NotifyListener.h"
 
 CBody_Monster::CBody_Monster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	: CPartObject{ pDevice, pContext }
@@ -38,6 +42,15 @@ HRESULT CBody_Monster::Initialize(void* pArg)
 	if (FAILED(Ready_Components(Desc)))
 		return E_FAIL;
 
+	if (MODEL::ANIM == m_pModelCom->Get_ModelType())
+	{
+		if (FAILED(Ready_AnimationTable()))
+			return E_FAIL;
+
+		if (FAILED(Play_Action(MONSTER_ACTION::IDLE)))
+			return E_FAIL;
+	}
+
 	return S_OK;
 }
 
@@ -47,8 +60,20 @@ void CBody_Monster::Priority_Update(_float fTimeDelta)
 
 void CBody_Monster::Update(_float fTimeDelta)
 {
-	if (nullptr != m_pModelCom && MODEL::ANIM == m_pModelCom->Get_ModelType())
-		m_pModelCom->Play_Animation(fTimeDelta);
+	if (nullptr == m_pAnimController)
+		return;
+
+	_bool bFinished = m_pAnimController->Update(fTimeDelta);
+
+	if (bFinished && nullptr != m_pListener)
+	{
+		NOTIFY_EVENT Event{};
+		Event.eType = NOTIFY_TYPE::ACTION_FINISHED;
+		Event.iPayload = Make_MonsterStateKey(m_eCurrentAction, m_eCurrentStep);
+		Event.pData = nullptr;
+
+		m_pListener->OnNotify(Event);
+	}
 }
 
 void CBody_Monster::Late_Update(_float fTimeDelta)
@@ -90,6 +115,47 @@ HRESULT CBody_Monster::Render()
 	return S_OK;
 }
 
+const _float4x4* CBody_Monster::Get_BoneMatrixPtr(const _char* pBoneName) const
+{
+	if (nullptr == m_pModelCom || nullptr == pBoneName)
+		return nullptr;
+
+	return m_pModelCom->Get_BoneMatrixPtr(pBoneName);
+}
+
+HRESULT CBody_Monster::Play_Action(MONSTER_ACTION eAction, MONSTER_ACTION_STEP eStep, MONSTER_PHASE ePhase)
+{
+	const _uint64 iKey = Make_MonsterAnimKey(eAction, ePhase, eStep);
+
+	const MONSTER_ACTION_POLICY* pPolicy = Find_ActionPolicy(eAction, eStep);
+	const _float fBlendTime = (nullptr != pPolicy) ? pPolicy->fEnterBlendTime : 0.f;
+
+	if (FAILED(m_pAnimController->Play(iKey, fBlendTime)))
+		return E_FAIL;
+
+	m_eCurrentAction = eAction;
+	m_eCurrentStep = eStep;
+	m_ePhase = ePhase;
+
+	return S_OK;
+}
+
+void CBody_Monster::Set_Listener(INotifyListener* pListener)
+{
+	m_pListener = pListener;
+
+	if (nullptr != m_pAnimController)
+		m_pAnimController->Set_Listener(pListener);
+}
+
+_float3 CBody_Monster::Get_LastRootMotionDelta() const
+{
+	if (nullptr == m_pModelCom)
+		return _float3{};
+
+	return m_pModelCom->Get_LastRootMotionDelta();
+}
+
 HRESULT CBody_Monster::Ready_Components(const BODY_MONSTER_DESC& Desc)
 {
 	if (FAILED(__super::Add_Component(
@@ -109,6 +175,16 @@ HRESULT CBody_Monster::Ready_Components(const BODY_MONSTER_DESC& Desc)
 		TEXT("Com_Shader"),
 		reinterpret_cast<CComponent**>(&m_pShaderCom))))
 		return E_FAIL;
+
+	if (MODEL::ANIM == m_pModelCom->Get_ModelType())
+	{
+		if (FAILED(__super::Add_Component(
+			ETOUI(LEVEL::GAMEPLAY),
+			TEXT("Prototype_Component_AnimController"),
+			TEXT("Com_AnimController"),
+			reinterpret_cast<CComponent**>(&m_pAnimController))))
+			return E_FAIL;
+	}
 
 	return S_OK;
 }
@@ -146,6 +222,64 @@ HRESULT CBody_Monster::Bind_ShaderResources()
 	return S_OK;
 }
 
+HRESULT CBody_Monster::Ready_AnimationTable()
+{
+	m_pAnimTable = Find_MonsterAnimTable(m_eAnimSet);
+	if (nullptr == m_pAnimTable)
+		return E_FAIL;
+
+	if (nullptr == m_pAnimController || nullptr == m_pModelCom)
+		return E_FAIL;
+
+	if (nullptr != m_pAnimTable->pRootBoneName)
+		m_pModelCom->Set_RootBoneName(m_pAnimTable->pRootBoneName);
+
+	if (FAILED(m_pAnimController->Bind_Model(m_pModelCom)))
+		return E_FAIL;
+
+	if (FAILED(Register_AnimationClips()))
+		return E_FAIL;
+
+	if (nullptr != m_pListener)
+		m_pAnimController->Set_Listener(m_pListener);
+
+	return S_OK;
+}
+
+HRESULT CBody_Monster::Register_AnimationClips()
+{
+	for (_uint i = 0; i < m_pAnimTable->iNumClips; ++i)
+	{
+		const MONSTER_ANIM_BIND_DESC& Bind = m_pAnimTable->pClips[i];
+
+		CAnimController::ANIM_CLIP_DESC Desc{};
+		Desc.pAnimationName = Bind.pAnimationName;
+		Desc.bRestartOnEnter = Bind.bRestartOnEnter;
+
+		if (FAILED(m_pAnimController->Register_Clip(
+			Make_MonsterAnimKey(Bind.eAction, Bind.ePhase, Bind.eStep), Desc)))
+			return E_FAIL;
+	}
+
+	return S_OK;
+}
+
+const MONSTER_ACTION_POLICY* CBody_Monster::Find_ActionPolicy(MONSTER_ACTION eAction, MONSTER_ACTION_STEP eStep) const
+{
+	if (nullptr == m_pAnimTable)
+		return nullptr;
+
+	for (_uint i = 0; i < m_pAnimTable->iNumPolicies; ++i)
+	{
+		const MONSTER_ACTION_POLICY& Policy = m_pAnimTable->pPolicies[i];
+
+		if (Policy.eAction == eAction && Policy.eStep == eStep)
+			return &Policy;
+	}
+
+	return nullptr;
+}
+
 CBody_Monster* CBody_Monster::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	CBody_Monster* pInstance = new CBody_Monster(pDevice, pContext);
@@ -176,6 +310,7 @@ void CBody_Monster::Free()
 {
 	__super::Free();
 
+	Safe_Release(m_pAnimController);
 	Safe_Release(m_pModelCom);
 	Safe_Release(m_pShaderCom);
 }

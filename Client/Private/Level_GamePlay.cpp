@@ -10,13 +10,43 @@
 #include "UISceneLoader.h"
 #include "UI_Image.h"
 #include "FadeOverlay_Helper.h"
-
+#include "Monster.h"
 
 static constexpr _int PLAYER_START_CELL_INDEX = { 40 };
 
 static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/Map/ThroneRoom.scene");
 static const _tchar* DEFAULT_NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
 static const _tchar* HUD_SCENE_PATH = TEXT("../../Resources/Scenes/UI/HUD.uiscenes");
+
+#ifdef _DEBUG
+static CMonster* Find_FirstBossMonster(CGameInstance* pGameInstance)
+{
+	if (nullptr == pGameInstance)
+		return nullptr;
+
+	const auto* pLayers = pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+	if (nullptr == pLayers)
+		return nullptr;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_Monster"));
+	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+		return nullptr;
+
+	const list<CGameObject*>& MonsterObjects = iterLayer->second->Get_GameObjects();
+
+	for (CGameObject* pObject : MonsterObjects)
+	{
+		CMonster* pMonster = dynamic_cast<CMonster*>(pObject);
+		if (nullptr == pMonster)
+			continue;
+
+		if (SPAWN_TYPE::MONSTER_BOSS == pMonster->Get_SpawnType())
+			return pMonster;
+	}
+
+	return nullptr;
+}
+#endif
 
 _bool CLevel_GamePlay::Apply_PlayerSpawnFromCell(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, _int iCellIndex)
 {
@@ -157,6 +187,9 @@ HRESULT CLevel_GamePlay::Initialize()
 	if (FAILED(Ready_Layer_UI(TEXT("Layer_UI"))))
 		return E_FAIL;
 
+	if (FAILED(Ready_CollisionGroup()))
+		return E_FAIL;
+
 	if (CUI_Image* pFade = CFadeOverlay_Helper::Find())
 	{
 		pFade->Set_Alpha(1.f);
@@ -170,7 +203,24 @@ HRESULT CLevel_GamePlay::Initialize()
 
 void CLevel_GamePlay::Update(_float fTimeDelta)
 {
+#ifdef _DEBUG
+	CMonster* pBossMonster = Find_FirstBossMonster(m_pGameInstance);
 
+	if (nullptr != pBossMonster)
+	{
+		if (m_pGameInstance->Get_KeyDown('7'))
+			pBossMonster->Debug_TryAction(MONSTER_ACTION::BASIC_ATTACK_01);
+
+		if (m_pGameInstance->Get_KeyDown('8'))
+			pBossMonster->Debug_TryAction(MONSTER_ACTION::SKILL_09, MONSTER_ACTION_STEP::START);
+
+		if (m_pGameInstance->Get_KeyDown('9'))
+			pBossMonster->Debug_TryAction(MONSTER_ACTION::DEATH);
+
+		if (m_pGameInstance->Get_KeyDown('0'))
+			pBossMonster->Debug_TryAction(MONSTER_ACTION::SKILL_09, MONSTER_ACTION_STEP::END);
+	}
+#endif
 }
 
 HRESULT CLevel_GamePlay::Render()
@@ -358,6 +408,26 @@ HRESULT	 CLevel_GamePlay::Ready_Layer_UI(const _wstring& strLayerTag)
 		// 파일 없어도 일단 진행
 		return S_OK;
 	}
+
+	return S_OK;
+}
+
+HRESULT CLevel_GamePlay::Ready_CollisionGroup()
+{
+	m_pGameInstance->Set_CollisionMatrix(
+		COLLISION_GROUP::PLAYER_BODY,
+		COLLISION_GROUP::MONSTER_BODY,
+		true);
+
+	m_pGameInstance->Set_CollisionMatrix(
+		COLLISION_GROUP::PLAYER_ATTACK,
+		COLLISION_GROUP::MONSTER_BODY,
+		true);
+
+	m_pGameInstance->Set_CollisionMatrix(
+		COLLISION_GROUP::MONSTER_ATTACK,
+		COLLISION_GROUP::PLAYER_BODY,
+		true);
 
 	return S_OK;
 }

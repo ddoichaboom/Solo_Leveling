@@ -51,6 +51,8 @@ public:
 	_uint                           Get_NumNotifies(_uint iAnimIndex) const;
 	ANIM_NOTIFY                     Get_Notify(_uint iAnimIndex, _uint iNotifyIndex) const;
 
+	_bool							Get_LocalAABB(_float3& vOutCenter, _float3& vOutHalfExtent) const;
+
 
 #pragma endregion
 
@@ -110,7 +112,7 @@ private:
 	void							Extract_RootMotion(_float fPrevTrackPos);
 	void							Reset_RootMotionState();
 
-	_bool							Play_Animation_Blended(_float fTimeDelta);
+	_bool							Play_Animation_Blended(_float fTimeDelta, class INotifyListener* pListener = nullptr);
 	void							Extract_RootMotion_Blended(_float fWeight);
 
 
@@ -169,6 +171,10 @@ private:
 	_bool                           m_bBlendRMInitialized_To = { false };
 
 	_tchar							m_szBinaryPath[MAX_PATH] = {};
+
+	mutable _float3					m_vLocalAABBCenter = {};
+	mutable _float3					m_vLocalAABBHalfExtent = {};
+	mutable _bool					m_bLocalAABBCached = { false };
 
 public:
 	static CModel*					Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,const MODEL_DESC& Desc);

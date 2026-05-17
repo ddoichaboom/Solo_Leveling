@@ -459,6 +459,24 @@ void CNavMeshEditorTool::Set_SelectedSpawnPointIndex(_int iIndex)
 	m_iSelectedSpawnPointIndex = iIndex;
 }
 
+void CNavMeshEditorTool::Set_SelectedSpawnPointRotation(const _float3& vRotationDeg)
+{
+	if (m_iSelectedSpawnPointIndex < 0 ||
+		static_cast<_uint>(m_iSelectedSpawnPointIndex) >= static_cast<_uint>(m_SpawnPoints.size()))
+		return;
+
+	m_SpawnPoints[m_iSelectedSpawnPointIndex].vRotationDeg = vRotationDeg;
+}
+
+void CNavMeshEditorTool::Set_SelectedSpawnPointYaw(_float fYawDeg)
+{
+	if (m_iSelectedSpawnPointIndex < 0 ||
+		static_cast<_uint>(m_iSelectedSpawnPointIndex) >= static_cast<_uint>(m_SpawnPoints.size()))
+		return;
+
+	m_SpawnPoints[m_iSelectedSpawnPointIndex].vRotationDeg.y = fYawDeg;
+}
+
 void CNavMeshEditorTool::Render_PickPreview(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight)
 {
 	if (m_NavMeshPickedPoints.empty())

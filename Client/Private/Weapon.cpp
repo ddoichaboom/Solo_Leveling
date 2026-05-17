@@ -2,6 +2,7 @@
 #include "GameInstance.h"
 #include "Shader.h"
 #include "Model.h"
+#include "Collider.h"
 
 CWeapon::CWeapon(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CPartObject{ pDevice, pContext }
@@ -25,14 +26,18 @@ HRESULT CWeapon::Initialize(void* pArg)
 
     auto pDesc = static_cast<WEAPON_DESC*>(pArg);
 
-    m_pSocketBoneMatrix = pDesc->pSocketBoneMatrix;
-    m_pModelPrototypeTag = pDesc->pModelPrototypeTag;
-    m_bVisible = pDesc->bInitiallyVisible;
+    m_pSocketBoneMatrix     = pDesc->pSocketBoneMatrix;
+    m_pModelPrototypeTag    = pDesc->pModelPrototypeTag;
+    m_bVisible              = pDesc->bInitiallyVisible;
+    m_eAttackGroup          = pDesc->eAttackGroup;
 
     if (FAILED(__super::Initialize(pArg)))
         return E_FAIL;
 
     if (FAILED(Ready_Components()))
+        return E_FAIL;
+
+    if (FAILED(Ready_BladeCollider()))
         return E_FAIL;
 
     return S_OK;
@@ -62,6 +67,8 @@ void CWeapon::Late_Update(_float fTimeDelta)
         return;
 
     m_pGameInstance->Add_RenderGroup(RENDERID::NONBLEND, this);
+
+    Update_BladeHitbox();
 }
 
 HRESULT CWeapon::Render()
@@ -102,6 +109,7 @@ HRESULT CWeapon::Set_Model(const _tchar* pModelPrototypeTag)
             ETOUI(LEVEL::GAMEPLAY),
             pModelPrototypeTag,
             nullptr));
+
     if (nullptr == pNewModel)
         return E_FAIL;
 
@@ -173,6 +181,46 @@ HRESULT CWeapon::Bind_ShaderResources()
     return S_OK;
 }
 
+HRESULT CWeapon::Ready_BladeCollider()
+{
+    m_pBladeCollider = CCollider::Create(m_pDevice, m_pContext);
+    if (nullptr == m_pBladeCollider)
+        return E_FAIL;
+
+    CCollider::COLLIDER_DESC Desc{};
+    Desc.eBoundingType = COLLIDER::OBB;
+    Desc.vCenter = _float3(0.f, 0.f, 0.f);
+    Desc.vSize = _float3(1.f, 1.f, 1.f);
+    Desc.vRadians = _float3(0.f, 0.f, 0.f);
+    Desc.eGroup = m_eAttackGroup;
+    Desc.pOwner = this;
+
+    if (FAILED(m_pBladeCollider->Initialize(&Desc)))
+        return E_FAIL;
+
+    return S_OK;
+}
+
+void CWeapon::Update_BladeHitbox()
+{
+    if (nullptr == m_pBladeCollider || nullptr == m_pModelCom)
+        return;
+
+    _float3 vCenter, vHalfExtent;
+    if (false == m_pModelCom->Get_LocalAABB(vCenter, vHalfExtent))
+        return;
+
+    _matrix BoxLocal = XMMatrixScaling(vHalfExtent.x * 2.f, vHalfExtent.y * 2.f, vHalfExtent.z * 2.f)
+        * XMMatrixTranslation(vCenter.x, vCenter.y, vCenter.z);
+
+    _matrix BoxWorld = BoxLocal * XMLoadFloat4x4(&m_CombinedWorldMatrix);
+
+    m_pBladeCollider->Update(BoxWorld);
+
+    if (true == m_bAttackHitboxActive)
+        m_pBladeCollider->Register();
+}
+
 CWeapon* CWeapon::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
     CWeapon* pInstance = new CWeapon(pDevice, pContext);
@@ -203,6 +251,7 @@ void CWeapon::Free()
 {
     __super::Free();
 
+    Safe_Release(m_pBladeCollider);
     Safe_Release(m_pModelCom);
     Safe_Release(m_pShaderCom);
 }

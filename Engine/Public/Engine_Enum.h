@@ -65,19 +65,29 @@ namespace Engine
         ATTACK_HIT,
         COMBO_WINDOW_OPEN,
         COMBO_WINDOW_CLOSE,
+        ATTACK_HITBOX_ON,
+        ATTACK_HITBOX_OFF,
         END
     };
 
-	//// Dynamic 컴포넌트 경우 매 프레임마다 갱신해야하는 컴포넌트 집단
-	//enum COMPONENTID { ID_DYNAMIC, ID_STATIC, ID_END };
+    enum class COLLIDER : unsigned int
+    {
+        AABB, 
+        OBB,
+        SPHERE,
+        END
+    };
 
-	//enum INFO {	INFO_RIGHT, INFO_UP, INFO_LOOK, INFO_POS, INFO_END };
+    enum class COLLISION_GROUP : unsigned int
+    {
+        PLAYER_BODY,
+        PLAYER_ATTACK,
+        MONSTER_BODY,
+        MONSTER_ATTACK,
+        MAP_STATIC,
+        END
+    };
 
-	//enum ROTATION { ROT_X, ROT_Y, ROT_Z, ROT_END };
-
-	//enum TEXTUREID { TEX_NORMAL, TEX_CUBE, TEX_END };
-
-	//enum RENDERID { RENDER_PRIORITY, RENDER_NONALPHA, RENDER_ALPHA, RENDER_UI, RENDER_END };
 
 }
 #endif // Engine_Enum_h__

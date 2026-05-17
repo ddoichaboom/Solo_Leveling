@@ -27,6 +27,7 @@ public:
 	HRESULT						Ready_Layer_Monster(const _wstring& strLayerTag);
 	HRESULT						Ready_Layer_Player(const _wstring& strLayerTag);
 	HRESULT						Ready_Layer_UI(const _wstring& strLayerTag);
+	HRESULT						Ready_CollisionGroup();
 
 private:
 	_bool						Apply_PlayerSpawnFromCell(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, _int iCellIndex);

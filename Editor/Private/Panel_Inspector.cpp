@@ -320,7 +320,9 @@ void CPanel_Inspector::Render_Model(CGameObject* pObject)
 					"FOOTSTEP_R",
 					"ATTACK_HIT",
 					"COMBO_WINDOW_OPEN",
-					"COMBO_WINDOW_CLOSE"
+					"COMBO_WINDOW_CLOSE",
+					"ATTACK_HITBOX_ON",
+					"ATTACK_HITBOX_OFF"
 				};
 
 				_int iRemoveIndex = -1;     // 삭제 요청 캐시 (루프 종료 후 1회 처리)

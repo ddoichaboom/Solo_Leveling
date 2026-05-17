@@ -8,6 +8,7 @@
 #include "NavigationAgent.h"
 #include "NavMesh.h"
 #include "Monster.h"
+#include "Collider.h"
 
 namespace
 {
@@ -176,6 +177,14 @@ void CPlayer::Late_Update(_float fTimeDelta)
 	{
 		if (nullptr != Pair.second)
 			Pair.second->Late_Update(fTimeDelta);
+	}
+
+	Update_WeaponHitboxes();
+
+	if (nullptr != m_pCollider && nullptr != m_pTransformCom)
+	{
+		m_pCollider->Update(XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr()));
+		m_pCollider->Register();
 	}
 }
 
@@ -356,6 +365,7 @@ HRESULT CPlayer::Ready_PartObjects()
 	WeaponRDesc.pSocketBoneMatrix =	m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_R");
 	WeaponRDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KnightKiller");
 	WeaponRDesc.bInitiallyVisible = false;
+	WeaponRDesc.eAttackGroup = COLLISION_GROUP::PLAYER_ATTACK;
 	
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
@@ -371,6 +381,7 @@ HRESULT CPlayer::Ready_PartObjects()
 	WeaponLDesc.pSocketBoneMatrix = m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_L");
 	WeaponLDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang");
 	WeaponLDesc.bInitiallyVisible = false;
+	WeaponLDesc.eAttackGroup = COLLISION_GROUP::PLAYER_ATTACK;
 
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
@@ -379,6 +390,24 @@ HRESULT CPlayer::Ready_PartObjects()
 
 	m_pWeaponL = dynamic_cast<CWeapon*>(m_PartObjects[TEXT("Weapon_L")]);
 	Safe_AddRef(m_pWeaponL);
+
+	auto SetupWeaponHitCallback = [this](CWeapon* pWeapon)
+		{
+			if (nullptr == pWeapon)
+				return;
+
+			CCollider* pCollider = pWeapon->Get_BladeCollider();
+			if (nullptr == pCollider)
+				return;
+
+			pCollider->Set_OnHitEnter([this, pWeapon](CCollider* pOther)
+				{
+					On_WeaponHitEnter(pWeapon, pOther);
+				});
+		};
+
+	SetupWeaponHitCallback(m_pWeaponR);
+	SetupWeaponHitCallback(m_pWeaponL);
 
 	return S_OK;
 }
@@ -426,6 +455,29 @@ HRESULT CPlayer::Ready_Components(const PLAYER_DESC& Desc)
 		XMStoreFloat3(&vPosition, m_pTransformCom->Get_State(STATE::POSITION));
 		m_pNavigationAgent->Find_CurrentCell(vPosition);
 	}
+
+	// Body OBB Collider
+	m_pCollider = CCollider::Create(m_pDevice, m_pContext);
+	if (nullptr == m_pCollider)
+		return E_FAIL;
+
+	CCollider::COLLIDER_DESC ColliderDesc{};
+	ColliderDesc.eBoundingType = COLLIDER::OBB;
+	ColliderDesc.eGroup = COLLISION_GROUP::PLAYER_BODY;
+	ColliderDesc.vCenter = _float3(0.f, 0.9f, 0.f);
+	ColliderDesc.vSize = _float3(0.6f, 1.8f, 0.6f);
+	ColliderDesc.vRadians = _float3(0.f, 0.f, 0.f);
+	ColliderDesc.pOwner = this;
+
+	if (FAILED(m_pCollider->Initialize(&ColliderDesc)))
+		return E_FAIL;
+
+	//m_pCollider->Set_OnHitEnter([](CCollider* pOther) {
+	//	OutputDebugStringA("[Collision] Player Body ENTER\n");
+	//	});
+	//m_pCollider->Set_OnHitExit([](CCollider* pOther) {
+	//	OutputDebugStringA("[Collision] Player Body EXIT\n");
+	//	});
 
 	return S_OK;
 }
@@ -606,6 +658,50 @@ void CPlayer::Refresh_WeaponVisibility()
 		m_pWeaponL->Set_Visible(m_bWeaponsVisible && m_bLeftVisibleFromLoadOut);
 }
 
+void CPlayer::Update_WeaponHitboxes()
+{
+	const _bool bHitboxActive = (nullptr != m_pStateMachine) && m_pStateMachine->Is_AttackHitboxActive();
+
+	if (true == bHitboxActive && false == m_bPrevAttackHitboxActive)
+		m_AttackHitTargets.clear();
+
+	if (nullptr != m_pWeaponR)
+		m_pWeaponR->Set_AttackHitboxActive(bHitboxActive);
+
+	if (nullptr != m_pWeaponL)
+		m_pWeaponL->Set_AttackHitboxActive(bHitboxActive);
+
+	if (false == bHitboxActive && true == m_bPrevAttackHitboxActive)
+		m_AttackHitTargets.clear();
+
+	m_bPrevAttackHitboxActive = bHitboxActive;
+}
+
+void CPlayer::On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther)
+{
+	if (nullptr == pSourceWeapon || nullptr == pOther)
+		return;
+
+	if (COLLISION_GROUP::MONSTER_BODY != pOther->Get_Group())
+		return;
+
+	CGameObject* pTarget = pOther->Get_Owner();
+	if (nullptr == pTarget)
+		return;
+
+	auto key = std::make_pair(pSourceWeapon, pTarget);
+	if (m_AttackHitTargets.end() != m_AttackHitTargets.find(key))
+		return;
+
+	m_AttackHitTargets.insert(key);
+
+	CMonster* pMonster = dynamic_cast<CMonster*>(pTarget);
+	if (nullptr == pMonster)
+		return;
+
+	pMonster->Take_Damage(10.f);
+}
+
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	CPlayer* pInstance = new CPlayer(pDevice, pContext);
@@ -637,6 +733,18 @@ void CPlayer::Free()
 {
 	__super::Free();
 
+	if (nullptr != m_pWeaponR && nullptr != m_pWeaponR->Get_BladeCollider())
+		m_pWeaponR->Get_BladeCollider()->Clear_Callbacks();
+
+	if (nullptr != m_pWeaponL && nullptr != m_pWeaponL->Get_BladeCollider())
+		m_pWeaponL->Get_BladeCollider()->Clear_Callbacks();
+
+	m_AttackHitTargets.clear();
+
+	if (nullptr != m_pCollider)
+		m_pCollider->Clear_Callbacks();
+
+	Safe_Release(m_pCollider);
 	Safe_Release(m_pNavigationAgent);
 	Safe_Release(m_pStateMachine);
 	Safe_Release(m_pIntentResolver);

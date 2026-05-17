@@ -63,6 +63,9 @@ public:
 	_bool					Has_SpawnPoint() const { return false == m_SpawnPoints.empty(); }
 	const SPAWN_POINT*		Get_SpawnPoint(_uint iIndex) const;
 	void					Set_SelectedSpawnPointIndex(_int iIndex);
+	void					Set_SelectedSpawnPointRotation(const _float3& vRotationDeg);
+	void					Set_SelectedSpawnPointYaw(_float fYawDeg);
+
 	_bool					Can_Undo() const { return false == m_NavMeshUndoStack.empty(); }
 	_bool					Can_Redo() const { return false == m_NavMeshRedoStack.empty(); }
 

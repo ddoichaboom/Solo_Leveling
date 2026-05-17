@@ -40,15 +40,6 @@
     <Filter Include="02. GameObject\ModelObject">
       <UniqueIdentifier>{4adf19d0-86b2-445c-b4b0-6a6f71925e31}</UniqueIdentifier>
     </Filter>
-    <Filter Include="02. GameObject\Player">
-      <UniqueIdentifier>{10c1e72b-cd83-4f2a-b69a-ac16d7f61b3f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Player\Body">
-      <UniqueIdentifier>{a3f011eb-9e89-49c0-9c4a-93299fb44aac}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Player\Weapon">
-      <UniqueIdentifier>{7a6c5aff-6948-4d62-ba0c-e00ad3dfd76b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="02. GameObject\Map">
       <UniqueIdentifier>{d5fe7ad3-148a-4ffd-b896-7a25a1904118}</UniqueIdentifier>
     </Filter>
@@ -69,9 +60,6 @@
     </Filter>
     <Filter Include="97. Tables\Monster">
       <UniqueIdentifier>{5745b8f9-3e35-4c74-9db6-37b30b4d096a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Player\IntentResolver">
-      <UniqueIdentifier>{51b15c93-2312-43ee-bbd4-c3fb970a1e40}</UniqueIdentifier>
     </Filter>
     <Filter Include="96. StateMachine">
       <UniqueIdentifier>{0f7a8134-2658-4a29-9b3c-8c6e993f6123}</UniqueIdentifier>
@@ -99,21 +87,6 @@
     </Filter>
     <Filter Include="01. Levels\Data\SceneData">
       <UniqueIdentifier>{4e507786-3894-4a32-9443-3a644810590e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Monster">
-      <UniqueIdentifier>{e247078d-4031-461c-b65f-a127e5f2ecec}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Monster\Normal">
-      <UniqueIdentifier>{dc4ecd0c-116b-4277-86f2-45e16a6c9e29}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Monster\Elite">
-      <UniqueIdentifier>{c6646e75-22d6-4353-9ead-2c06d1440649}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Monster\Boss">
-      <UniqueIdentifier>{a582a9fe-9009-48a6-97ef-8adc551c5c66}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. GameObject\Monster\Body">
-      <UniqueIdentifier>{f5e35640-413d-4b37-b07d-13f8d4c8d0c6}</UniqueIdentifier>
     </Filter>
     <Filter Include="03. UI">
       <UniqueIdentifier>{c0eea72f-a0c9-4bf7-93cd-9d3d78ac9745}</UniqueIdentifier>
@@ -147,6 +120,33 @@
     </Filter>
     <Filter Include="03. UI\Cursor">
       <UniqueIdentifier>{55f59345-0ddd-4a53-8730-63a6ae98004c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Weapon">
+      <UniqueIdentifier>{7a6c5aff-6948-4d62-ba0c-e00ad3dfd76b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster">
+      <UniqueIdentifier>{e247078d-4031-461c-b65f-a127e5f2ecec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Normal">
+      <UniqueIdentifier>{dc4ecd0c-116b-4277-86f2-45e16a6c9e29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Elite">
+      <UniqueIdentifier>{c6646e75-22d6-4353-9ead-2c06d1440649}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Boss">
+      <UniqueIdentifier>{a582a9fe-9009-48a6-97ef-8adc551c5c66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Monster\Body">
+      <UniqueIdentifier>{f5e35640-413d-4b37-b07d-13f8d4c8d0c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Player">
+      <UniqueIdentifier>{10c1e72b-cd83-4f2a-b69a-ac16d7f61b3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Player\Body">
+      <UniqueIdentifier>{a3f011eb-9e89-49c0-9c4a-93299fb44aac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\Player\IntentResolver">
+      <UniqueIdentifier>{51b15c93-2312-43ee-bbd4-c3fb970a1e40}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -187,7 +187,7 @@
       <Filter>02. GameObject\Player\Body</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Weapon.h">
-      <Filter>02. GameObject\Player\Weapon</Filter>
+      <Filter>02. GameObject\Weapon</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\MapObject.h">
       <Filter>02. GameObject\Map</Filter>
@@ -264,6 +264,9 @@
     <ClInclude Include="..\Public\UI_Cursor.h">
       <Filter>03. UI\Cursor</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Monster_StateMachine.h">
+      <Filter>96. StateMachine\Monster</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -300,7 +303,7 @@
       <Filter>02. GameObject\Player\Body</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Weapon.cpp">
-      <Filter>02. GameObject\Player\Weapon</Filter>
+      <Filter>02. GameObject\Weapon</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\MapObject.cpp">
       <Filter>02. GameObject\Map</Filter>
@@ -367,6 +370,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\UI_Cursor.cpp">
       <Filter>03. UI\Cursor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Monster_StateMachine.cpp">
+      <Filter>96. StateMachine\Monster</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
