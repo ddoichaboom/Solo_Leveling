@@ -16,9 +16,10 @@ class CLIENT_DLL CWeapon final : public CPartObject
 public:
     typedef struct tagWeaponDesc : public CPartObject::PARTOBJECT_DESC
     {
-        const _float4x4* pSocketBoneMatrix = { nullptr };
-        const _tchar* pModelPrototypeTag = { nullptr };
+        const _float4x4*    pSocketBoneMatrix = { nullptr };
+        const _tchar*       pModelPrototypeTag = { nullptr };
         _bool               bInitiallyVisible = { true };
+        COLLISION_GROUP     eAttackGroup = { COLLISION_GROUP::END };
     }WEAPON_DESC;
 
 private:
@@ -39,19 +40,9 @@ public:
     _bool                       Is_Visible() const { return m_bVisible; }
     HRESULT                     Set_Model(const _tchar* pModelPrototypeTag);
 
-    void                        Set_BladePoints(_fvector vStartWorld, _fvector vEndWorld)
-    {
-        XMStoreFloat4(&m_vBladeStartWorld, vStartWorld);
-        XMStoreFloat4(&m_vBladeEndWorld, vEndWorld);
-        m_bBladeValid = true;
-    }
-    void                        Invalidate_BladePoints() { m_bBladeValid = false; }
-
     void                        Set_AttackHitboxActive(_bool bActive) { m_bAttackHitboxActive = bActive; }
     _bool                       Is_AttackHitboxActive() const { return m_bAttackHitboxActive; }
     CCollider*                  Get_BladeCollider() const { return m_pBladeCollider; }
-
-    void                        Update_BladeCollider();
 
 private:
     CShader*                    m_pShaderCom = { nullptr };
@@ -63,19 +54,14 @@ private:
     const _tchar*               m_pModelPrototypeTag = { nullptr };
     _bool                       m_bVisible = { true };
 
-    _float4                     m_vBladeStartWorld = {};
-    _float4                     m_vBladeEndWorld = {};
-    _bool                       m_bBladeValid = { false };
-
     _bool                       m_bAttackHitboxActive = { false };
-
-    // юс╫ц 
-    static constexpr _float     BLADE_THICKNESS = 0.25f;
+    COLLISION_GROUP             m_eAttackGroup = { COLLISION_GROUP::END };
 
 private:
     HRESULT                     Ready_Components();
     HRESULT                     Bind_ShaderResources();
     HRESULT                     Ready_BladeCollider();
+    void                        Update_BladeHitbox();
 
 public:
     static CWeapon*             Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

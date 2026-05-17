@@ -58,6 +58,22 @@ void CMonster_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
     }
 
     case NOTIFY_TYPE::ANIM_EVENT:
+    {
+        const ANIM_NOTIFY_TYPE eAnimNotify = static_cast<ANIM_NOTIFY_TYPE>(Event.iPayload);
+
+        switch (eAnimNotify)
+        {
+        case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_ON:
+            if (nullptr != m_pOwner)
+                m_pOwner->Set_WeaponHitboxActive(true);
+            break;
+
+        case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_OFF:
+            if (nullptr != m_pOwner)
+                m_pOwner->Set_WeaponHitboxActive(false);
+            break;
+        }
+    }
         break;
 
     default:

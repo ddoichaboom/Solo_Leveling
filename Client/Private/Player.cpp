@@ -365,6 +365,7 @@ HRESULT CPlayer::Ready_PartObjects()
 	WeaponRDesc.pSocketBoneMatrix =	m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_R");
 	WeaponRDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KnightKiller");
 	WeaponRDesc.bInitiallyVisible = false;
+	WeaponRDesc.eAttackGroup = COLLISION_GROUP::PLAYER_ATTACK;
 	
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
@@ -380,6 +381,7 @@ HRESULT CPlayer::Ready_PartObjects()
 	WeaponLDesc.pSocketBoneMatrix = m_pBody->Get_BoneMatrixPtr("Prop_Weapon_Dualwield_01_L");
 	WeaponLDesc.pModelPrototypeTag = TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang");
 	WeaponLDesc.bInitiallyVisible = false;
+	WeaponLDesc.eAttackGroup = COLLISION_GROUP::PLAYER_ATTACK;
 
 	if (FAILED(__super::Add_PartObject(ETOUI(LEVEL::GAMEPLAY),
 		TEXT("Prototype_GameObject_Weapon"),
@@ -388,6 +390,24 @@ HRESULT CPlayer::Ready_PartObjects()
 
 	m_pWeaponL = dynamic_cast<CWeapon*>(m_PartObjects[TEXT("Weapon_L")]);
 	Safe_AddRef(m_pWeaponL);
+
+	auto SetupWeaponHitCallback = [this](CWeapon* pWeapon)
+		{
+			if (nullptr == pWeapon)
+				return;
+
+			CCollider* pCollider = pWeapon->Get_BladeCollider();
+			if (nullptr == pCollider)
+				return;
+
+			pCollider->Set_OnHitEnter([this, pWeapon](CCollider* pOther)
+				{
+					On_WeaponHitEnter(pWeapon, pOther);
+				});
+		};
+
+	SetupWeaponHitCallback(m_pWeaponR);
+	SetupWeaponHitCallback(m_pWeaponL);
 
 	return S_OK;
 }
@@ -640,75 +660,46 @@ void CPlayer::Refresh_WeaponVisibility()
 
 void CPlayer::Update_WeaponHitboxes()
 {
-	if (nullptr == m_pBody)
-		return;
-
 	const _bool bHitboxActive = (nullptr != m_pStateMachine) && m_pStateMachine->Is_AttackHitboxActive();
 
-	static _bool s_bPrevActive = false;
-	if (bHitboxActive != s_bPrevActive)
-	{
-		OutputDebugStringA(bHitboxActive
-			? "[Hitbox] ============ ON ============\n"
-			: "[Hitbox] ============ OFF ===========\n");
-		s_bPrevActive = bHitboxActive;
-	}
+	if (true == bHitboxActive && false == m_bPrevAttackHitboxActive)
+		m_AttackHitTargets.clear();
 
-	// Body 의 합성 World (PartObject Compute_CombinedWorldMatrix 결과)
-	const _matrix BodyWorld = XMLoadFloat4x4(&m_pBody->Get_CombinedWorldMatrix());
+	if (nullptr != m_pWeaponR)
+		m_pWeaponR->Set_AttackHitboxActive(bHitboxActive);
 
-	auto PushBlade = [&](CWeapon* pWeapon, const _char* pBladeBoneName, const _char* pLabel)
-		{
-			if (nullptr == pWeapon)
-				return;
+	if (nullptr != m_pWeaponL)
+		m_pWeaponL->Set_AttackHitboxActive(bHitboxActive);
 
-			pWeapon->Set_AttackHitboxActive(bHitboxActive);
+	if (false == bHitboxActive && true == m_bPrevAttackHitboxActive)
+		m_AttackHitTargets.clear();
 
-			const _float4x4* pBoneCombined = m_pBody->Get_BoneMatrixPtr(pBladeBoneName);
-			if (nullptr == pBoneCombined)
-			{
-				if (bHitboxActive)
-				{
-					char szLog[128] = {};
-					sprintf_s(szLog, "[Hitbox %s] BONE MISS '%s'\n", pLabel, pBladeBoneName);
-					OutputDebugStringA(szLog);
-				}
+	m_bPrevAttackHitboxActive = bHitboxActive;
+}
 
-				pWeapon->Invalidate_BladePoints();
-				pWeapon->Update_BladeCollider();   // 비활성 상태로 갱신 (Register 안 함)
-				return;
-			}
+void CPlayer::On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther)
+{
+	if (nullptr == pSourceWeapon || nullptr == pOther)
+		return;
 
-			// 칼날 끝 = Body 본 World
-			_vector vEnd = (XMLoadFloat4x4(pBoneCombined) * BodyWorld).r[3];
+	if (COLLISION_GROUP::MONSTER_BODY != pOther->Get_Group())
+		return;
 
-			// 칼날 시작 = 무기 합성 World 의 origin (= 손잡이 위치)
-			_vector vStart = XMLoadFloat4x4(&pWeapon->Get_CombinedWorldMatrix()).r[3];
+	CGameObject* pTarget = pOther->Get_Owner();
+	if (nullptr == pTarget)
+		return;
 
-			if (bHitboxActive)
-			{
-				_float4 vS = {}, vE = {};
-				XMStoreFloat4(&vS, vStart);
-				XMStoreFloat4(&vE, vEnd);
-				_float fLen = XMVectorGetX(XMVector3Length(XMVectorSubtract(vEnd, vStart)));
+	auto key = std::make_pair(pSourceWeapon, pTarget);
+	if (m_AttackHitTargets.end() != m_AttackHitTargets.find(key))
+		return;
 
-				char szLog[512] = {};
-				sprintf_s(szLog,
-					"[Hitbox %s] Start(%.3f,%.3f,%.3f) End(%.3f,%.3f,%.3f) Len=%.3fm Visible=%d\n",
-					pLabel,
-					vS.x, vS.y, vS.z,
-					vE.x, vE.y, vE.z,
-					fLen,
-					static_cast<int>(pWeapon->Is_Visible()));
-				OutputDebugStringA(szLog);
-			}
+	m_AttackHitTargets.insert(key);
 
-			pWeapon->Set_BladePoints(vStart, vEnd);
-			pWeapon->Update_BladeCollider();
-		};
+	CMonster* pMonster = dynamic_cast<CMonster*>(pTarget);
+	if (nullptr == pMonster)
+		return;
 
-	PushBlade(m_pWeaponR, "FX_Point_R_Weapon", "R");
-	PushBlade(m_pWeaponL, "FX_Point_L_Weapon", "L");
+	pMonster->Take_Damage(10.f);
 }
 
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -741,6 +732,14 @@ CGameObject* CPlayer::Clone(void* pArg)
 void CPlayer::Free()
 {
 	__super::Free();
+
+	if (nullptr != m_pWeaponR && nullptr != m_pWeaponR->Get_BladeCollider())
+		m_pWeaponR->Get_BladeCollider()->Clear_Callbacks();
+
+	if (nullptr != m_pWeaponL && nullptr != m_pWeaponL->Get_BladeCollider())
+		m_pWeaponL->Get_BladeCollider()->Clear_Callbacks();
+
+	m_AttackHitTargets.clear();
 
 	if (nullptr != m_pCollider)
 		m_pCollider->Clear_Callbacks();

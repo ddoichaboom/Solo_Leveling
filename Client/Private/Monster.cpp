@@ -19,6 +19,18 @@ CMonster::CMonster(const CMonster& Prototype)
 {
 }
 
+void CMonster::Take_Damage(_float fAmount)
+{
+    if (m_fCurrentHP <= 0.f)
+        return;
+
+    m_fCurrentHP = max(0.f, m_fCurrentHP - fAmount);
+
+    char szLog[128] = {};
+    sprintf_s(szLog, "[Monster] HP -%.1f  =>  %.1f / %.1f\n", fAmount, m_fCurrentHP, m_fMaxHP);
+    OutputDebugStringA(szLog);
+}
+
 void CMonster::Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep, MONSTER_ACTION eToAction, MONSTER_ACTION_STEP eToStep, _bool bInitial)
 {
     if (nullptr == m_pBody)
@@ -26,6 +38,28 @@ void CMonster::Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTIO
 
     m_pBody->Play_Action(eToAction, eToStep, MONSTER_PHASE::COMMON);
 }
+
+void CMonster::Set_WeaponHitboxActive(_bool bActive)
+{
+    if (true == bActive)
+        m_AttackHitTargets.clear();
+
+    if (nullptr != m_pWeapon)
+        m_pWeapon->Set_AttackHitboxActive(bActive);
+
+    if (false == bActive)
+        m_AttackHitTargets.clear();
+}
+
+#ifdef _DEBUG
+void CMonster::Debug_TryAction(MONSTER_ACTION eAction, MONSTER_ACTION_STEP eStep)
+{
+    if (nullptr == m_pStateMachine)
+        return;
+
+    m_pStateMachine->Try_Action(eAction, eStep);
+}
+#endif
 
 HRESULT CMonster::Initialize_Prototype()
 {
@@ -100,6 +134,9 @@ void CMonster::Update(_float fTimeDelta)
         if (nullptr != Pair.second)
             Pair.second->Update(fTimeDelta);
     }
+
+    if (nullptr != m_pBody)
+        Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
 }
 
 void CMonster::Late_Update(_float fTimeDelta)
@@ -207,6 +244,7 @@ HRESULT CMonster::Ready_PartObjects(const MONSTER_DESC& Desc)
         WeaponDesc.pSocketBoneMatrix    = pSocketBoneMatrix;
         WeaponDesc.pModelPrototypeTag   = Desc.pWeaponModelPrototypeTag;
         WeaponDesc.bInitiallyVisible    = Desc.bWeaponInitiallyVisible;
+        WeaponDesc.eAttackGroup         = COLLISION_GROUP::MONSTER_ATTACK;
 
         if (FAILED(__super::Add_PartObject(
             ETOUI(LEVEL::GAMEPLAY),
@@ -224,6 +262,15 @@ HRESULT CMonster::Ready_PartObjects(const MONSTER_DESC& Desc)
             return E_FAIL;
 
         Safe_AddRef(m_pWeapon);
+
+        if (nullptr != m_pWeapon->Get_BladeCollider())
+        {
+            m_pWeapon->Get_BladeCollider()->Set_OnHitEnter(
+                [this](CCollider* pOther)
+                {
+                    On_WeaponHitEnter(pOther);
+                });
+        }
     }
 
 
@@ -275,9 +322,66 @@ _bool CMonster::Try_ApplyNavigationPosition(const _float3& vCandidatePosition)
     return true;
 }
 
+void CMonster::Apply_RootMotion(const _float3& vLocalDelta)
+{
+    if (0.f == vLocalDelta.x && 0.f == vLocalDelta.y && 0.f == vLocalDelta.z)
+        return;
+
+    if (nullptr == m_pTransformCom)
+        return;
+
+    _vector vRight = XMVector3Normalize(m_pTransformCom->Get_State(STATE::RIGHT));
+    _vector vUp = XMVector3Normalize(m_pTransformCom->Get_State(STATE::UP));
+    _vector vLook = XMVector3Normalize(m_pTransformCom->Get_State(STATE::LOOK));
+
+    _vector vWorldDelta = XMVectorScale(vRight, vLocalDelta.x);
+    vWorldDelta = XMVectorAdd(vWorldDelta, XMVectorScale(vUp, vLocalDelta.y));
+    vWorldDelta = XMVectorAdd(vWorldDelta, XMVectorScale(vLook, vLocalDelta.z));
+
+    _vector vPosition = m_pTransformCom->Get_State(STATE::POSITION);
+    vPosition = XMVectorAdd(vPosition, vWorldDelta);
+
+    _float3 vCandidatePosition{};
+    XMStoreFloat3(&vCandidatePosition, vPosition);
+
+    Try_ApplyNavigationPosition(vCandidatePosition);
+}
+
+void CMonster::On_WeaponHitEnter(CCollider* pOther)
+{
+    if (nullptr == pOther)
+        return;
+
+    if (COLLISION_GROUP::PLAYER_BODY != pOther->Get_Group())
+        return;
+
+    CGameObject* pTarget = pOther->Get_Owner();
+    if (nullptr == pTarget)
+        return;
+
+    if (m_AttackHitTargets.end() != m_AttackHitTargets.find(pTarget))
+        return;
+
+    m_AttackHitTargets.insert(pTarget);
+
+#ifdef _DEBUG
+    OutputDebugStringA("[Monster] Weapon Hit Player Body\n");
+#endif
+
+    // Player HP/피격 상태 연결 후:
+    // CPlayer* pPlayer = dynamic_cast<CPlayer*>(pTarget);
+    // if (nullptr != pPlayer)
+    //     pPlayer->Take_Damage(...);
+}
+
 void CMonster::Free()
 {
     __super::Free();
+
+    if (nullptr != m_pWeapon && nullptr != m_pWeapon->Get_BladeCollider())
+        m_pWeapon->Get_BladeCollider()->Clear_Callbacks();
+
+    m_AttackHitTargets.clear();
 
     if (nullptr != m_pCollider)
         m_pCollider->Clear_Callbacks();

@@ -46,9 +46,19 @@ public:
 	_float						Get_MaxHP() const { return m_fMaxHP; }
 	_float						Get_CurrentHP() const { return m_fCurrentHP; }
 
+	void						Take_Damage(_float fAmount);
+
 	void						Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep,
 														MONSTER_ACTION eToAction, MONSTER_ACTION_STEP eToStep,
 														_bool bInitial);
+
+	void						Set_WeaponHitboxActive(_bool bActive);
+
+#ifdef _DEBUG
+public:
+	void						Debug_TryAction(MONSTER_ACTION eAction, MONSTER_ACTION_STEP eStep = MONSTER_ACTION_STEP::NONE);
+#endif
+
 
 public:
 	virtual HRESULT				Initialize_Prototype() override;
@@ -73,6 +83,9 @@ protected:
 	HRESULT						Ready_StateMachine();
 
 	_bool						Try_ApplyNavigationPosition(const _float3& vCandidatePosition);
+	void						Apply_RootMotion(const _float3& vLocalDelta);
+	
+	void						On_WeaponHitEnter(CCollider* pOther);
 
 protected:
 	CNavigationAgent*			m_pNavigationAgent = { nullptr };
@@ -86,6 +99,11 @@ protected:
 
 	_float						m_fMaxHP = { 1.f };
 	_float						m_fCurrentHP = { 1.f };
+
+	_float						m_fMaxShield = { 1.f };
+	_float						m_fCurrentShield = { 1.f };
+
+	set<CGameObject*>			m_AttackHitTargets;
 
 public:
 	virtual CGameObject*		Clone(void* pArg) PURE;

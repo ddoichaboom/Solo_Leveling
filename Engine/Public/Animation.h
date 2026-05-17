@@ -37,7 +37,7 @@ public:
 	_bool					Update_TransformationMatrix(const vector<class CBone*>& Bones,
 														_float fTimeDelta, _bool isLoop,
 														class INotifyListener* pListener = nullptr );
-	_bool					Advance_Time(_float fTimeDelta, _bool isLoop);
+	_bool					Advance_Time(_float fTimeDelta, _bool isLoop, class INotifyListener* pListener = nullptr);
 	void					Evaluate_Pose(BONE_POSE* pOutPoses, _ubyte* pOutHasPose);
 
 	void					Tick_Notifies(_float fPrevTick, _float fCurTick, _bool bWrapped, class INotifyListener* pListener = nullptr);

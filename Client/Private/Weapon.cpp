@@ -26,9 +26,10 @@ HRESULT CWeapon::Initialize(void* pArg)
 
     auto pDesc = static_cast<WEAPON_DESC*>(pArg);
 
-    m_pSocketBoneMatrix = pDesc->pSocketBoneMatrix;
-    m_pModelPrototypeTag = pDesc->pModelPrototypeTag;
-    m_bVisible = pDesc->bInitiallyVisible;
+    m_pSocketBoneMatrix     = pDesc->pSocketBoneMatrix;
+    m_pModelPrototypeTag    = pDesc->pModelPrototypeTag;
+    m_bVisible              = pDesc->bInitiallyVisible;
+    m_eAttackGroup          = pDesc->eAttackGroup;
 
     if (FAILED(__super::Initialize(pArg)))
         return E_FAIL;
@@ -66,6 +67,8 @@ void CWeapon::Late_Update(_float fTimeDelta)
         return;
 
     m_pGameInstance->Add_RenderGroup(RENDERID::NONBLEND, this);
+
+    Update_BladeHitbox();
 }
 
 HRESULT CWeapon::Render()
@@ -186,10 +189,10 @@ HRESULT CWeapon::Ready_BladeCollider()
 
     CCollider::COLLIDER_DESC Desc{};
     Desc.eBoundingType = COLLIDER::OBB;
-    Desc.eGroup = COLLISION_GROUP::PLAYER_ATTACK;
     Desc.vCenter = _float3(0.f, 0.f, 0.f);
     Desc.vSize = _float3(1.f, 1.f, 1.f);
     Desc.vRadians = _float3(0.f, 0.f, 0.f);
+    Desc.eGroup = m_eAttackGroup;
     Desc.pOwner = this;
 
     if (FAILED(m_pBladeCollider->Initialize(&Desc)))
@@ -198,42 +201,21 @@ HRESULT CWeapon::Ready_BladeCollider()
     return S_OK;
 }
 
-void CWeapon::Update_BladeCollider()
+void CWeapon::Update_BladeHitbox()
 {
-    if (nullptr == m_pBladeCollider)
-        return;
-    if (false == m_bBladeValid)
+    if (nullptr == m_pBladeCollider || nullptr == m_pModelCom)
         return;
 
-    _vector vStart = XMLoadFloat4(&m_vBladeStartWorld);
-    _vector vEnd = XMLoadFloat4(&m_vBladeEndWorld);
-
-    _vector vDelta = XMVectorSubtract(vEnd, vStart);
-    _float  fLength = XMVectorGetX(XMVector3Length(vDelta));
-    if (fLength < 0.0001f)
+    _float3 vCenter, vHalfExtent;
+    if (false == m_pModelCom->Get_LocalAABB(vCenter, vHalfExtent))
         return;
 
-    _vector vForward = XMVectorScale(vDelta, 1.f / fLength);
+    _matrix BoxLocal = XMMatrixScaling(vHalfExtent.x * 2.f, vHalfExtent.y * 2.f, vHalfExtent.z * 2.f)
+        * XMMatrixTranslation(vCenter.x, vCenter.y, vCenter.z);
 
-    // 무기 World Y 를 Up 후보. Forward 와 평행 시 World X 폴백
-    _matrix WeaponWorld = XMLoadFloat4x4(&m_CombinedWorldMatrix);
-    _vector vUpCandidate = XMVector3Normalize(WeaponWorld.r[1]);
+    _matrix BoxWorld = BoxLocal * XMLoadFloat4x4(&m_CombinedWorldMatrix);
 
-    if (fabsf(XMVectorGetX(XMVector3Dot(vUpCandidate, vForward))) > 0.99f)
-        vUpCandidate = XMVectorSet(1.f, 0.f, 0.f, 0.f);
-
-    _vector vRight = XMVector3Normalize(XMVector3Cross(vUpCandidate, vForward));
-    _vector vUp = XMVector3Cross(vForward, vRight);
-
-    _vector vCenter = XMVectorScale(XMVectorAdd(vStart, vEnd), 0.5f);
-
-    _matrix BladeWorld;
-    BladeWorld.r[0] = XMVectorScale(vRight, BLADE_THICKNESS);
-    BladeWorld.r[1] = XMVectorScale(vUp, BLADE_THICKNESS);
-    BladeWorld.r[2] = XMVectorScale(vForward, fLength);
-    BladeWorld.r[3] = XMVectorSetW(vCenter, 1.f);
-
-    m_pBladeCollider->Update(BladeWorld);
+    m_pBladeCollider->Update(BoxWorld);
 
     if (true == m_bAttackHitboxActive)
         m_pBladeCollider->Register();
