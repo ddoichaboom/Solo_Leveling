@@ -35,6 +35,11 @@ public:
     _float                  Get_SpeedCoeff() const { return m_fSpeedCoeff; }
     void                    Set_SpeedCoeff(_float fCoeff) { m_fSpeedCoeff = fCoeff; }
 
+    _float                  Get_MaxHP() const { return m_fMaxHP; }
+    _float                  Get_CurrentHP() const { return m_fCurrentHP; }
+
+    void                    Take_Damage(_float fAmount);
+
 public:
     virtual HRESULT         Initialize_Prototype() override;
     virtual HRESULT         Initialize(void* pArg) override;
@@ -119,6 +124,9 @@ private:
 
     EQUIPPED_WEAPON_ID      m_eEquippedWeapon = { EQUIPPED_WEAPON_ID::NONE };
     _bool                   m_bPrevAttackHitboxActive = { false };
+
+    _float                  m_fMaxHP = { 100.f };
+    _float                  m_fCurrentHP = { 100.f };
 
 public:
     static CPlayer*         Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

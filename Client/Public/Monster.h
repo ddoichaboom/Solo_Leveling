@@ -32,6 +32,9 @@ public:
 		_bool				bWeaponInitiallyVisible = { true };
 
 		_float				fMaxHP = { 0.f };
+		_float				fMaxShield = { 0.f };
+
+		_bool				bHasShield = { false };
 	}MONSTER_DESC;
 
 protected:
@@ -100,8 +103,12 @@ protected:
 	_float						m_fMaxHP = { 1.f };
 	_float						m_fCurrentHP = { 1.f };
 
+	_bool						m_bHasShield = { false };
 	_float						m_fMaxShield = { 1.f };
 	_float						m_fCurrentShield = { 1.f };
+
+	_float						m_fCrashDurationMax = { 15.f };
+	_float						m_fCrashDurationCurrent = { 0.f };
 
 	set<CGameObject*>			m_AttackHitTargets;
 

@@ -8,6 +8,7 @@
 #include "Collider.h"
 #include "Monster_StateMachine.h"
 #include "MonsterAnimTable.h"
+#include "Player.h"
 
 CMonster::CMonster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CContainerObject{ pDevice, pContext }
@@ -24,17 +25,75 @@ void CMonster::Take_Damage(_float fAmount)
     if (m_fCurrentHP <= 0.f)
         return;
 
-    m_fCurrentHP = max(0.f, m_fCurrentHP - fAmount);
+    _float fHPDamage = 0.f;
+    _float fShieldDamage = 0.f;
 
-    char szLog[128] = {};
-    sprintf_s(szLog, "[Monster] HP -%.1f  =>  %.1f / %.1f\n", fAmount, m_fCurrentHP, m_fMaxHP);
+    if (!m_bHasShield)
+    {
+        fHPDamage = fAmount;
+    }
+    else if (m_fCurrentShield > 0.f)
+    {
+        fHPDamage = fAmount * 0.7f;
+        fShieldDamage = fAmount * 1.5f;
+    }
+    else
+    {
+        fHPDamage = fAmount * 1.5f;
+    }
+
+    _float fPrevShield = m_fCurrentShield;
+    m_fCurrentShield = max(0.f, m_fCurrentShield - fShieldDamage);
+    m_fCurrentHP = max(0.f, m_fCurrentHP - fHPDamage);
+
+    char szLog[192] = {};
+    sprintf_s(szLog,
+        "[Monster] DMG in=%.1f | HP -%.1f => %.1f/%.1f | Shield -%.1f => %.1f/%.1f\n",
+        fAmount,
+        fHPDamage, m_fCurrentHP, m_fMaxHP,
+        fShieldDamage, m_fCurrentShield, m_fMaxShield);
     OutputDebugStringA(szLog);
+
+    if (true == m_bHasShield && fPrevShield > 0.f && m_fCurrentShield <= 0.f)
+    {
+        OutputDebugStringA("[Monster] SHIELD BROKEN -> CRASH\n");
+        if (nullptr != m_pStateMachine)
+            m_pStateMachine->Try_Action(MONSTER_ACTION::CRASH, MONSTER_ACTION_STEP::START);
+    }
+
+    if (m_fCurrentHP <= 0.f)
+    {
+        OutputDebugStringA("[Monster] HP DEPLETED -> DEATH\n");
+        if (nullptr != m_pStateMachine)
+            m_pStateMachine->Try_Action(MONSTER_ACTION::DEATH, MONSTER_ACTION_STEP::NONE);
+    }
 }
 
 void CMonster::Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep, MONSTER_ACTION eToAction, MONSTER_ACTION_STEP eToStep, _bool bInitial)
 {
     if (nullptr == m_pBody)
         return;
+
+    if (MONSTER_ACTION::CRASH != eFromAction && MONSTER_ACTION::DEATH != eFromAction &&
+        (MONSTER_ACTION::CRASH == eToAction || MONSTER_ACTION::DEATH == eToAction))
+    {
+        Set_WeaponHitboxActive(false);
+    }
+
+    if (true == m_bHasShield &&
+        MONSTER_ACTION::CRASH != eFromAction &&
+        MONSTER_ACTION::CRASH == eToAction)
+    {
+        m_fCrashDurationCurrent = m_fCrashDurationMax;
+    }
+
+    if (true == m_bHasShield &&
+        MONSTER_ACTION::CRASH == eFromAction &&
+        MONSTER_ACTION::CRASH != eToAction)
+    {
+        m_fCurrentShield = m_fMaxShield;
+        m_fCrashDurationCurrent = 0.f;
+    }
 
     m_pBody->Play_Action(eToAction, eToStep, MONSTER_PHASE::COMMON);
 }
@@ -91,6 +150,9 @@ HRESULT CMonster::Initialize(void* pArg)
     if (0.f == Desc.fMaxHP)
         Desc.fMaxHP = 1.f;
 
+    if (0.f == Desc.fMaxShield)
+        Desc.fMaxShield = 1.f;
+
     m_strName = Get_DefaultName();
     m_strTag = Get_DefaultName();
 
@@ -99,6 +161,10 @@ HRESULT CMonster::Initialize(void* pArg)
 
     m_fMaxHP = Desc.fMaxHP;
     m_fCurrentHP = Desc.fMaxHP;
+
+    m_bHasShield = Desc.bHasShield;
+    m_fMaxShield = Desc.fMaxShield;
+    m_fCurrentShield = Desc.fMaxShield;
 
     if (FAILED(__super::Initialize(&Desc)))
         return E_FAIL;
@@ -137,6 +203,20 @@ void CMonster::Update(_float fTimeDelta)
 
     if (nullptr != m_pBody)
         Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
+
+    if (true == m_bHasShield && m_fCrashDurationCurrent > 0.f)
+    {
+        m_fCrashDurationCurrent -= fTimeDelta;
+        if (m_fCrashDurationCurrent <= 0.f)
+        {
+            m_fCrashDurationCurrent = 0.f;
+            if (nullptr != m_pStateMachine)
+            {
+                m_pStateMachine->On_ActionFinished();
+                m_pStateMachine->Try_Action(MONSTER_ACTION::IDLE, MONSTER_ACTION_STEP::NONE);
+            }
+        }
+    }
 }
 
 void CMonster::Late_Update(_float fTimeDelta)
@@ -368,10 +448,9 @@ void CMonster::On_WeaponHitEnter(CCollider* pOther)
     OutputDebugStringA("[Monster] Weapon Hit Player Body\n");
 #endif
 
-    // Player HP/피격 상태 연결 후:
-    // CPlayer* pPlayer = dynamic_cast<CPlayer*>(pTarget);
-    // if (nullptr != pPlayer)
-    //     pPlayer->Take_Damage(...);
+    CPlayer* pPlayer = dynamic_cast<CPlayer*>(pTarget);
+    if (nullptr != pPlayer)
+        pPlayer->Take_Damage(10.f);
 }
 
 void CMonster::Free()

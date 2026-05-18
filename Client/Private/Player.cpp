@@ -52,6 +52,18 @@ CPlayer::CPlayer(const CPlayer& Prototype)
 {
 }
 
+void CPlayer::Take_Damage(_float fAmount)
+{
+	if (m_fCurrentHP <= 0.f)
+		return;
+
+	m_fCurrentHP = max(0.f, m_fCurrentHP - fAmount);
+
+	char szLog[128] = {};
+	sprintf_s(szLog, "[Player] HP -%.1f  =>  %.1f / %.1f\n", fAmount, m_fCurrentHP, m_fMaxHP);
+	OutputDebugStringA(szLog);
+}
+
 HRESULT CPlayer::Initialize_Prototype()
 {
 	return S_OK;
