@@ -299,7 +299,7 @@ msbuild Solo_Leveling.sln /p:Configuration=Release /p:Platform=x64
 
 ## Asset Notice
 
-캐릭터, 무기, 맵 등 일부 리소스는 *Solo Leveling: Arise* 자산을 학습/포트폴리오 목적으로 추출해 사용했습니다. 본 저장소는 상업적 사용이나 배포 목적이 아닙니다.
+캐릭터, 무기, 맵 등 일부 리소스는 *Solo Leveling: OverDrive* 자산을 학습/포트폴리오 목적으로 추출해 사용했습니다. 본 저장소는 상업적 사용이나 배포 목적이 아닙니다.
 
 외부 라이브러리:
 
