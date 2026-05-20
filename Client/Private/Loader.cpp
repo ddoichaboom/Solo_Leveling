@@ -195,9 +195,62 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 
 	m_fProgress = 0.5f;
 
+	lstrcpy(m_szLoadingText, TEXT("텍스처 로드 중"));
+
+	m_fProgress = 0.8f;
+
+	struct HUDTextureEntry
+	{
+		const _tchar* pProtoTag;
+		const _tchar* pFilePath;
+	};
+
+	static const HUDTextureEntry aHUDEntries[] =
+	{
+		// Monster HP (3)
+		{ TEXT("Prototype_Component_Texture_HUD_MonsterHP_Back"),       TEXT("../../Resources/Textures/HUD/Monster_HP_Back.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_MonsterHP_Reduce"),     TEXT("../../Resources/Textures/HUD/Monster_HP_Reduce.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_MonsterHP_Fill"),       TEXT("../../Resources/Textures/HUD/Monster_HP_Fill.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_HP_BarLight"),          TEXT("../../Resources/Textures/HUD/HP_BarLight.png") },
+
+		// Monster Break (4)
+		{ TEXT("Prototype_Component_Texture_HUD_MonsterBreak_Back"),    TEXT("../../Resources/Textures/HUD/Monster_Break_Back.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_MonsterBreak_Reduce"),  TEXT("../../Resources/Textures/HUD/Monster_Break_Reduce.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_MonsterBreak_Fill"),    TEXT("../../Resources/Textures/HUD/Monster_Break_Fill.png") },
+
+		// Player HP (3)
+		{ TEXT("Prototype_Component_Texture_HUD_PlayerHP_Back"),        TEXT("../../Resources/Textures/HUD/Player_HP_Back.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_PlayerHP_Reduce"),      TEXT("../../Resources/Textures/HUD/Player_HP_Reduce.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_PlayerHP_Fill"),        TEXT("../../Resources/Textures/HUD/Player_HP_Fill.png") },
+
+		// Player MP (3)
+		{ TEXT("Prototype_Component_Texture_HUD_PlayerMP_Back"),        TEXT("../../Resources/Textures/HUD/Player_MP_Back.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_PlayerMP_Reduce"),      TEXT("../../Resources/Textures/HUD/Player_MP_Reduce.png") },   
+		{ TEXT("Prototype_Component_Texture_HUD_PlayerMP_Fill"),        TEXT("../../Resources/Textures/HUD/Player_MP_Fill.png") },
+
+		// Dash (8)
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Base"),       TEXT("../../Resources/Textures/HUD/Dash_Base.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Line"),       TEXT("../../Resources/Textures/HUD/Dash_Line.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Step1"),      TEXT("../../Resources/Textures/HUD/Dash_Step1.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Step1_Glow"), TEXT("../../Resources/Textures/HUD/Dash_Step1_Glow.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Step2"),      TEXT("../../Resources/Textures/HUD/Dash_Step2.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Step2_Glow"), TEXT("../../Resources/Textures/HUD/Dash_Step2_Glow.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Step3"),      TEXT("../../Resources/Textures/HUD/Dash_Step3.png") },
+		{ TEXT("Prototype_Component_Texture_HUD_Dash_Step3_Glow"), TEXT("../../Resources/Textures/HUD/Dash_Step3_Glow.png") },
+	};
+
+	for (const HUDTextureEntry& Entry : aHUDEntries)
+	{
+		if (FAILED(m_pGameInstance->Add_Prototype(
+			ETOUI(eLevel),
+			Entry.pProtoTag,
+			CTexture::Create(m_pDevice, m_pContext, Entry.pFilePath, 1))))
+			return E_FAIL;
+	}
+
 	lstrcpy(m_szLoadingText, TEXT("모델 로드 중"));
 
-	m_fProgress = 0.85f;
+	m_fProgress = 0.90f;
 
 	// Prototype_Component_NavMesh
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel),
@@ -256,7 +309,7 @@ HRESULT CLoader::Ready_Resources_For_GamePlay()
 
 	lstrcpy(m_szLoadingText, TEXT("객체원형 로드 중"));
 
-	m_fProgress = 0.9f;
+	m_fProgress = 0.99f;
 
 	// Prototype_GameObject_Camera_Follow
 	if (FAILED(m_pGameInstance->Add_Prototype(ETOUI(eLevel), TEXT("Prototype_GameObject_Camera_Follow"),

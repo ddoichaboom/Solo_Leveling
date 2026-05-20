@@ -8,6 +8,7 @@
 #include "UI_Text.h"
 #include "UI_SpriteAnim.h"
 #include "UI_Cursor.h"
+#include "HUD_GamePlay.h"
 
 CMainApp::CMainApp()
 	: m_pGameInstance{ CGameInstance::GetInstance() }
@@ -119,6 +120,13 @@ HRESULT CMainApp::Ready_Prototype_For_Static()
 		ETOUI(eLevel),
 		TEXT("Prototype_GameObject_UI_Image"),
 		CUI_Image::Create(m_pDevice, m_pContext))))
+		return E_FAIL;
+
+	// Prototype_GameObject_HUD_GamePlay
+	if (FAILED(m_pGameInstance->Add_Prototype(
+		ETOUI(eLevel),
+		TEXT("Prototype_GameObject_HUD_GamePlay"),
+		CHUD_GamePlay::Create(m_pDevice, m_pContext))))
 		return E_FAIL;
 
 	// Prototype_GameObject_UI_SpriteAnim

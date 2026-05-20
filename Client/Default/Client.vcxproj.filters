@@ -148,6 +148,12 @@
     <Filter Include="02. GameObject\Player\IntentResolver">
       <UniqueIdentifier>{51b15c93-2312-43ee-bbd4-c3fb970a1e40}</UniqueIdentifier>
     </Filter>
+    <Filter Include="03. UI\HUD">
+      <UniqueIdentifier>{77270fde-3d05-4876-89cf-e4586f7ea1c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. UI\HUD\GamePlay">
+      <UniqueIdentifier>{fb76d956-770e-4b5e-81e4-71ed8404cd03}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\MainApp.h">
@@ -267,6 +273,9 @@
     <ClInclude Include="..\Public\Monster_StateMachine.h">
       <Filter>96. StateMachine\Monster</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\HUD_GamePlay.h">
+      <Filter>03. UI\HUD\GamePlay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\BackGround.cpp">
@@ -373,6 +382,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Monster_StateMachine.cpp">
       <Filter>96. StateMachine\Monster</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\HUD_GamePlay.cpp">
+      <Filter>03. UI\HUD\GamePlay</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -74,7 +74,7 @@ void CLevel_Loading::Update(_float fTimeDelta)
 	const _float fProgress = m_pLoader->Get_Progress();
 
 	if (m_pGaugeFill)
-		m_pGaugeFill->Set_Progress(fProgress);
+		m_pGaugeFill->Set_GaugeRatio(fProgress);
 
 	if (m_pPercentText)
 	{

@@ -16,6 +16,7 @@ class CBody_Player;
 class CWeapon;
 class CIntentResolver;
 class CPlayer_StateMachine;
+class CMonster;
 
 class CLIENT_DLL CPlayer final : public CContainerObject
 {
@@ -38,7 +39,11 @@ public:
     _float                  Get_MaxHP() const { return m_fMaxHP; }
     _float                  Get_CurrentHP() const { return m_fCurrentHP; }
 
+    _float                  Get_MaxMP() const { return m_fMaxMP; }
+    _float                  Get_CurrentMP() const { return m_fCurrentMP; }
+
     void                    Take_Damage(_float fAmount);
+    _bool                   Try_GetDashHUDWorldPosition(_float3* pOutPosition) const;
 
 public:
     virtual HRESULT         Initialize_Prototype() override;
@@ -71,6 +76,9 @@ public:
     void                    Tick_DashRegen(_float fTimeDelta);
     void                    Tick_WeaponHideTimer(_float fTimeDelta);
 
+    void                    Enter_FloatReaction(CHARACTER_ACTION eFloatAction);
+
+
 private:
     _uint                   m_iState = {};
     CBody_Player*           m_pBody = { nullptr };
@@ -86,7 +94,31 @@ private:
     HRESULT                 Ready_PartObjects();
     HRESULT                 Ready_StateMachine();
     HRESULT                 Ready_Components(const PLAYER_DESC& Desc);
-    _bool                   Try_ApplyNavigationPosition(const _float3& vCandidatePosition);
+
+    _bool                   Resolve_NavigationPosition(const _float3& vCandidatePosition, _float3* pOutPosition);
+    _bool                   Resolve_BodyBlockingPosition(const _float3& vCurrentPosition, const _float3& vCandidatePosition, _float3* pOutPosition);
+    _bool                   Resolve_BodyOverlapPosition(const _float3& vPosition, _float3* pOutPosition) const;
+    void                    Resolve_BodyBlockOverlap();
+
+    _bool                   Try_ApplyMovementPosition(const _float3& vCandidatePosition);
+
+    BODY_BLOCK_POLICY       Get_BodyBlockPolicy() const;
+    _float                  Get_MonsterBodyBlockRadius(const CMonster* pMonster) const;
+    void                    Add_BodyBlockCandidateCell(_int* pCandidateCells,
+                                                        _uint* pNumCandidateCells,
+                                                        _int iCellIndex) const;
+    _bool                   Contains_BodyBlockCandidateCell(const _int* pCandidateCells,
+                                                            _uint iNumCandidateCells,
+                                                            _int iCellIndex) const;
+    void                    Collect_BodyBlockCandidateCells(const CNavMesh* pNavMesh,
+                                                            _int iCellIndex,
+                                                            _int* pCandidateCells,
+                                                            _uint* pNumCandidateCells) const;
+    _bool                   Clip_SegmentByCircleXZ(const _float3& vCurrentPosition,
+                                                    const _float3& vCandidatePosition,
+                                                    const _float3& vCircleCenter,
+                                                    _float fRadius,
+                                                    _float* pOutT) const;
 
     void                    Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw);
     void                    Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDelta);
@@ -98,6 +130,10 @@ private:
     void                    Update_WeaponHitboxes();
 
     void                    On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther);
+
+    const WEAPON_INFO*      Find_WeaponInfo(EQUIPPED_WEAPON_ID eId);
+
+
 
 private:
     CNavigationAgent*       m_pNavigationAgent = { nullptr };
@@ -124,9 +160,15 @@ private:
 
     EQUIPPED_WEAPON_ID      m_eEquippedWeapon = { EQUIPPED_WEAPON_ID::NONE };
     _bool                   m_bPrevAttackHitboxActive = { false };
+    _uint                   m_iPrevAttackHitboxWindowSerial = { 0 };
 
     _float                  m_fMaxHP = { 100.f };
     _float                  m_fCurrentHP = { 100.f };
+
+    _float                  m_fMaxMP = { 100.f };
+    _float                  m_fCurrentMP = { 100.f };
+
+    static constexpr _uint  BODY_BLOCK_MAX_CANDIDATE_CELLS = { 16 };
 
 public:
     static CPlayer*         Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

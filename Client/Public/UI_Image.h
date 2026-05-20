@@ -15,10 +15,12 @@ class CUI_Image : public CUIObject
 public:
 	typedef struct tagUI_ImageDesc : public CUIObject::UIOBJECT_DESC
 	{
-		const _tchar* pTextureProtoTag = { nullptr };
-		_uint iTextureProtoLevel = { ETOUI(LEVEL::STATIC) };
+		const _tchar*	pTextureProtoTag = { nullptr };
+		_uint			iTextureProtoLevel = { ETOUI(LEVEL::STATIC) };
 
 		const _tchar*	pTexturePath = { nullptr };
+		_float4			vColor = { 1.f, 1.f, 1.f, 1.f };
+		UI_SWEEP_MODE	eSweepMode = { UI_SWEEP_MODE::NONE };
 	}UI_IMAGE_DESC;
 
 protected:
@@ -27,7 +29,25 @@ protected:
 	virtual ~CUI_Image() = default;
 
 public:
-	void						Set_Progress(_float fProgress);
+	void                        Set_Color(const _float4& vColor) { m_vColor = vColor; }
+	const _float4&				Get_Color() const { return m_vColor; }
+
+	void                        Set_SweepMode(UI_SWEEP_MODE eMode) { m_eSweepMode = eMode; }
+	UI_SWEEP_MODE               Get_SweepMode() const { return m_eSweepMode; }
+
+	void                        Set_UVOffset(_float fX, _float fY) { m_vUVOffset.x = fX; m_vUVOffset.y = fY; }
+	const _float4&				Get_UVOffset() const { return m_vUVOffset; }
+
+	void                        Set_GaugeRatio(_float fRatio);
+	_float                      Get_GaugeRatio() const { return m_fGaugeProgress; }
+
+	void                        Set_Center(_float fCenterX, _float fCenterY);
+	void                        Set_Size(_float fSizeX, _float fSizeY);
+
+	_float                      Get_CenterX() const { return m_fCenterX; }
+	_float                      Get_CenterY() const { return m_fCenterY; }
+	_float                      Get_SizeX() const { return m_fSizeX; }
+	_float                      Get_SizeY() const { return m_fSizeY; }
 
 	void						Set_Alpha(_float fAlpha) { m_fAlpha = fAlpha; }
 	_float                      Get_Alpha() const { return m_fAlpha; }
@@ -47,11 +67,13 @@ protected:
 	CShader*					m_pShaderCom = { nullptr };
 	CVIBuffer*					m_pVIBufferCom = { nullptr };
 	CTexture*					m_pTextureCom = { nullptr };
-	_float						m_fBaseCenterX = { 0.f };
-	_float						m_fBaseSizeX = { 0.f };
-	_bool						m_bBaseCached = { false };
 
 	_float                      m_fAlpha = { 1.f };
+	_float						m_fGaugeProgress = { 1.f };
+	_float4                     m_vColor = { 1.f, 1.f, 1.f, 1.f };
+	UI_SWEEP_MODE               m_eSweepMode = { UI_SWEEP_MODE::NONE };
+	_float4                     m_vUVOffset = { 0.f, 0.f, 0.f, 0.f };
+
 	_bool                       m_bFading = { false };
 	_float                      m_fFadeFrom = { 1.f };
 	_float                      m_fFadeTo = { 0.f };

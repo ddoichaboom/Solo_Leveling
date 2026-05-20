@@ -214,6 +214,26 @@ void CPanel_NavMeshEditor::Render()
 
 			if (ImGui::Button("Yaw -90"))
 				m_pTool->Set_SelectedSpawnPointYaw(-90.f);
+
+			ImGui::Separator();
+			ImGui::TextDisabled("Monster Info (Lv / Name)");
+
+			_int iLevel = pSelectedSpawnPoint->iLevel;
+			if (ImGui::DragInt("Level", &iLevel, 1, 1, 999))
+				m_pTool->Set_SelectedSpawnPointLevel(iLevel);
+
+			// wchar_t 입력은 ImGui 가 char* 만 받으므로 UTF-8 ↔ UTF-16 변환
+			char szDisplay_UTF8[256] = {};
+			::WideCharToMultiByte(CP_UTF8, 0, pSelectedSpawnPoint->szDisplayName, -1,
+				szDisplay_UTF8, sizeof(szDisplay_UTF8), nullptr, nullptr);
+
+			if (ImGui::InputText("DisplayName", szDisplay_UTF8, sizeof(szDisplay_UTF8)))
+			{
+				_tchar szDisplay_W[MAX_PATH] = {};
+				::MultiByteToWideChar(CP_UTF8, 0, szDisplay_UTF8, -1,
+					szDisplay_W, MAX_PATH);
+				m_pTool->Set_SelectedSpawnPointDisplayName(szDisplay_W);
+			}
 		}
 	}
 

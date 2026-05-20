@@ -179,6 +179,7 @@ call ClientSDK_Update.bat</Command>
     <ClInclude Include="..\Public\Client_Struct.h" />
     <ClInclude Include="..\Public\Elite_Monster.h" />
     <ClInclude Include="..\Public\FadeOverlay_Helper.h" />
+    <ClInclude Include="..\Public\HUD_GamePlay.h" />
     <ClInclude Include="..\Public\IntentResolver.h" />
     <ClInclude Include="..\Public\Level_GamePlay.h" />
     <ClInclude Include="..\Public\Level_Loading.h" />
@@ -216,6 +217,7 @@ call ClientSDK_Update.bat</Command>
     <ClCompile Include="..\Private\CharacterAnimTable.cpp" />
     <ClCompile Include="..\Private\Elite_Monster.cpp" />
     <ClCompile Include="..\Private\FadeOverlay_Helper.cpp" />
+    <ClCompile Include="..\Private\HUD_GamePlay.cpp" />
     <ClCompile Include="..\Private\IntentResolver.cpp" />
     <ClCompile Include="..\Private\Level_GamePlay.cpp" />
     <ClCompile Include="..\Private\Level_Loading.cpp" />

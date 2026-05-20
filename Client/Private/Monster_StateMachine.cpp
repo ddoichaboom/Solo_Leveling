@@ -5,6 +5,22 @@ CMonster_StateMachine::CMonster_StateMachine()
 {
 }
 
+MONSTER_ACTION CMonster_StateMachine::Get_CurrentMonsterAction() const
+{
+    if (false == Has_CurrentAction())
+        return MONSTER_ACTION::END;
+
+    return Get_MonsterActionFromStateKey(Get_CurrentAction());
+}
+
+MONSTER_ACTION_STEP  CMonster_StateMachine::Get_CurrentMonsterStep() const
+{
+    if (false == Has_CurrentAction())
+        return MONSTER_ACTION_STEP::END;
+
+    return Get_MonsterStepFromStateKey(Get_CurrentAction());
+}
+
 HRESULT CMonster_StateMachine::Initialize(const MONSTER_ANIM_TABLE_DESC* pAnimTable)
 {
     if (nullptr == pAnimTable)

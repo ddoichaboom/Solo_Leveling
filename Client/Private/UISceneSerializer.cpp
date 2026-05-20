@@ -4,7 +4,7 @@
 
 static constexpr char  UISCENE_MAGIC[4] = { 'S', 'L', 'U', 'I' };
 static constexpr _uint UISCENE_VERSION_MIN = { 1 };
-static constexpr _uint UISCENE_VERSION_LATEST = { 5 };
+static constexpr _uint UISCENE_VERSION_LATEST = { 7 };
 
 HRESULT CUISceneSerializer::Save(const _tchar* pUISceneDataPath, const UI_SCENE_DATA& UISceneData)
 {
@@ -155,6 +155,12 @@ HRESULT CUISceneSerializer::Write_Element(CBinaryWriter& Writer, const UI_ELEMEN
     if (FAILED(Writer.Write(iVisible)))
         return E_FAIL;
 
+    if (FAILED(Writer.Write(Element.vColor)))
+        return E_FAIL;
+
+    if (FAILED(Writer.Write(ETOUI(Element.eSweepMode))))
+        return E_FAIL;
+
     return S_OK;
 }
 
@@ -264,6 +270,30 @@ HRESULT CUISceneSerializer::Read_Element(CBinaryReader& Reader, UI_ELEMENT* pOut
     else
     {
         pOutElement->bVisible = true;
+    }
+
+    if (iVersion >= 6)
+    {
+        if (FAILED(Reader.Read(&pOutElement->vColor)))
+            return E_FAIL;
+    }
+    else
+    {
+        pOutElement->vColor = _float4{ 1.f, 1.f, 1.f, 1.f };  
+    }
+
+    if (iVersion >= 7)
+    {
+        _uint iSweepMode = 0;
+        if (FAILED(Reader.Read(&iSweepMode)))
+            return E_FAIL;
+        if (iSweepMode >= ETOUI(UI_SWEEP_MODE::END))
+            iSweepMode = 0;
+        pOutElement->eSweepMode = static_cast<UI_SWEEP_MODE>(iSweepMode);
+    }
+    else
+    {
+        pOutElement->eSweepMode = UI_SWEEP_MODE::NONE;
     }
 
     pOutElement->eType = static_cast<UI_ELEMENT_TYPE>(iType);

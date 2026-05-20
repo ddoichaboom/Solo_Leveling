@@ -30,6 +30,7 @@ public:
 	void						UnBind_NavMesh();
 
 	_bool						Has_NavMesh() const { return nullptr != m_pNavMesh; }
+	CNavMesh*					Get_NavMesh() const { return m_pNavMesh; }
 
 	_int						Get_CurrentCellIndex() const { return m_iCurrentCellIndex; }
 	void						Set_CurrentCellIndex(_int iCellIndex) { m_iCurrentCellIndex = iCellIndex; }

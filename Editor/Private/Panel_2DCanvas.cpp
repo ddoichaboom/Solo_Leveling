@@ -1,4 +1,4 @@
-#include "Panel_2DCanvas.h"
+ï»¿#include "Panel_2DCanvas.h"
 #include "Panel_Manager.h"
 #include "Client_Defines.h"
 #include "UICanvasTool.h"
@@ -257,7 +257,7 @@ void CPanel_2DCanvas::Render_Image_Properties(UI_ELEMENT* pElement)
     ImGui::Separator();
     ImGui::TextDisabled("Pattern A (Prototype Pool)");
 
-    // ProtoTag ÅØ½ºÆ® ÀÔ·Â
+    // ProtoTag í…ìŠ¤íŠ¸ ìž…ë ¥
     _char szProtoTag[MAX_PATH] = {};
     WCharToChar(pElement->szTextureProtoTag, szProtoTag, MAX_PATH);
     if (ImGui::InputText("ProtoTag", szProtoTag, MAX_PATH))
@@ -297,11 +297,41 @@ void CPanel_2DCanvas::Render_Image_Properties(UI_ELEMENT* pElement)
         ImGui::TextColored(ImVec4(0.6f, 1.f, 0.6f, 1.f), "Pattern A active (path ignored at runtime)");
     else
         ImGui::TextDisabled("Pattern B: path-based (set ProtoTag to use pool)");
+
+    ImGui::Separator();
+    ImGui::ColorEdit4("Color (Tint)", &pElement->vColor.x,
+        ImGuiColorEditFlags_AlphaBar |
+        ImGuiColorEditFlags_PickerHueWheel |
+        ImGuiColorEditFlags_Float |              
+        ImGuiColorEditFlags_AlphaPreviewHalf);
+
+    ImGui::SliderFloat("Alpha##img", &pElement->vColor.w, 0.f, 1.f, "%.2f");
+
+    if (ImGui::SmallButton("White##img"))   
+        pElement->vColor = _float4{ 1.f, 1.f, 1.f, pElement->vColor.w };
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Gold##img"))    
+        pElement->vColor = _float4{ 1.f, 0.85f, 0.2f, pElement->vColor.w };
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Red##img"))     
+        pElement->vColor = _float4{ 1.f, 0.3f, 0.3f, pElement->vColor.w };
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Cyan##img"))    
+        pElement->vColor = _float4{ 0.4f, 0.8f, 1.f, pElement->vColor.w };
+
+    ImGui::Separator();
+    static const _char* aSweepMode[] = { "None", "Position (X scroll)", "UV (Y scroll)" };
+    _int iSweep = ETOI(pElement->eSweepMode);
+    if (ImGui::Combo("SweepMode", &iSweep, aSweepMode, IM_ARRAYSIZE(aSweepMode)))
+        pElement->eSweepMode = static_cast<UI_SWEEP_MODE>(iSweep);
+
+    if (pElement->eSweepMode != UI_SWEEP_MODE::NONE)
+        ImGui::TextColored(ImVec4(0.6f, 1.f, 0.6f, 1.f), "Sweep ON â€” uses tex alpha as mask + tint color");
 }
 
 void CPanel_2DCanvas::Render_Text_Properties(UI_ELEMENT* pElement)
 {
-    // FontTag ÄÞº¸
+    // FontTag ì½¤ë³´
     vector<_wstring> Tags;
     m_pGameInstance->Get_FontTags(&Tags);
 
@@ -324,13 +354,13 @@ void CPanel_2DCanvas::Render_Text_Properties(UI_ELEMENT* pElement)
         ImGui::EndCombo();
     }
 
-    // Text º»¹® (UTF-8)
+    // Text ë³¸ë¬¸ (UTF-8)
     _char szText[MAX_PATH] = {};
     WCharToChar(pElement->szText, szText, MAX_PATH);
     if (ImGui::InputText("Text", szText, MAX_PATH))
         CharToWChar(szText, pElement->szText, MAX_PATH);
 
-    // === Á¤·Ä ===
+    // === ì •ë ¬ ===
     static const _char* aHAlign[] = { "Left", "Center", "Right" };
     static const _char* aVAlign[] = { "Top",  "Middle", "Bottom" };
 
@@ -347,7 +377,25 @@ void CPanel_2DCanvas::Render_Text_Properties(UI_ELEMENT* pElement)
     if (pElement->bAutoFit)
         ImGui::TextDisabled("Scale is clamped to fit Size box");
 
+    ImGui::Separator();
+    ImGui::ColorEdit4("Color", &pElement->vColor.x,
+        ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_PickerHueWheel);
 
+    // í”„ë¦¬ì…‹ ë²„íŠ¼ (ìžì£¼ ì“°ëŠ” ìƒ‰)
+    if (ImGui::SmallButton("White"))   
+        pElement->vColor = _float4{ 1.f, 1.f, 1.f, 1.f };
+    ImGui::SameLine();
+
+    if (ImGui::SmallButton("Gold"))    
+        pElement->vColor = _float4{ 1.f, 0.85f, 0.2f, 1.f };
+    ImGui::SameLine();
+
+    if (ImGui::SmallButton("Red"))     
+        pElement->vColor = _float4{ 1.f, 0.3f, 0.3f, 1.f };
+    ImGui::SameLine();
+
+    if (ImGui::SmallButton("CyanBlue"))
+        pElement->vColor = _float4{ 0.4f, 0.8f, 1.f, 1.f };
 }
 
 void CPanel_2DCanvas::Render_SpriteAnim_Properties(UI_ELEMENT* pElement)

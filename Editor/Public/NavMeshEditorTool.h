@@ -69,6 +69,9 @@ public:
 	_bool					Can_Undo() const { return false == m_NavMeshUndoStack.empty(); }
 	_bool					Can_Redo() const { return false == m_NavMeshRedoStack.empty(); }
 
+	void					Set_SelectedSpawnPointLevel(_int iLevel);
+	void					Set_SelectedSpawnPointDisplayName(const _tchar* pName);
+
 private:
 	void					Render_PickPreview(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight);
 	void					Render_SelectedCell(const ImVec2& vImagePos, _uint iViewportWidth, _uint iViewportHeight);

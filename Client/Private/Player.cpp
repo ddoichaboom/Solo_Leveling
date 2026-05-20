@@ -9,15 +9,18 @@
 #include "NavMesh.h"
 #include "Monster.h"
 #include "Collider.h"
+#include "Layer.h"
+#include "Cell.h"
+#include "HUD_GamePlay.h"
 
 namespace
 {
-	typedef struct tagWeaponInfo
-	{
-		EQUIPPED_WEAPON_ID	eId;
-		WEAPON_TYPE			eCategory;
-		const _tchar*		pModelTag;
-	}WEAPON_INFO;
+	static constexpr _float PLAYER_BODY_BLOCK_RADIUS = { 0.35f };
+	static constexpr _float MONSTER_NORMAL_BODY_BLOCK_RADIUS = { 0.45f };
+	static constexpr _float MONSTER_ELITE_BODY_BLOCK_RADIUS = { 0.55f };
+	static constexpr _float MONSTER_BOSS_BODY_BLOCK_RADIUS = { 0.75f };
+	static constexpr _float BODY_BLOCK_SKIN = { 0.05f };
+	static constexpr _float BODY_BLOCK_MIN_MOVE_SQ = { 0.000001f };
 
 	static const WEAPON_INFO s_WeaponInfo[] = {
 		{EQUIPPED_WEAPON_ID::NONE, WEAPON_TYPE::DEFAULT, nullptr },
@@ -30,16 +33,6 @@ namespace
 		TEXT("Prototype_Component_Model_Weapon_KnightKiller"),
 		TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang"),
 	};
-
-	const WEAPON_INFO* Find_WeaponInfo(EQUIPPED_WEAPON_ID eId)
-	{
-		for (const auto& Info : s_WeaponInfo)
-		{
-			if (Info.eId == eId)
-				return &Info;
-		}
-		return nullptr;
-	}
 }
 
 CPlayer::CPlayer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -59,9 +52,25 @@ void CPlayer::Take_Damage(_float fAmount)
 
 	m_fCurrentHP = max(0.f, m_fCurrentHP - fAmount);
 
-	char szLog[128] = {};
-	sprintf_s(szLog, "[Player] HP -%.1f  =>  %.1f / %.1f\n", fAmount, m_fCurrentHP, m_fMaxHP);
-	OutputDebugStringA(szLog);
+	if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+		pHUD->Notify_CombatInput();
+}
+
+_bool CPlayer::Try_GetDashHUDWorldPosition(_float3* pOutPosition) const
+{
+	if (nullptr == pOutPosition || nullptr == m_pBody)
+		return false;
+
+	const _float4x4* pPivot = m_pBody->Get_BoneMatrixPtr("Pivot_Chest");
+	if (nullptr == pPivot)
+		return false;
+
+	_matrix PivotWorld =
+		XMLoadFloat4x4(pPivot) *
+		XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr());
+
+	XMStoreFloat3(pOutPosition, XMVector3TransformCoord(XMVectorZero(), PivotWorld));
+	return true;
 }
 
 HRESULT CPlayer::Initialize_Prototype()
@@ -148,12 +157,21 @@ void CPlayer::Update(_float fTimeDelta)
 
 		if (nullptr != m_pStateMachine)
 		{
-			m_pStateMachine->Update_Guard(Intent);
-			m_pStateMachine->Update_Combat(Intent);
+			if (true == m_pStateMachine->Is_ReactionLocked())
+			{
+				m_pStateMachine->Update_Reaction(Intent);
+			}
+			else
+			{
+				m_pStateMachine->Update_Guard(Intent);
+				m_pStateMachine->Update_Combat(Intent);
 
-			if(false == m_pStateMachine->Is_AttackLocked() && 
-				false == m_pStateMachine->Is_GuardLocked())
-				m_pStateMachine->Update_LocoMotion(Intent);
+				if (false == m_pStateMachine->Is_AttackLocked() &&
+					false == m_pStateMachine->Is_GuardLocked())
+				{
+					m_pStateMachine->Update_LocoMotion(Intent);
+				}
+			}
 
 			m_pStateMachine->Update(fTimeDelta);
 		}
@@ -185,13 +203,13 @@ void CPlayer::Update(_float fTimeDelta)
 
 void CPlayer::Late_Update(_float fTimeDelta)
 {
+	Update_WeaponHitboxes();
+
 	for (auto& Pair : m_PartObjects)
 	{
 		if (nullptr != Pair.second)
 			Pair.second->Late_Update(fTimeDelta);
 	}
-
-	Update_WeaponHitboxes();
 
 	if (nullptr != m_pCollider && nullptr != m_pTransformCom)
 	{
@@ -228,7 +246,7 @@ void CPlayer::Apply_RootMotion(const _float3& vLocalDelta)
 	_float3 vCandidatePosition = {};
 	XMStoreFloat3(&vCandidatePosition, vPos);
 
-	Try_ApplyNavigationPosition(vCandidatePosition);
+	Try_ApplyMovementPosition(vCandidatePosition);
 }
 
 void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial)
@@ -237,6 +255,15 @@ void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION e
 		return;
 
 	m_pBody->Play_Action(eTo);
+
+	const _bool bLeavingDash =
+		(CHARACTER_ACTION::DASH == eFrom || CHARACTER_ACTION::BACK_DASH == eFrom) &&
+		(CHARACTER_ACTION::DASH != eTo && CHARACTER_ACTION::BACK_DASH != eTo);
+
+	if (true == bLeavingDash)
+	{
+		Resolve_BodyBlockOverlap();
+	}
 }
 
 void CPlayer::Face_DirectionImmediately(const _float3& vDirWorld)
@@ -412,10 +439,13 @@ HRESULT CPlayer::Ready_PartObjects()
 			if (nullptr == pCollider)
 				return;
 
-			pCollider->Set_OnHitEnter([this, pWeapon](CCollider* pOther)
+			auto HitCallback = [this, pWeapon](CCollider* pOther)
 				{
 					On_WeaponHitEnter(pWeapon, pOther);
-				});
+				};
+
+			pCollider->Set_OnHitEnter(HitCallback);
+			pCollider->Set_OnHitStay(HitCallback);
 		};
 
 	SetupWeaponHitCallback(m_pWeaponR);
@@ -494,22 +524,448 @@ HRESULT CPlayer::Ready_Components(const PLAYER_DESC& Desc)
 	return S_OK;
 }
 
-_bool CPlayer::Try_ApplyNavigationPosition(const _float3& vCandidatePosition)
+_bool CPlayer::Resolve_NavigationPosition(const _float3& vCandidatePosition, _float3* pOutPosition)
 {
-	if (nullptr == m_pTransformCom)
+	if (nullptr == pOutPosition)
 		return false;
 
 	if (nullptr == m_pNavigationAgent || false == m_pNavigationAgent->Has_NavMesh())
 	{
-		m_pTransformCom->Set_State(STATE::POSITION, XMVectorSetW(XMLoadFloat3(&vCandidatePosition), 1.f));
+		*pOutPosition = vCandidatePosition;
 		return true;
 	}
 
-	_float3 vAdjustedPosition = {};
-	if (false == m_pNavigationAgent->Try_Move(vCandidatePosition, &vAdjustedPosition))
+	return m_pNavigationAgent->Try_Move(vCandidatePosition, pOutPosition);
+}
+
+_bool CPlayer::Resolve_BodyBlockingPosition(const _float3& vCurrentPosition, const _float3& vCandidatePosition, _float3* pOutPosition)
+{
+	if (nullptr == pOutPosition)
 		return false;
 
-	m_pTransformCom->Set_State(STATE::POSITION, XMVectorSetW(XMLoadFloat3(&vAdjustedPosition), 1.f));
+	*pOutPosition = vCandidatePosition;
+
+	if (nullptr == m_pGameInstance)
+		return true;
+
+	const map<const _wstring, CLayer*>* pLayers =
+		m_pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+
+	if (nullptr == pLayers)
+		return true;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_Monster"));
+	if (pLayers->end() == iterLayer || nullptr == iterLayer->second)
+		return true;
+
+	const CNavMesh* pNavMesh = nullptr;
+	if (nullptr != m_pNavigationAgent && true == m_pNavigationAgent->Has_NavMesh())
+		pNavMesh = m_pNavigationAgent->Get_NavMesh();
+
+	_int CandidateCells[BODY_BLOCK_MAX_CANDIDATE_CELLS] = {};
+	_uint iNumCandidateCells = 0;
+
+	if (nullptr != pNavMesh)
+	{
+		const _int iCurrentCellIndex = pNavMesh->Find_Cell(vCurrentPosition);
+		const _int iCandidateCellIndex = pNavMesh->Find_Cell(vCandidatePosition);
+
+		Collect_BodyBlockCandidateCells(
+			pNavMesh,
+			iCurrentCellIndex,
+			CandidateCells,
+			&iNumCandidateCells);
+
+		Collect_BodyBlockCandidateCells(
+			pNavMesh,
+			iCandidateCellIndex,
+			CandidateCells,
+			&iNumCandidateCells);
+	}
+
+	const _bool bUseCellFilter = (iNumCandidateCells > 0);
+
+	constexpr _float PLAYER_BODY_BLOCK_RADIUS = { 0.35f };
+	constexpr _float BODY_BLOCK_SKIN = { 0.05f };
+	constexpr _float BODY_BLOCK_SAFE_T = { 0.001f };
+	constexpr _float BODY_BLOCK_QUERY_MARGIN = { 0.5f };
+
+	const _float fMoveX = vCandidatePosition.x - vCurrentPosition.x;
+	const _float fMoveZ = vCandidatePosition.z - vCurrentPosition.z;
+	const _float fMoveLength = sqrtf(fMoveX * fMoveX + fMoveZ * fMoveZ);
+
+	_float fBestT = 1.f;
+
+	const list<CGameObject*>& MonsterObjects = iterLayer->second->Get_GameObjects();
+
+	for (CGameObject* pObject : MonsterObjects)
+	{
+		CMonster* pMonster = dynamic_cast<CMonster*>(pObject);
+		if (nullptr == pMonster)
+			continue;
+
+		if (pMonster->Get_CurrentHP() <= 0.f)
+			continue;
+
+		// 임시로 꺼둠 - 몬스터 수 많아지면 주석 해제
+		//if (true == bUseCellFilter)
+		//{
+		//	const _int iMonsterCellIndex = pMonster->Get_CurrentNavCellIndex();
+
+		//	if (false == Contains_BodyBlockCandidateCell(
+		//		CandidateCells,
+		//		iNumCandidateCells,
+		//		iMonsterCellIndex))
+		//	{
+		//		continue;
+		//	}
+		//}
+
+		CTransform* pMonsterTransform = pMonster->Get_Transform();
+		if (nullptr == pMonsterTransform)
+			continue;
+
+		_float3 vMonsterPosition = {};
+		XMStoreFloat3(
+			&vMonsterPosition,
+			pMonsterTransform->Get_State(STATE::POSITION));
+
+		const _float fCombinedRadius =
+			PLAYER_BODY_BLOCK_RADIUS +
+			Get_MonsterBodyBlockRadius(pMonster) +
+			BODY_BLOCK_SKIN;
+
+		const _float fQueryRadius =
+			fCombinedRadius + fMoveLength + BODY_BLOCK_QUERY_MARGIN;
+
+		const _float fToMonsterX = vMonsterPosition.x - vCurrentPosition.x;
+		const _float fToMonsterZ = vMonsterPosition.z - vCurrentPosition.z;
+		const _float fToMonsterSq =
+			fToMonsterX * fToMonsterX + fToMonsterZ * fToMonsterZ;
+
+		if (fToMonsterSq > fQueryRadius * fQueryRadius)
+			continue;
+
+		_float fHitT = 1.f;
+		if (true == Clip_SegmentByCircleXZ(
+			vCurrentPosition,
+			vCandidatePosition,
+			vMonsterPosition,
+			fCombinedRadius,
+			&fHitT))
+		{
+			if (fHitT < fBestT)
+				fBestT = fHitT;
+		}
+	}
+
+	if (fBestT < 1.f)
+	{
+		const _float fSafeT =
+			(fBestT > BODY_BLOCK_SAFE_T) ? fBestT - BODY_BLOCK_SAFE_T : 0.f;
+
+		pOutPosition->x =
+			vCurrentPosition.x + (vCandidatePosition.x - vCurrentPosition.x) * fSafeT;
+
+		pOutPosition->y =
+			vCurrentPosition.y + (vCandidatePosition.y - vCurrentPosition.y) * fSafeT;
+
+		pOutPosition->z =
+			vCurrentPosition.z + (vCandidatePosition.z - vCurrentPosition.z) * fSafeT;
+	}
+
+	return true;
+}
+
+_bool CPlayer::Resolve_BodyOverlapPosition(const _float3& vPosition, _float3* pOutPosition) const
+{
+	if (nullptr == pOutPosition)
+		return false;
+
+	*pOutPosition = vPosition;
+
+	if (nullptr == m_pGameInstance)
+		return true;
+
+	const map<const _wstring, CLayer*>* pLayers =
+		m_pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+
+	if (nullptr == pLayers)
+		return true;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_Monster"));
+	if (pLayers->end() == iterLayer || nullptr == iterLayer->second)
+		return true;
+
+	constexpr _uint  OVERLAP_SOLVE_ITERATIONS = 3;
+	constexpr _float OVERLAP_PUSH_EPSILON = 0.01f;
+
+	for (_uint i = 0; i < OVERLAP_SOLVE_ITERATIONS; ++i)
+	{
+		_bool bAdjusted = false;
+
+		for (CGameObject* pObject : iterLayer->second->Get_GameObjects())
+		{
+			CMonster* pMonster = dynamic_cast<CMonster*>(pObject);
+			if (nullptr == pMonster || pMonster->Get_CurrentHP() <= 0.f)
+				continue;
+
+			CTransform* pMonsterTransform = pMonster->Get_Transform();
+			if (nullptr == pMonsterTransform)
+				continue;
+
+			_float3 vMonsterPosition{};
+			XMStoreFloat3(&vMonsterPosition, pMonsterTransform->Get_State(STATE::POSITION));
+
+			const _float fCombinedRadius =
+				PLAYER_BODY_BLOCK_RADIUS +
+				Get_MonsterBodyBlockRadius(pMonster) +
+				BODY_BLOCK_SKIN;
+
+			const _float fToPlayerX = pOutPosition->x - vMonsterPosition.x;
+			const _float fToPlayerZ = pOutPosition->z - vMonsterPosition.z;
+			const _float fDistSq = fToPlayerX * fToPlayerX + fToPlayerZ * fToPlayerZ;
+
+			if (fDistSq >= fCombinedRadius * fCombinedRadius)
+				continue;
+
+			_float fDirX = 0.f;
+			_float fDirZ = 1.f;
+
+			if (fDistSq > BODY_BLOCK_MIN_MOVE_SQ)
+			{
+				const _float fInvDist = 1.f / sqrtf(fDistSq);
+				fDirX = fToPlayerX * fInvDist;
+				fDirZ = fToPlayerZ * fInvDist;
+			}
+			else if (nullptr != m_pTransformCom)
+			{
+				_vector vLook = XMVectorSetY(m_pTransformCom->Get_State(STATE::LOOK), 0.f);
+				const _float fLookLenSq = XMVectorGetX(XMVector3LengthSq(vLook));
+
+				if (fLookLenSq > BODY_BLOCK_MIN_MOVE_SQ)
+				{
+					vLook = XMVectorScale(vLook, 1.f / sqrtf(fLookLenSq));
+					fDirX = XMVectorGetX(vLook);
+					fDirZ = XMVectorGetZ(vLook);
+				}
+			}
+
+			const _float fPushRadius = fCombinedRadius + OVERLAP_PUSH_EPSILON;
+
+			pOutPosition->x = vMonsterPosition.x + fDirX * fPushRadius;
+			pOutPosition->z = vMonsterPosition.z + fDirZ * fPushRadius;
+
+			bAdjusted = true;
+		}
+
+		if (false == bAdjusted)
+			break;
+	}
+
+	return true;
+}
+
+void CPlayer::Resolve_BodyBlockOverlap()
+{
+	if (nullptr == m_pTransformCom)
+		return;
+
+	_float3 vCurrentPosition{};
+	XMStoreFloat3(&vCurrentPosition, m_pTransformCom->Get_State(STATE::POSITION));
+
+	_float3 vResolvedPosition{};
+	if (false == Resolve_BodyOverlapPosition(vCurrentPosition, &vResolvedPosition))
+		return;
+
+	m_pTransformCom->Set_State(
+		STATE::POSITION,
+		XMVectorSetW(XMLoadFloat3(&vResolvedPosition), 1.f));
+
+	if (nullptr != m_pNavigationAgent && true == m_pNavigationAgent->Has_NavMesh())
+		m_pNavigationAgent->Find_CurrentCell(vResolvedPosition);
+}
+
+_bool CPlayer::Try_ApplyMovementPosition(const _float3& vCandidatePosition)
+{
+	if (nullptr == m_pTransformCom)
+		return false;
+
+	_float3 vCurrentPosition = {};
+	XMStoreFloat3(&vCurrentPosition, m_pTransformCom->Get_State(STATE::POSITION));
+
+	_float3 vResolvedPosition = {};
+	if (false == Resolve_NavigationPosition(vCandidatePosition, &vResolvedPosition))
+		return false;
+
+	if (BODY_BLOCK_POLICY::BLOCK == Get_BodyBlockPolicy())
+	{
+		_float3 vBodyBlockedPosition = {};
+		if (true == Resolve_BodyBlockingPosition(
+			vCurrentPosition,
+			vResolvedPosition,
+			&vBodyBlockedPosition))
+		{
+			vResolvedPosition = vBodyBlockedPosition;
+		}
+
+		_float3 vOverlapResolvedPosition = {};
+		if (true == Resolve_BodyOverlapPosition(vResolvedPosition, &vOverlapResolvedPosition))
+		{
+			vResolvedPosition = vOverlapResolvedPosition;
+		}
+	}
+
+	m_pTransformCom->Set_State(
+		STATE::POSITION,
+		XMVectorSetW(XMLoadFloat3(&vResolvedPosition), 1.f));
+
+	if (nullptr != m_pNavigationAgent && true == m_pNavigationAgent->Has_NavMesh())
+		m_pNavigationAgent->Find_CurrentCell(vResolvedPosition);
+
+	return true;
+}
+
+BODY_BLOCK_POLICY CPlayer::Get_BodyBlockPolicy() const
+{
+	if (nullptr == m_pStateMachine)
+		return BODY_BLOCK_POLICY::BLOCK;
+
+	switch (m_pStateMachine->Get_CurrentCharacterAction())
+	{
+	case CHARACTER_ACTION::DASH:
+	case CHARACTER_ACTION::BACK_DASH:
+		return BODY_BLOCK_POLICY::PASS_THROUGH;
+	default:
+		return BODY_BLOCK_POLICY::BLOCK;
+	}
+}
+
+_float CPlayer::Get_MonsterBodyBlockRadius(const CMonster* pMonster) const
+{
+	if (nullptr == pMonster)
+		return 0.45f;
+
+	switch (pMonster->Get_SpawnType())
+	{
+	case SPAWN_TYPE::MONSTER_BOSS:
+		return 0.75f;
+
+	case SPAWN_TYPE::MONSTER_ELITE:
+		return 0.55f;
+
+	case SPAWN_TYPE::MONSTER_NORMAL:
+	default:
+		return 0.45f;
+	}
+}
+
+void CPlayer::Add_BodyBlockCandidateCell(_int* pCandidateCells, _uint* pNumCandidateCells, _int iCellIndex) const
+{
+	if (nullptr == pCandidateCells || nullptr == pNumCandidateCells)
+		return;
+
+	if (NAVMESH_INVALID_INDEX == iCellIndex)
+		return;
+
+	for (_uint i = 0; i < *pNumCandidateCells; ++i)
+	{
+		if (pCandidateCells[i] == iCellIndex)
+			return;
+	}
+
+	if (*pNumCandidateCells >= BODY_BLOCK_MAX_CANDIDATE_CELLS)
+		return;
+
+	pCandidateCells[*pNumCandidateCells] = iCellIndex;
+	++(*pNumCandidateCells);
+}
+
+_bool CPlayer::Contains_BodyBlockCandidateCell(const _int* pCandidateCells, _uint iNumCandidateCells, _int iCellIndex) const
+{
+	if (nullptr == pCandidateCells)
+		return false;
+
+	if (NAVMESH_INVALID_INDEX == iCellIndex)
+		return false;
+
+	for (_uint i = 0; i < iNumCandidateCells; ++i)
+	{
+		if (pCandidateCells[i] == iCellIndex)
+			return true;
+	}
+
+	return false;
+}
+
+void CPlayer::Collect_BodyBlockCandidateCells(const CNavMesh* pNavMesh, _int iCellIndex, _int* pCandidateCells, _uint* pNumCandidateCells) const
+{
+	if (nullptr == pNavMesh)
+		return;
+
+	Add_BodyBlockCandidateCell(pCandidateCells, pNumCandidateCells, iCellIndex);
+
+	const CCell* pCell = pNavMesh->Get_Cell(iCellIndex);
+	if (nullptr == pCell)
+		return;
+
+	for (_uint i = 0; i < 3; ++i)
+	{
+		Add_BodyBlockCandidateCell(
+			pCandidateCells,
+			pNumCandidateCells,
+			pCell->Get_NeighborIndex(i));
+	}
+}
+
+_bool CPlayer::Clip_SegmentByCircleXZ(const _float3& vCurrentPosition, const _float3& vCandidatePosition, const _float3& vCircleCenter, _float fRadius, _float* pOutT) const
+{
+	if (nullptr == pOutT)
+		return false;
+
+	constexpr _float BODY_BLOCK_MIN_MOVE_SQ = { 0.000001f };
+
+	const _float fDeltaX = vCandidatePosition.x - vCurrentPosition.x;
+	const _float fDeltaZ = vCandidatePosition.z - vCurrentPosition.z;
+
+	const _float fA = fDeltaX * fDeltaX + fDeltaZ * fDeltaZ;
+	if (fA <= BODY_BLOCK_MIN_MOVE_SQ)
+		return false;
+
+	const _float fStartX = vCurrentPosition.x - vCircleCenter.x;
+	const _float fStartZ = vCurrentPosition.z - vCircleCenter.z;
+	const _float fEndX = vCandidatePosition.x - vCircleCenter.x;
+	const _float fEndZ = vCandidatePosition.z - vCircleCenter.z;
+
+	const _float fRadiusSq = fRadius * fRadius;
+	const _float fStartDistSq = fStartX * fStartX + fStartZ * fStartZ;
+	const _float fEndDistSq = fEndX * fEndX + fEndZ * fEndZ;
+
+	if (fStartDistSq <= fRadiusSq)
+	{
+		if (fEndDistSq < fStartDistSq)
+		{
+			*pOutT = 0.f;
+			return true;
+		}
+
+		return false;
+	}
+
+	const _float fB = 2.f * (fStartX * fDeltaX + fStartZ * fDeltaZ);
+	const _float fC = fStartDistSq - fRadiusSq;
+	const _float fDiscriminant = fB * fB - 4.f * fA * fC;
+
+	if (fDiscriminant < 0.f)
+		return false;
+
+	const _float fSqrtD = sqrtf(fDiscriminant);
+	const _float fT = (-fB - fSqrtD) / (2.f * fA);
+
+	if (fT < 0.f || fT > 1.f)
+		return false;
+
+	*pOutT = fT;
 	return true;
 }
 
@@ -599,7 +1055,7 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 	_float3 vCandidatePosition = {};
 	XMStoreFloat3(&vCandidatePosition, vPos);
 
-	Try_ApplyNavigationPosition(vCandidatePosition);
+	Try_ApplyMovementPosition(vCandidatePosition);
 }
 
 _float CPlayer::Query_CameraYaw() const
@@ -672,10 +1128,20 @@ void CPlayer::Refresh_WeaponVisibility()
 
 void CPlayer::Update_WeaponHitboxes()
 {
-	const _bool bHitboxActive = (nullptr != m_pStateMachine) && m_pStateMachine->Is_AttackHitboxActive();
+	const _bool bHitboxActive =
+		(nullptr != m_pStateMachine) &&
+		m_pStateMachine->Is_AttackHitboxActive();
 
-	if (true == bHitboxActive && false == m_bPrevAttackHitboxActive)
+	const _uint iHitboxWindowSerial =
+		(nullptr != m_pStateMachine) ?
+		m_pStateMachine->Get_AttackHitboxWindowSerial() :
+		m_iPrevAttackHitboxWindowSerial;
+
+	if (iHitboxWindowSerial != m_iPrevAttackHitboxWindowSerial)
+	{
 		m_AttackHitTargets.clear();
+		m_iPrevAttackHitboxWindowSerial = iHitboxWindowSerial;
+	}
 
 	if (nullptr != m_pWeaponR)
 		m_pWeaponR->Set_AttackHitboxActive(bHitboxActive);
@@ -687,6 +1153,23 @@ void CPlayer::Update_WeaponHitboxes()
 		m_AttackHitTargets.clear();
 
 	m_bPrevAttackHitboxActive = bHitboxActive;
+}
+
+void CPlayer::Enter_FloatReaction(CHARACTER_ACTION eFloatAction)
+{
+	if (nullptr == m_pStateMachine)
+		return;
+
+	m_AttackHitTargets.clear();
+	m_bPrevAttackHitboxActive = false;
+
+	if (nullptr != m_pWeaponR)
+		m_pWeaponR->Set_AttackHitboxActive(false);
+
+	if (nullptr != m_pWeaponL)
+		m_pWeaponL->Set_AttackHitboxActive(false);
+
+	m_pStateMachine->Enter_FloatReaction(eFloatAction);
 }
 
 void CPlayer::On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther)
@@ -712,6 +1195,16 @@ void CPlayer::On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther)
 		return;
 
 	pMonster->Take_Damage(10.f);
+}
+
+const WEAPON_INFO* CPlayer::Find_WeaponInfo(EQUIPPED_WEAPON_ID eId)
+{
+	for (const auto& Info : s_WeaponInfo)
+	{
+		if (Info.eId == eId)
+			return &Info;
+	}
+	return nullptr;
 }
 
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

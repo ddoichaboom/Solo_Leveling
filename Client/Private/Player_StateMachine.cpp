@@ -1,5 +1,6 @@
 #include "Player_StateMachine.h"
 #include "Player.h"
+#include "HUD_GamePlay.h"
 
 CPlayer_StateMachine::CPlayer_StateMachine()
 {
@@ -41,6 +42,9 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
 
     if (true == Intent.bDashRequested && nullptr != m_pOwner)
     {
+        if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+            pHUD->Notify_DashInput();
+
         if (true == m_pOwner->Can_ConsumeDashCharge())
         {
             const CHARACTER_ACTION eDashAction = (false == bHasMoveIntent)
@@ -135,6 +139,9 @@ void CPlayer_StateMachine::Update_Combat(const PLAYER_INTENT_FRAME& Intent)
     if (false == Intent.bAttackRequested)
         return;
 
+    if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+        pHUD->Notify_CombatInput();
+
     // 3) ÄÞº¸ ÁøÇà Áß
     if (true == bIsAttacking)
     {
@@ -180,7 +187,11 @@ void CPlayer_StateMachine::Update_Guard(const PLAYER_INTENT_FRAME& Intent)
         if (CHARACTER_ACTION::GUARD_END == eCur)
             return;
 
-        Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_START));
+        if (true == Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_START)))
+        {
+            if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+                pHUD->Notify_CombatInput();
+        }
         return;
     }
 
@@ -233,6 +244,11 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
     case NOTIFY_TYPE::ACTION_FINISHED:
     {
         const CHARACTER_ACTION eFinished = static_cast<CHARACTER_ACTION>(Event.iPayload);
+
+        if (CHARACTER_ACTION::FLOAT_END == eFinished)
+        {
+            break;
+        }
 
         __super::On_ActionFinished();
 
@@ -328,6 +344,7 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
             m_bComboWindowOpen = false;
             break;
         case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_ON:
+            ++m_iAttackHitboxWindowSerial;
             m_bAttackHitboxActive = true;
             break;
         case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_OFF:
@@ -342,6 +359,79 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
     }
     default:
         break;
+    }
+}
+
+_bool CPlayer_StateMachine::Is_ReactionLocked() const
+{
+    const CHARACTER_ACTION eCurrent = Get_CurrentCharacterAction();
+
+    return
+        (CHARACTER_ACTION::FLOAT_A == eCurrent) ||
+        (CHARACTER_ACTION::FLOAT_B == eCurrent) ||
+        (CHARACTER_ACTION::FLOAT_END == eCurrent) ||
+        (CHARACTER_ACTION::DOWN_RECOVERY == eCurrent) ||
+        (CHARACTER_ACTION::BREAKFALL == eCurrent);
+}
+
+void CPlayer_StateMachine::Enter_FloatReaction(CHARACTER_ACTION eFloatAction)
+{
+    if (CHARACTER_ACTION::FLOAT_A != eFloatAction &&
+        CHARACTER_ACTION::FLOAT_B != eFloatAction)
+    {
+        eFloatAction = CHARACTER_ACTION::FLOAT_A;
+    }
+
+    m_bAttackHitboxActive = false;
+    m_bComboWindowOpen = false;
+    m_iComboStep = 0;
+    m_fDownRecoverTimer = 0.f;
+
+    __super::On_ActionFinished();
+
+    Try_Transition(ETOUI(eFloatAction));
+}
+
+void CPlayer_StateMachine::Update(_float fTimeDelta)
+{
+    __super::Update(fTimeDelta);
+
+    if (CHARACTER_ACTION::FLOAT_END != Get_CurrentCharacterAction())
+        return;
+
+    if (m_fDownRecoverTimer > 0.f)
+    {
+        m_fDownRecoverTimer -= fTimeDelta;
+        return;
+    }
+
+    __super::On_ActionFinished();
+    Try_Transition(ETOUI(CHARACTER_ACTION::DOWN_RECOVERY));
+}
+
+void CPlayer_StateMachine::Update_Reaction(const PLAYER_INTENT_FRAME& Intent)
+{
+    if (nullptr == m_pOwner)
+        return;
+
+    if (false == Intent.bDashRequested)
+        return;
+
+    const CHARACTER_ACTION eCurrent = Get_CurrentCharacterAction();
+
+    if (CHARACTER_ACTION::FLOAT_END != eCurrent)
+        return;
+
+    if (false == m_pOwner->Can_ConsumeDashCharge())
+        return;
+
+    if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+        pHUD->Notify_DashInput();
+
+    if (true == Try_Transition(ETOUI(CHARACTER_ACTION::BREAKFALL)))
+    {
+        m_pOwner->Consume_DashCharge();
+        m_fDownRecoverTimer = 0.f;
     }
 }
 
@@ -395,6 +485,13 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     case CHARACTER_ACTION::UNDRAW:
         m_pOwner->Set_SpeedCoeff(0.f);
         break;
+    case CHARACTER_ACTION::FLOAT_A:
+    case CHARACTER_ACTION::FLOAT_B:
+    case CHARACTER_ACTION::FLOAT_END:
+    case CHARACTER_ACTION::DOWN_RECOVERY:
+    case CHARACTER_ACTION::BREAKFALL:
+        m_pOwner->Set_SpeedCoeff(0.f);
+        break;
     default:
         m_pOwner->Set_SpeedCoeff(0.f);
         break;
@@ -428,10 +525,22 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     case CHARACTER_ACTION::IDLE:
     case CHARACTER_ACTION::UNDRAW:
         break;
+    case CHARACTER_ACTION::FLOAT_A:
+    case CHARACTER_ACTION::FLOAT_B:
+    case CHARACTER_ACTION::FLOAT_END:
+    case CHARACTER_ACTION::DOWN_RECOVERY:
+    case CHARACTER_ACTION::BREAKFALL:
+        m_pOwner->Set_WeaponsVisible(false);
+        break;
 
     default:
         break;
     }
+
+    if (CHARACTER_ACTION::FLOAT_END == eTo)
+        m_fDownRecoverTimer = DOWN_RECOVER_DELAY;
+    if (CHARACTER_ACTION::BREAKFALL == eTo)
+        m_fDownRecoverTimer = 0.f;
 }
 
 CPlayer_StateMachine* CPlayer_StateMachine::Create(const CHARACTER_ANIM_TABLE_DESC* pAnimTable)

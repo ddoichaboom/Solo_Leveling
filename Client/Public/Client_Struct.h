@@ -109,6 +109,9 @@ namespace Client
 		_float3			vRotationDeg = {};
 		_int			iNavCellIndex = { NAVMESH_INVALID_INDEX };
 		_tchar			szName[MAX_PATH] = {};
+
+		_int			iLevel = { 1 };
+		_tchar			szDisplayName[MAX_PATH] = {};
 	}SPAWN_POINT;
 
 	typedef struct tagSceneData
@@ -145,6 +148,9 @@ namespace Client
 		UI_TEXT_VALIGN		eVAlign = UI_TEXT_VALIGN::MIDDLE;
 		_bool				bAutoFit = false;
 		_bool				bVisible = { true };
+
+		_float4				vColor = { 1.f, 1.f, 1.f, 1.f };
+		UI_SWEEP_MODE		eSweepMode = { UI_SWEEP_MODE::NONE };
 	}UI_ELEMENT;
 
 	typedef struct tagUISceneData
@@ -154,6 +160,13 @@ namespace Client
 		_float                  fAuthoringHeight = { 720.f };
 		vector<UI_ELEMENT>      Elements;
 	}UI_SCENE_DATA;
+
+	typedef struct tagWeaponInfo
+	{
+		EQUIPPED_WEAPON_ID	eId;
+		WEAPON_TYPE			eCategory;
+		const _tchar*		pModelTag;
+	}WEAPON_INFO;
 }
 
 #endif // Client_Struct_h

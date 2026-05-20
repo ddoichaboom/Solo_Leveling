@@ -6,7 +6,7 @@ namespace
 {
     static constexpr char SCENEDATA_MAGIC[4] = { 'S', 'L', 'S', 'C' };
     static constexpr _uint SCENEDATA_VERSION_MIN = { 1 };
-    static constexpr _uint SCENEDATA_VERSION_LATEST = { 1 };
+    static constexpr _uint SCENEDATA_VERSION_LATEST = { 2 };
 
     HRESULT Write_SpawnPoint(CBinaryWriter& Writer, const SPAWN_POINT& Point)
     {
@@ -27,36 +27,53 @@ namespace
         if (FAILED(Writer.WriteArray(Point.szName, sizeof(_tchar), MAX_PATH)))
             return E_FAIL;
 
+        if (FAILED(Writer.Write(Point.iLevel)))                                        
+            return E_FAIL;
+
+        if (FAILED(Writer.WriteArray(Point.szDisplayName, sizeof(_tchar), MAX_PATH)))  
+            return E_FAIL;
+
         return S_OK;
     }
 
-    HRESULT Read_SpawnPoint(CBinaryReader& Reader, SPAWN_POINT* pOutPoint)
+    HRESULT Read_SpawnPoint(CBinaryReader& Reader, SPAWN_POINT* pOutPoint, _uint iVersion)
     {
         if (nullptr == pOutPoint)
             return E_FAIL;
 
         _uint iType = {};
 
-        if (FAILED(Reader.Read(&iType)))
+        if (FAILED(Reader.Read(&iType)))                                                    
+            return E_FAIL;
+        if (iType >= static_cast<_uint>(SPAWN_TYPE::END))                                   
             return E_FAIL;
 
-        if (iType >= static_cast<_uint>(SPAWN_TYPE::END))
+        if (FAILED(Reader.Read(&pOutPoint->iNavCellIndex)))                                 
+            return E_FAIL;
+        if (FAILED(Reader.Read(&pOutPoint->vPosition)))                                     
+            return E_FAIL;
+        if (FAILED(Reader.Read(&pOutPoint->vRotationDeg)))                                  
+            return E_FAIL;
+        if (FAILED(Reader.ReadArray(pOutPoint->szName, sizeof(_tchar), MAX_PATH)))          
             return E_FAIL;
 
-        if (FAILED(Reader.Read(&pOutPoint->iNavCellIndex)))
-            return E_FAIL;
-
-        if (FAILED(Reader.Read(&pOutPoint->vPosition)))
-            return E_FAIL;
-
-        if (FAILED(Reader.Read(&pOutPoint->vRotationDeg)))
-            return E_FAIL;
-
-        if (FAILED(Reader.ReadArray(pOutPoint->szName, sizeof(_tchar), MAX_PATH)))
-            return E_FAIL;
+        if (iVersion >= 2)
+        {
+            if (FAILED(Reader.Read(&pOutPoint->iLevel)))                                    
+                return E_FAIL;
+            if (FAILED(Reader.ReadArray(pOutPoint->szDisplayName, sizeof(_tchar), MAX_PATH)))
+                return E_FAIL;
+        }
+        else
+        {
+            // v1 fallback
+            pOutPoint->iLevel = 1;
+            pOutPoint->szDisplayName[0] = 0;
+        }
 
         pOutPoint->eType = static_cast<SPAWN_TYPE>(iType);
         pOutPoint->szName[MAX_PATH - 1] = 0;
+        pOutPoint->szDisplayName[MAX_PATH - 1] = 0;
 
         return S_OK;
     }
@@ -130,7 +147,7 @@ HRESULT CSceneSerializer::Load(const _tchar* pSceneDataPath, SCENE_DATA* pOutSce
 
     for (SPAWN_POINT& Point : SceneData.SpawnPoints)
     {
-        if (FAILED(Read_SpawnPoint(Reader, &Point)))
+        if (FAILED(Read_SpawnPoint(Reader, &Point, iVersion)))
             return E_FAIL;
     }
 

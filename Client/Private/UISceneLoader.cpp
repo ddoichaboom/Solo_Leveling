@@ -70,6 +70,8 @@ HRESULT CUISceneLoader::Add_Image(CGameInstance* pInstance, const UI_ELEMENT& E,
 
     Desc.pTextureProtoTag = E.szTextureProtoTag;
     Desc.iTextureProtoLevel = (0 != E.iTextureProtoLevel) ? E.iTextureProtoLevel : ETOUI(LEVEL::STATIC);
+    Desc.vColor = E.vColor;
+    Desc.eSweepMode = E.eSweepMode;
 
     return CGameInstance::GetInstance()->Add_GameObject(
         ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_Image"),
@@ -93,6 +95,7 @@ HRESULT CUISceneLoader::Add_Text(CGameInstance* pInstance, const UI_ELEMENT& E, 
     Desc.eVAlign = E.eVAlign;
     Desc.bAutoFit = E.bAutoFit;
     Desc.bVisible = E.bVisible;
+    Desc.vColor = E.vColor;
 
     return CGameInstance::GetInstance()->Add_GameObject(
         ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_UI_Text"),

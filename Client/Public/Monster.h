@@ -15,6 +15,7 @@ NS_BEGIN(Client)
 class CBody_Monster;
 class CWeapon;
 class CMonster_StateMachine;
+class CPlayer;
 
 class CLIENT_DLL CMonster abstract : public CContainerObject
 {
@@ -32,9 +33,14 @@ public:
 		_bool				bWeaponInitiallyVisible = { true };
 
 		_float				fMaxHP = { 0.f };
-		_float				fMaxShield = { 0.f };
+		_float				fMaxBreak = { 0.f };
 
-		_bool				bHasShield = { false };
+		_bool				bHasBreak = { false };
+
+		_int				iLevel = { 1 };
+		_tchar				szDisplayName[MAX_PATH] = { };
+
+		CGameObject*		pTarget = { nullptr };
 	}MONSTER_DESC;
 
 protected:
@@ -43,11 +49,19 @@ protected:
 	virtual ~CMonster() = default;
 
 public:
+	_int						Get_Level() const { return m_iLevel; }
+	const _wstring&				Get_DisplayName() const { return m_strDisplayName; }
+
 	SPAWN_TYPE					Get_SpawnType() const { return m_eSpawnType; }
 	MONSTER_ANIM_SET			Get_AnimSet() const { return m_eAnimSet; }
+	_int						Get_CurrentNavCellIndex() const;
 
 	_float						Get_MaxHP() const { return m_fMaxHP; }
 	_float						Get_CurrentHP() const { return m_fCurrentHP; }
+
+	_bool                       Has_Break() const { return m_bHasBreak; }
+	_float                      Get_MaxBreak() const { return m_fMaxBreak; }
+	_float                      Get_CurrentBreak() const { return m_fCurrentBreak; }
 
 	void						Take_Damage(_float fAmount);
 
@@ -79,14 +93,28 @@ protected:
 	virtual const _tchar*		Get_DefaultWeaponModelPrototypeTag() const { return nullptr; }
 	virtual const _char*		Get_DefaultWeaponSocketBoneName() const { return nullptr; }
 
+	void						Tick_AI(_float fTimeDelta);
+
+	void						Set_Target(CGameObject* pTarget);
+	CGameObject*				Resolve_Target();
+	CGameObject*				Find_Player() const;
+
+	_bool						Can_TickAI() const;
+	_bool						Is_AIActionLocked() const;
+
+	_float						Compute_DistanceToTarget(CGameObject* pTarget) const;
+
+	virtual MONSTER_ACTION		Select_AIAction(CGameObject* pTarget, _float fDistance);
+	virtual MONSTER_ACTION_STEP	Select_AIActionStep(MONSTER_ACTION eAction) const;
 
 protected:
 	HRESULT						Ready_Components(const MONSTER_DESC& Desc);
 	virtual HRESULT				Ready_PartObjects(const MONSTER_DESC& Desc);
 	HRESULT						Ready_StateMachine();
 
-	_bool						Try_ApplyNavigationPosition(const _float3& vCandidatePosition);
-	void						Apply_RootMotion(const _float3& vLocalDelta);
+	_bool                       Resolve_NavigationPosition(const _float3& vCandidatePosition, _float3* pOutPosition);
+	_bool                       Try_ApplyMovementPosition(const _float3& vCandidatePosition);
+	void                        Apply_RootMotion(const _float3& vLocalDelta);
 	
 	void						On_WeaponHitEnter(CCollider* pOther);
 
@@ -96,6 +124,8 @@ protected:
 	CWeapon*					m_pWeapon = { nullptr };
 	CCollider*					m_pCollider = { nullptr };
 	CMonster_StateMachine*		m_pStateMachine = { nullptr };
+	CGameObject*				m_pTarget = { nullptr };
+	
 
 	SPAWN_TYPE					m_eSpawnType = { SPAWN_TYPE::END };
 	MONSTER_ANIM_SET			m_eAnimSet = { MONSTER_ANIM_SET::NONE };
@@ -103,14 +133,25 @@ protected:
 	_float						m_fMaxHP = { 1.f };
 	_float						m_fCurrentHP = { 1.f };
 
-	_bool						m_bHasShield = { false };
-	_float						m_fMaxShield = { 1.f };
-	_float						m_fCurrentShield = { 1.f };
+	_bool						m_bHasBreak = { false };
+	_float						m_fMaxBreak = { 1.f };
+	_float						m_fCurrentBreak = { 1.f };
+
+	_int						m_iLevel = { 1 };
+	_wstring					m_strDisplayName; 
 
 	_float						m_fCrashDurationMax = { 15.f };
 	_float						m_fCrashDurationCurrent = { 0.f };
 
 	set<CGameObject*>			m_AttackHitTargets;
+
+	_bool						m_bAIEnabled = { true };
+	_float						m_fAIDecisionInterval = { 0.5f };
+	_float                      m_fAIDecisionTimer = { 0.f };
+
+	_float                      m_fMeleeRange = { 3.5f };
+	_float                      m_fMidRange = { 8.0f };
+	_float                      m_fLongRange = { 14.0f };
 
 public:
 	virtual CGameObject*		Clone(void* pArg) PURE;

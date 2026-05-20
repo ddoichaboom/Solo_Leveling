@@ -35,7 +35,12 @@ private:
 	CNavMesh*					Find_GamePlayNavMesh();
 	const _tchar*				Get_MonsterPrototypeTag(SPAWN_TYPE eType) const;
 	_bool						Apply_MonsterSpawnPoint(CMonster::MONSTER_DESC& Desc, CNavMesh* pNavMesh, const SPAWN_POINT& SpawnPoint);
+	
+	CPlayer*					Find_FirstPlayer() const;
 
+#ifdef _DEBUG
+	CMonster*					Find_FirstBossMonster() const;
+#endif
 private:
 	SCENE_DATA					m_SceneData = {};
 	_bool						m_bSceneDataLoaded = { false };

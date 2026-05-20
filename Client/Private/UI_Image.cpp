@@ -14,26 +14,27 @@ CUI_Image::CUI_Image(const CUI_Image& Prototype)
 {
 }
 
-void CUI_Image::Set_Progress(_float fProgress)
+void CUI_Image::Set_GaugeRatio(_float fRatio)
 {
-	if (!m_bBaseCached)
-	{
-		m_fBaseCenterX = m_fCenterX;
-		m_fBaseSizeX = m_fSizeX;
-		m_bBaseCached = true;
-	}
+	if (fRatio < 0.f)
+		fRatio = 0.f;
+	if (fRatio > 1.f)
+		fRatio = 1.f;
 
-	if (fProgress < 0.f) 
-		fProgress = 0.f;
-	if (fProgress > 1.f) 
-		fProgress = 1.f;
+	m_fGaugeProgress = fRatio;
+}
 
-	const _float fNewSizeX = m_fBaseSizeX * fProgress;
-	// ÁÂÃø ¾ÞÄ¿: ¿ÞÂÊ °¡ÀåÀÚ¸®¸¦ base ÀÇ left ¿¡ °íÁ¤
-	const _float fLeft = m_fBaseCenterX - m_fBaseSizeX * 0.5f;
-	m_fSizeX = fNewSizeX;
-	m_fCenterX = fLeft + fNewSizeX * 0.5f;
+void CUI_Image::Set_Center(_float fCenterX, _float fCenterY)
+{
+	m_fCenterX = fCenterX;
+	m_fCenterY = fCenterY;
+	Update_UIState();
+}
 
+void CUI_Image::Set_Size(_float fSizeX, _float fSizeY)
+{
+	m_fSizeX = fSizeX;
+	m_fSizeY = fSizeY;
 	Update_UIState();
 }
 
@@ -64,6 +65,9 @@ HRESULT CUI_Image::Initialize(void* pArg)
 
 	if (FAILED(__super::Initialize(pArg)))
 		return E_FAIL;
+
+	m_vColor		= pDesc->vColor;
+	m_eSweepMode	= pDesc->eSweepMode;
 
 	if (FAILED(Ready_Components(pDesc)))
 		return E_FAIL;
@@ -108,7 +112,13 @@ HRESULT CUI_Image::Render()
 	if (FAILED(Bind_ShaderResources()))
 		return E_FAIL;
 
-	if (FAILED(m_pShaderCom->Begin(1)))
+	_uint iPassIndex = 1;   
+	if (m_eSweepMode == UI_SWEEP_MODE::POSITION)
+		iPassIndex = 3;     
+	else if (m_eSweepMode == UI_SWEEP_MODE::UV)
+		iPassIndex = 4;     
+
+	if (FAILED(m_pShaderCom->Begin(iPassIndex)))
 		return E_FAIL;
 
 	if (FAILED(m_pVIBufferCom->Bind_Resources()))
@@ -169,6 +179,17 @@ HRESULT CUI_Image::Bind_ShaderResources()
 
 	if (FAILED(m_pShaderCom->Bind_RawValue("g_fAlpha", &m_fAlpha, sizeof(_float))))
 		return E_FAIL;
+
+	if (FAILED(m_pShaderCom->Bind_RawValue("g_fGaugeProgress", &m_fGaugeProgress, sizeof(_float))))
+		return E_FAIL;
+
+	if (m_eSweepMode != UI_SWEEP_MODE::NONE)
+	{
+		if (FAILED(m_pShaderCom->Bind_RawValue("g_vSweepTint", &m_vColor, sizeof(_float4))))
+			return E_FAIL;
+		if (FAILED(m_pShaderCom->Bind_RawValue("g_vUVOffset", &m_vUVOffset, sizeof(_float4))))
+			return E_FAIL;
+	}
 
 	return S_OK;
 }

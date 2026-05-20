@@ -11,42 +11,13 @@
 #include "UI_Image.h"
 #include "FadeOverlay_Helper.h"
 #include "Monster.h"
+#include "HUD_GamePlay.h" 
 
 static constexpr _int PLAYER_START_CELL_INDEX = { 40 };
 
 static const _tchar* SCENEDATA_PATH = TEXT("../../Resources/Scenes/Map/ThroneRoom.scene");
 static const _tchar* DEFAULT_NAVDATA_PATH = TEXT("../../Resources/NavMesh/ThroneRoom.navdata");
-static const _tchar* HUD_SCENE_PATH = TEXT("../../Resources/Scenes/UI/HUD.uiscenes");
-
-#ifdef _DEBUG
-static CMonster* Find_FirstBossMonster(CGameInstance* pGameInstance)
-{
-	if (nullptr == pGameInstance)
-		return nullptr;
-
-	const auto* pLayers = pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
-	if (nullptr == pLayers)
-		return nullptr;
-
-	auto iterLayer = pLayers->find(TEXT("Layer_Monster"));
-	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
-		return nullptr;
-
-	const list<CGameObject*>& MonsterObjects = iterLayer->second->Get_GameObjects();
-
-	for (CGameObject* pObject : MonsterObjects)
-	{
-		CMonster* pMonster = dynamic_cast<CMonster*>(pObject);
-		if (nullptr == pMonster)
-			continue;
-
-		if (SPAWN_TYPE::MONSTER_BOSS == pMonster->Get_SpawnType())
-			return pMonster;
-	}
-
-	return nullptr;
-}
-#endif
+static const _tchar* HUD_SCENE_PATH = TEXT("../../Resources/Scenes/UI/HUD.uiscene");
 
 _bool CLevel_GamePlay::Apply_PlayerSpawnFromCell(CPlayer::PLAYER_DESC& Desc, CNavMesh* pNavMesh, _int iCellIndex)
 {
@@ -152,8 +123,66 @@ _bool CLevel_GamePlay::Apply_MonsterSpawnPoint(CMonster::MONSTER_DESC& Desc, CNa
 		Desc.vPosition.y = pNavMesh->Compute_Height(Desc.iStartCellIndex, Desc.vPosition);
 	}
 
+	Desc.iLevel = SpawnPoint.iLevel;
+	wcscpy_s(Desc.szDisplayName, SpawnPoint.szDisplayName);
+
 	return true;
 }
+
+CPlayer* CLevel_GamePlay::Find_FirstPlayer() const
+{
+	if (nullptr == m_pGameInstance)
+		return nullptr;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+	if (nullptr == pLayers)
+		return nullptr;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_Player"));
+	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+		return nullptr;
+
+	const list<CGameObject*>& PlayerObjects = iterLayer->second->Get_GameObjects();
+
+	for (CGameObject* pObject : PlayerObjects)
+	{
+		CPlayer* pPlayer = dynamic_cast<CPlayer*>(pObject);
+		if (nullptr != pPlayer)
+			return pPlayer;
+	}
+
+	return nullptr;
+}
+
+#ifdef _DEBUG
+CMonster* CLevel_GamePlay::Find_FirstBossMonster() const
+{
+	if (nullptr == m_pGameInstance)
+		return nullptr;
+
+	const auto* pLayers = m_pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+	if (nullptr == pLayers)
+		return nullptr;
+
+	auto iterLayer = pLayers->find(TEXT("Layer_Monster"));
+	if (iterLayer == pLayers->end() || nullptr == iterLayer->second)
+		return nullptr;
+
+	const list<CGameObject*>& MonsterObjects = iterLayer->second->Get_GameObjects();
+
+	for (CGameObject* pObject : MonsterObjects)
+	{
+		CMonster* pMonster = dynamic_cast<CMonster*>(pObject);
+		if (nullptr == pMonster)
+			continue;
+
+		if (SPAWN_TYPE::MONSTER_BOSS == pMonster->Get_SpawnType())
+			return pMonster;
+	}
+
+	return nullptr;
+}
+#endif
 
 CLevel_GamePlay::CLevel_GamePlay(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	:CLevel{ pDevice, pContext }
@@ -204,7 +233,7 @@ HRESULT CLevel_GamePlay::Initialize()
 void CLevel_GamePlay::Update(_float fTimeDelta)
 {
 #ifdef _DEBUG
-	CMonster* pBossMonster = Find_FirstBossMonster(m_pGameInstance);
+	CMonster* pBossMonster = Find_FirstBossMonster();
 
 	if (nullptr != pBossMonster)
 	{
@@ -219,6 +248,17 @@ void CLevel_GamePlay::Update(_float fTimeDelta)
 
 		if (m_pGameInstance->Get_KeyDown('0'))
 			pBossMonster->Debug_TryAction(MONSTER_ACTION::SKILL_09, MONSTER_ACTION_STEP::END);
+	}
+
+	CPlayer* pPlayer = Find_FirstPlayer();
+
+	if (nullptr != pPlayer)
+	{
+		if (m_pGameInstance->Get_KeyDown(VK_F6))
+			pPlayer->Enter_FloatReaction(CHARACTER_ACTION::FLOAT_A);
+
+		if (m_pGameInstance->Get_KeyDown(VK_F7))
+			pPlayer->Enter_FloatReaction(CHARACTER_ACTION::FLOAT_B);
 	}
 #endif
 }
@@ -345,6 +385,7 @@ HRESULT CLevel_GamePlay::Ready_Layer_Monster(const _wstring& strLayerTag)
 		return S_OK;
 
 	CNavMesh* pNavMesh = Find_GamePlayNavMesh();
+	CPlayer* pTargetPlayer = Find_FirstPlayer();
 
 	for (const SPAWN_POINT& SpawnPoint : m_SceneData.SpawnPoints)
 	{
@@ -354,6 +395,7 @@ HRESULT CLevel_GamePlay::Ready_Layer_Monster(const _wstring& strLayerTag)
 
 		CMonster::MONSTER_DESC Desc{};
 		Desc.pNavMesh = pNavMesh;
+		Desc.pTarget = pTargetPlayer;
 
 		if (false == Apply_MonsterSpawnPoint(Desc, pNavMesh, SpawnPoint))
 			continue;
@@ -408,6 +450,11 @@ HRESULT	 CLevel_GamePlay::Ready_Layer_UI(const _wstring& strLayerTag)
 		// 파일 없어도 일단 진행
 		return S_OK;
 	}
+
+	if (FAILED(m_pGameInstance->Add_GameObject(
+		ETOUI(LEVEL::STATIC), TEXT("Prototype_GameObject_HUD_GamePlay"),
+		ETOUI(LEVEL::GAMEPLAY), strLayerTag)))
+		return E_FAIL;
 
 	return S_OK;
 }

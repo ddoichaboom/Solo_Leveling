@@ -8,7 +8,9 @@
 #include "Collider.h"
 #include "Monster_StateMachine.h"
 #include "MonsterAnimTable.h"
+#include "Layer.h"
 #include "Player.h"
+#include "HUD_GamePlay.h"
 
 CMonster::CMonster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CContainerObject{ pDevice, pContext }
@@ -20,43 +22,51 @@ CMonster::CMonster(const CMonster& Prototype)
 {
 }
 
+_int CMonster::Get_CurrentNavCellIndex() const
+{
+    if (nullptr == m_pNavigationAgent)
+        return NAVMESH_INVALID_INDEX;
+
+    return  m_pNavigationAgent->Get_CurrentCellIndex();
+}
+
 void CMonster::Take_Damage(_float fAmount)
 {
     if (m_fCurrentHP <= 0.f)
         return;
 
     _float fHPDamage = 0.f;
-    _float fShieldDamage = 0.f;
+    _float fBreakDamage = 0.f;
 
-    if (!m_bHasShield)
+    if (!m_bHasBreak)
     {
         fHPDamage = fAmount;
     }
-    else if (m_fCurrentShield > 0.f)
+    else if (m_fCurrentBreak > 0.f)
     {
         fHPDamage = fAmount * 0.7f;
-        fShieldDamage = fAmount * 1.5f;
+        fBreakDamage = fAmount * 1.5f;
     }
     else
     {
         fHPDamage = fAmount * 1.5f;
     }
 
-    _float fPrevShield = m_fCurrentShield;
-    m_fCurrentShield = max(0.f, m_fCurrentShield - fShieldDamage);
+    _float fPrevBreak = m_fCurrentBreak;
+    m_fCurrentBreak = max(0.f, m_fCurrentBreak - fBreakDamage);
     m_fCurrentHP = max(0.f, m_fCurrentHP - fHPDamage);
 
     char szLog[192] = {};
     sprintf_s(szLog,
-        "[Monster] DMG in=%.1f | HP -%.1f => %.1f/%.1f | Shield -%.1f => %.1f/%.1f\n",
+        "[Monster] DMG in=%.1f | HP -%.1f => %.1f/%.1f | Break -%.1f => %.1f/%.1f\n",
         fAmount,
         fHPDamage, m_fCurrentHP, m_fMaxHP,
-        fShieldDamage, m_fCurrentShield, m_fMaxShield);
+        fBreakDamage, m_fCurrentBreak, m_fMaxBreak);
     OutputDebugStringA(szLog);
 
-    if (true == m_bHasShield && fPrevShield > 0.f && m_fCurrentShield <= 0.f)
+    if (true == m_bHasBreak && fPrevBreak > 0.f && m_fCurrentBreak <= 0.f)
     {
-        OutputDebugStringA("[Monster] SHIELD BROKEN -> CRASH\n");
+        OutputDebugStringA("[Monster] Break BROKEN -> CRASH\n");
         if (nullptr != m_pStateMachine)
             m_pStateMachine->Try_Action(MONSTER_ACTION::CRASH, MONSTER_ACTION_STEP::START);
     }
@@ -64,9 +74,18 @@ void CMonster::Take_Damage(_float fAmount)
     if (m_fCurrentHP <= 0.f)
     {
         OutputDebugStringA("[Monster] HP DEPLETED -> DEATH\n");
+
         if (nullptr != m_pStateMachine)
             m_pStateMachine->Try_Action(MONSTER_ACTION::DEATH, MONSTER_ACTION_STEP::NONE);
+
+        if (CHUD_GamePlay* pHUD = CHUD_GamePlay::Get_Instance())
+            pHUD->Notify_Death(this);
+
+        return;
     }
+
+    if (CHUD_GamePlay* pHUD = CHUD_GamePlay::Get_Instance())
+        pHUD->Notify_Hit(this);
 }
 
 void CMonster::Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep, MONSTER_ACTION eToAction, MONSTER_ACTION_STEP eToStep, _bool bInitial)
@@ -80,18 +99,24 @@ void CMonster::Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTIO
         Set_WeaponHitboxActive(false);
     }
 
-    if (true == m_bHasShield &&
+    if (MONSTER_ACTION::DEATH != eFromAction && MONSTER_ACTION::DEATH == eToAction)
+    {
+        if (CHUD_GamePlay* pHUD = CHUD_GamePlay::Get_Instance())
+            pHUD->Notify_Death(this);
+    }
+
+    if (true == m_bHasBreak &&
         MONSTER_ACTION::CRASH != eFromAction &&
         MONSTER_ACTION::CRASH == eToAction)
     {
         m_fCrashDurationCurrent = m_fCrashDurationMax;
     }
 
-    if (true == m_bHasShield &&
+    if (true == m_bHasBreak &&
         MONSTER_ACTION::CRASH == eFromAction &&
         MONSTER_ACTION::CRASH != eToAction)
     {
-        m_fCurrentShield = m_fMaxShield;
+        m_fCurrentBreak = m_fMaxBreak;
         m_fCrashDurationCurrent = 0.f;
     }
 
@@ -150,8 +175,8 @@ HRESULT CMonster::Initialize(void* pArg)
     if (0.f == Desc.fMaxHP)
         Desc.fMaxHP = 1.f;
 
-    if (0.f == Desc.fMaxShield)
-        Desc.fMaxShield = 1.f;
+    if (0.f == Desc.fMaxBreak)
+        Desc.fMaxBreak = 1.f;
 
     m_strName = Get_DefaultName();
     m_strTag = Get_DefaultName();
@@ -162,9 +187,14 @@ HRESULT CMonster::Initialize(void* pArg)
     m_fMaxHP = Desc.fMaxHP;
     m_fCurrentHP = Desc.fMaxHP;
 
-    m_bHasShield = Desc.bHasShield;
-    m_fMaxShield = Desc.fMaxShield;
-    m_fCurrentShield = Desc.fMaxShield;
+    m_bHasBreak = Desc.bHasBreak;
+    m_fMaxBreak = Desc.fMaxBreak;
+    m_fCurrentBreak = Desc.fMaxBreak;
+
+    m_iLevel = Desc.iLevel;
+    m_strDisplayName = (Desc.szDisplayName[0] != 0) ? Desc.szDisplayName : TEXT("정보 없음");
+
+    Set_Target(Desc.pTarget);
 
     if (FAILED(__super::Initialize(&Desc)))
         return E_FAIL;
@@ -192,6 +222,8 @@ void CMonster::Priority_Update(_float fTimeDelta)
 
 void CMonster::Update(_float fTimeDelta)
 {
+    Tick_AI(fTimeDelta);
+
     if (nullptr != m_pStateMachine)
         m_pStateMachine->Update(fTimeDelta);
 
@@ -204,7 +236,7 @@ void CMonster::Update(_float fTimeDelta)
     if (nullptr != m_pBody)
         Apply_RootMotion(m_pBody->Get_LastRootMotionDelta());
 
-    if (true == m_bHasShield && m_fCrashDurationCurrent > 0.f)
+    if (true == m_bHasBreak && m_fCrashDurationCurrent > 0.f)
     {
         m_fCrashDurationCurrent -= fTimeDelta;
         if (m_fCrashDurationCurrent <= 0.f)
@@ -383,7 +415,21 @@ HRESULT CMonster::Ready_StateMachine()
     return S_OK;
 }
 
-_bool CMonster::Try_ApplyNavigationPosition(const _float3& vCandidatePosition)
+_bool CMonster::Resolve_NavigationPosition(const _float3& vCandidatePosition, _float3* pOutPosition)
+{
+    if (nullptr == pOutPosition)
+        return false;
+
+    if (nullptr == m_pNavigationAgent || false == m_pNavigationAgent->Has_NavMesh())
+    {
+        *pOutPosition = vCandidatePosition;
+        return true;
+    }
+
+    return m_pNavigationAgent->Try_Move(vCandidatePosition, pOutPosition);
+}
+
+_bool CMonster::Try_ApplyMovementPosition(const _float3& vCandidatePosition)
 {
     if (nullptr == m_pTransformCom)
         return false;
@@ -424,7 +470,7 @@ void CMonster::Apply_RootMotion(const _float3& vLocalDelta)
     _float3 vCandidatePosition{};
     XMStoreFloat3(&vCandidatePosition, vPosition);
 
-    Try_ApplyNavigationPosition(vCandidatePosition);
+    Try_ApplyMovementPosition(vCandidatePosition);
 }
 
 void CMonster::On_WeaponHitEnter(CCollider* pOther)
@@ -451,11 +497,204 @@ void CMonster::On_WeaponHitEnter(CCollider* pOther)
     CPlayer* pPlayer = dynamic_cast<CPlayer*>(pTarget);
     if (nullptr != pPlayer)
         pPlayer->Take_Damage(10.f);
+
+    if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+        pHUD->Notify_Hit(this);
+}
+
+void CMonster::Tick_AI(_float fTimeDelta)
+{
+    if (false == Can_TickAI())
+        return;
+
+    m_fAIDecisionTimer -= fTimeDelta;
+    if (m_fAIDecisionTimer > 0.f)
+        return;
+
+    m_fAIDecisionTimer = m_fAIDecisionInterval;
+
+    CGameObject* pTarget = Resolve_Target();
+    if (nullptr == pTarget)
+        return;
+
+    const _float fDistance = Compute_DistanceToTarget(pTarget);
+
+    const MONSTER_ACTION eAction = Select_AIAction(pTarget, fDistance);
+
+    if (MONSTER_ACTION::IDLE == eAction || MONSTER_ACTION::END == eAction)
+        return;
+
+    const MONSTER_ACTION_STEP eStep = Select_AIActionStep(eAction);
+
+    m_pStateMachine->Try_Action(eAction, eStep);
+}
+
+void CMonster::Set_Target(CGameObject* pTarget)
+{
+    if (m_pTarget == pTarget)
+        return;
+
+    Safe_Release(m_pTarget);
+
+    m_pTarget = pTarget;
+
+    Safe_AddRef(m_pTarget);
+}
+
+CGameObject* CMonster::Resolve_Target()
+{
+    if (nullptr != m_pTarget)
+        return m_pTarget;
+
+    Set_Target(Find_Player());
+
+    return m_pTarget;
+}
+
+CGameObject* CMonster::Find_Player() const
+{
+    if (nullptr == m_pGameInstance)
+        return nullptr;
+
+    const map<const _wstring, CLayer*>* pLayers =
+        m_pGameInstance->Get_Layers(ETOUI(LEVEL::GAMEPLAY));
+
+    if (nullptr == pLayers)
+        return nullptr;
+
+    auto iterLayer = pLayers->find(TEXT("Layer_Player"));
+    if (pLayers->end() == iterLayer || nullptr == iterLayer->second)
+        return nullptr;
+
+    const list<CGameObject*>& PlayerObjects = iterLayer->second->Get_GameObjects();
+
+    for (CGameObject* pObject : PlayerObjects)
+    {
+        CPlayer* pPlayer = dynamic_cast<CPlayer*>(pObject);
+        if (nullptr != pPlayer)
+            return pPlayer;
+    }
+
+    return nullptr;
+}
+
+_bool CMonster::Can_TickAI() const
+{
+    if (false == m_bAIEnabled)
+        return false;
+
+    if (nullptr == m_pStateMachine)
+        return false;
+
+    if (m_fCurrentHP <= 0.f)
+        return false;
+
+    if (true == m_bHasBreak && m_fCrashDurationCurrent > 0.f)
+        return false;
+
+    if (true == Is_AIActionLocked())
+        return false;
+
+    return true;
+}
+
+_bool CMonster::Is_AIActionLocked() const
+{
+    if (nullptr == m_pStateMachine)
+        return false;
+
+    const MONSTER_ACTION eAction = m_pStateMachine->Get_CurrentMonsterAction();
+
+    switch (eAction)
+    {
+    case MONSTER_ACTION::BASIC_ATTACK_01:
+    case MONSTER_ACTION::BASIC_ATTACK_02:
+    case MONSTER_ACTION::BASIC_ATTACK_03:
+
+    case MONSTER_ACTION::SKILL_01:
+    case MONSTER_ACTION::SKILL_03:
+    case MONSTER_ACTION::SKILL_04:
+    case MONSTER_ACTION::SKILL_05:
+    case MONSTER_ACTION::SKILL_06:
+    case MONSTER_ACTION::SKILL_07:
+    case MONSTER_ACTION::SKILL_08:
+    case MONSTER_ACTION::SKILL_09:
+    case MONSTER_ACTION::SKILL_10:
+    case MONSTER_ACTION::SKILL_11:
+    case MONSTER_ACTION::SKILL_12:
+    case MONSTER_ACTION::SKILL_13:
+    case MONSTER_ACTION::SKILL_14:
+    case MONSTER_ACTION::SKILL_15:
+    case MONSTER_ACTION::SKILL_16:
+
+    case MONSTER_ACTION::CRASH:
+    case MONSTER_ACTION::DEATH:
+    case MONSTER_ACTION::INTRO:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
+_float CMonster::Compute_DistanceToTarget(CGameObject* pTarget) const
+{
+    if (nullptr == pTarget)
+        return FLT_MAX;
+
+    if (nullptr == m_pTransformCom || nullptr == pTarget->Get_Transform())
+        return FLT_MAX;
+
+    _float3 vMonsterPosition = {};
+    _float3 vPlayerPosition = {};
+
+    XMStoreFloat3(&vMonsterPosition, m_pTransformCom->Get_State(STATE::POSITION));
+    XMStoreFloat3(&vPlayerPosition, pTarget->Get_Transform()->Get_State(STATE::POSITION));
+
+    const _float fX = vPlayerPosition.x - vMonsterPosition.x;
+    const _float fZ = vPlayerPosition.z - vMonsterPosition.z;
+
+    return sqrtf(fX * fX + fZ * fZ);
+}
+
+MONSTER_ACTION CMonster::Select_AIAction(CGameObject* pTarget, _float fDistance)
+{
+    if (nullptr == pTarget)
+        return MONSTER_ACTION::IDLE;
+
+    if (fDistance <= m_fMeleeRange)
+        return MONSTER_ACTION::BASIC_ATTACK_01;
+
+    if (fDistance <= m_fMidRange)
+        return MONSTER_ACTION::SKILL_03;
+
+    if (fDistance <= m_fLongRange)
+        return MONSTER_ACTION::SKILL_05;   
+
+    return MONSTER_ACTION::IDLE;
+}
+
+MONSTER_ACTION_STEP CMonster::Select_AIActionStep(MONSTER_ACTION eAction) const
+{
+    switch (eAction)
+    {
+    case MONSTER_ACTION::SKILL_07:
+    case MONSTER_ACTION::SKILL_09:
+    case MONSTER_ACTION::SKILL_10:
+    case MONSTER_ACTION::SKILL_12:
+    case MONSTER_ACTION::SKILL_15:
+        return MONSTER_ACTION_STEP::START;
+
+    default:
+        return MONSTER_ACTION_STEP::NONE;
+    }
 }
 
 void CMonster::Free()
 {
     __super::Free();
+
+    Safe_Release(m_pTarget);
 
     if (nullptr != m_pWeapon && nullptr != m_pWeapon->Get_BladeCollider())
         m_pWeapon->Get_BladeCollider()->Clear_Callbacks();

@@ -15,7 +15,10 @@ private:
 	virtual ~CMonster_StateMachine() = default;
 
 public:
-	HRESULT Initialize(const MONSTER_ANIM_TABLE_DESC* pAnimTable);
+	MONSTER_ACTION					Get_CurrentMonsterAction() const;
+	MONSTER_ACTION_STEP				Get_CurrentMonsterStep() const;
+public:
+	HRESULT							Initialize(const MONSTER_ANIM_TABLE_DESC* pAnimTable);
 
 	void							Bind_Owner(CMonster* pOwner);
 	_bool							Enter_InitialState(MONSTER_ACTION eInitialAction = MONSTER_ACTION::IDLE,

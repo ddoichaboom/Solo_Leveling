@@ -33,10 +33,10 @@ HRESULT CBoss_Monster::Initialize(void* pArg)
     if (0.f == Desc.fMaxHP)
         Desc.fMaxHP = 1000.f;
     
-    if (0.f == Desc.fMaxShield)
-        Desc.fMaxShield = 100.f;
+    if (0.f == Desc.fMaxBreak)
+        Desc.fMaxBreak = 100.f;
 
-    Desc.bHasShield = true;
+    Desc.bHasBreak = true;
 
     return __super::Initialize(&Desc);
 }
