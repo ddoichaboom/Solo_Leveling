@@ -21,7 +21,11 @@
       "Bash(python 명세서/_tmp_anim_dump.py)",
       "Bash(python \"명세서/_tools/parse_slmd.py\" \"Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin\")",
       "Bash(PYTHONIOENCODING=utf-8 python \"명세서/_tools/find_bones.py\" \"Resources/Models/hunter/SungJinWoo/Without_CamAnim/SungJinWoo_OverDrive.bin\")",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(xargs wc -l)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\chaho\\\\ddoichaboom\\\\Solo_Leveling\\\\명세서\" -Recurse -Filter \"*.md\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)"
     ]
   }
 }
