@@ -1127,7 +1127,7 @@ Solo_Leveling/
 
 ### §12.2 모델 / 애니메이션 / 텍스처
 
-- **캐릭터 (SungJinWoo, Igris) / 무기 / 맵 (ThroneRoom)** — 게임 *Solo Leveling: Arise* (Netmarble Neo) 의 자산을 **학습 목적** 으로 추출 / 변환하여 사용
+- **캐릭터 (SungJinWoo, Igris) / 무기 / 맵 (ThroneRoom)** — 게임 *Solo Leveling: OverDrive* (Netmarble Neo) 의 자산을 **학습 목적** 으로 추출 / 변환하여 사용
 - **추출 도구** — AssetStudio + 자체 SLMD 변환기 (`CModel_Converter`)
 - 본 프로젝트는 **상업적 사용 / 배포 목적이 아닌 개인 포트폴리오 학습용**
 
