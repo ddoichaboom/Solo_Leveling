@@ -203,17 +203,18 @@ MONSTER_ACTION CBoss_Monster::Select_AIAction(CGameObject* pTarget, _float fDist
     {
         Face_TargetImmediately(pTarget);
 
+        if (Is_PatternReady(MONSTER_ACTION::SKILL_01))
+        {
+            Start_PatternCooldown(MONSTER_ACTION::SKILL_01);
+            return MONSTER_ACTION::SKILL_01;
+        }
+
         if (fDistance > m_fMidRange && Is_PatternReady(MONSTER_ACTION::SKILL_06))
         {
             Start_PatternCooldown(MONSTER_ACTION::SKILL_06);
             return MONSTER_ACTION::SKILL_06;
         }
 
-        if (Is_PatternReady(MONSTER_ACTION::SKILL_01))
-        {
-            Start_PatternCooldown(MONSTER_ACTION::SKILL_01);
-            return MONSTER_ACTION::SKILL_01;
-        }
 
         if (Is_PatternReady(MONSTER_ACTION::SKILL_05))
         {

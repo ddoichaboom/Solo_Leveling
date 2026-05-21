@@ -624,8 +624,6 @@ _bool CPlayer::Resolve_BodyBlockingPosition(const _float3& vCurrentPosition, con
 
 	const _bool bUseCellFilter = (iNumCandidateCells > 0);
 
-	constexpr _float PLAYER_BODY_BLOCK_RADIUS = { 0.35f };
-	constexpr _float BODY_BLOCK_SKIN = { 0.05f };
 	constexpr _float BODY_BLOCK_SAFE_T = { 0.001f };
 	constexpr _float BODY_BLOCK_QUERY_MARGIN = { 0.5f };
 
