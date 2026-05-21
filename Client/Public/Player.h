@@ -56,8 +56,8 @@ public:
 public:
     void                    Apply_RootMotion(const _float3& vLocalDelta);
     void                    Handle_ActionTransition(CHARACTER_ACTION eFromAction, CHARACTER_ACTION_STEP eFromStep,
-                                                    CHARACTER_ACTION eToAction, CHARACTER_ACTION_STEP eToStep,
-                                                    _bool bInitial);
+        CHARACTER_ACTION eToAction, CHARACTER_ACTION_STEP eToStep,
+        _bool bInitial);
     void                    Face_DirectionImmediately(const _float3& vDirWorld);
     CHARACTER_ACTION        Pick_RunEndByFoot() const;
     CHARACTER_ACTION        Pick_RunFastVariant(const _float3& vMoveDirWorld, CHARACTER_ACTION eCurrent) const;
@@ -92,6 +92,9 @@ public:
 
     void                    Enter_FloatReaction(CHARACTER_ACTION eFloatAction);
 
+    void                    Enable_SkillCollider(_bool bEnable);
+    _bool                   Is_SkillColliderActive() const { return m_bSkillColliderActive; }
+
 
 private:
     _uint                   m_iState = {};
@@ -101,6 +104,7 @@ private:
     CIntentResolver*        m_pIntentResolver = { nullptr };
     CPlayer_StateMachine*   m_pStateMachine = { nullptr };
     CCollider*              m_pCollider = { nullptr };
+    CCollider*              m_pSkillCollider = { nullptr };
 
     set<pair<class CWeapon*, CGameObject*>>       m_AttackHitTargets;
 
@@ -119,20 +123,20 @@ private:
     BODY_BLOCK_POLICY       Get_BodyBlockPolicy() const;
     _float                  Get_MonsterBodyBlockRadius(const CMonster* pMonster) const;
     void                    Add_BodyBlockCandidateCell(_int* pCandidateCells,
-                                                        _uint* pNumCandidateCells,
-                                                        _int iCellIndex) const;
+        _uint* pNumCandidateCells,
+        _int iCellIndex) const;
     _bool                   Contains_BodyBlockCandidateCell(const _int* pCandidateCells,
-                                                            _uint iNumCandidateCells,
-                                                            _int iCellIndex) const;
+        _uint iNumCandidateCells,
+        _int iCellIndex) const;
     void                    Collect_BodyBlockCandidateCells(const CNavMesh* pNavMesh,
-                                                            _int iCellIndex,
-                                                            _int* pCandidateCells,
-                                                            _uint* pNumCandidateCells) const;
+        _int iCellIndex,
+        _int* pCandidateCells,
+        _uint* pNumCandidateCells) const;
     _bool                   Clip_SegmentByCircleXZ(const _float3& vCurrentPosition,
-                                                    const _float3& vCandidatePosition,
-                                                    const _float3& vCircleCenter,
-                                                    _float fRadius,
-                                                    _float* pOutT) const;
+        const _float3& vCandidatePosition,
+        const _float3& vCircleCenter,
+        _float fRadius,
+        _float* pOutT) const;
 
     void                    Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw);
     void                    Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDelta);
@@ -145,14 +149,19 @@ private:
 
     void                    On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther);
 
-    const WEAPON_INFO*      Find_WeaponInfo(EQUIPPED_WEAPON_ID eId);
+    const WEAPON_INFO* Find_WeaponInfo(EQUIPPED_WEAPON_ID eId);
 
     _bool                   Is_AerialAction() const;
 
+    HRESULT                 Ready_SkillCollider(); 
+    void                    Update_SkillCollider();
+    void                    On_SkillColliderHit(CCollider* pOther);
+
+    _bool                   Is_SkillF_KnightKiller_Start() const;
 
 
 private:
-    CNavigationAgent*       m_pNavigationAgent = { nullptr };
+    CNavigationAgent* m_pNavigationAgent = { nullptr };
 
 private:
     _float                  m_fIdleThreshold = { 3.f };
@@ -190,6 +199,12 @@ private:
 
     _float                  m_fWeaponSwapCooldownTimer = { 0.f };
     _float                  m_fSkillFCooldownTimer = { 0.f };
+
+    _bool                   m_bSkillColliderActive = { false };
+    _float                  m_fSkillColliderForwardOffset = { 1.2f };
+    _float                  m_fSkillColliderRadius = { 0.9f };
+
+    _float                  m_fSkillFStartTravelScale = { 1.6f };
 
 public:
     static CPlayer*         Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

@@ -168,8 +168,12 @@ void CPlayer::Update(_float fTimeDelta)
 				m_pStateMachine->Update_Guard(Intent);
 				m_pStateMachine->Update_Combat(Intent);
 
-				if (false == m_pStateMachine->Is_AttackLocked() &&
-					false == m_pStateMachine->Is_GuardLocked())
+				const _bool bLocomotionAllowed =
+					(false == m_pStateMachine->Is_AttackLocked() &&
+						false == m_pStateMachine->Is_GuardLocked()) ||
+					true == Intent.bDashRequested;
+
+				if (true == bLocomotionAllowed)
 				{
 					m_pStateMachine->Update_LocoMotion(Intent);
 				}
@@ -218,6 +222,8 @@ void CPlayer::Late_Update(_float fTimeDelta)
 		m_pCollider->Update(XMLoadFloat4x4(m_pTransformCom->Get_WorldMatrixPtr()));
 		m_pCollider->Register();
 	}
+
+	Update_SkillCollider();
 }
 
 HRESULT CPlayer::Render()
@@ -230,6 +236,13 @@ void CPlayer::Apply_RootMotion(const _float3& vLocalDelta)
 	// delta 0이면 Skip
 	if (0.f == vLocalDelta.x && 0.f == vLocalDelta.y && 0.f == vLocalDelta.z)
 		return;
+
+	_float3 vAdjustedLocal = vLocalDelta;
+	if (true == Is_SkillF_KnightKiller_Start())
+	{
+		vAdjustedLocal.x *= m_fSkillFStartTravelScale;
+		vAdjustedLocal.z *= m_fSkillFStartTravelScale;
+	}
 
 	// CTransform의 축을 정규화해 회전 기저만 추출
 	_vector vRight = XMVector3Normalize(m_pTransformCom->Get_State(STATE::RIGHT));
@@ -265,6 +278,12 @@ void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFromAction, CHARACTER_AC
 	if (true == bLeavingDash)
 	{
 		Resolve_BodyBlockOverlap();
+	}
+
+	if (CHARACTER_ACTION::SKILL_F == eFromAction
+		&& CHARACTER_ACTION::SKILL_F != eToAction)
+	{
+		Enable_SkillCollider(false);
 	}
 }
 
@@ -553,12 +572,8 @@ HRESULT CPlayer::Ready_Components(const PLAYER_DESC& Desc)
 	if (FAILED(m_pCollider->Initialize(&ColliderDesc)))
 		return E_FAIL;
 
-	//m_pCollider->Set_OnHitEnter([](CCollider* pOther) {
-	//	OutputDebugStringA("[Collision] Player Body ENTER\n");
-	//	});
-	//m_pCollider->Set_OnHitExit([](CCollider* pOther) {
-	//	OutputDebugStringA("[Collision] Player Body EXIT\n");
-	//	});
+	if (FAILED(Ready_SkillCollider()))
+		return E_FAIL;
 
 	return S_OK;
 }
@@ -1215,6 +1230,11 @@ void CPlayer::Enter_FloatReaction(CHARACTER_ACTION eFloatAction)
 	m_pStateMachine->Enter_FloatReaction(eFloatAction);
 }
 
+void CPlayer::Enable_SkillCollider(_bool bEnable)
+{
+	m_bSkillColliderActive = bEnable;
+}
+
 void CPlayer::On_WeaponHitEnter(CWeapon* pSourceWeapon, CCollider* pOther)
 {
 	if (nullptr == pSourceWeapon || nullptr == pOther)
@@ -1265,6 +1285,91 @@ _bool CPlayer::Is_AerialAction() const
 	return false;
 }
 
+HRESULT CPlayer::Ready_SkillCollider()
+{
+	m_pSkillCollider = CCollider::Create(m_pDevice, m_pContext);
+	if (nullptr == m_pSkillCollider)
+		return E_FAIL;
+
+	CCollider::COLLIDER_DESC Desc{};
+	Desc.eBoundingType = COLLIDER::SPHERE;
+	Desc.eGroup = COLLISION_GROUP::PLAYER_ATTACK;  
+	Desc.vCenter = _float3(0.f, 0.9f, 0.f);         
+	Desc.vSize = _float3(m_fSkillColliderRadius, 0.f, 0.f);  
+	Desc.vRadians = _float3(0.f, 0.f, 0.f);
+	Desc.pOwner = this;
+
+	if (FAILED(m_pSkillCollider->Initialize(&Desc)))
+	{
+		Safe_Release(m_pSkillCollider);
+		return E_FAIL;
+	}
+
+	m_pSkillCollider->Set_OnHitEnter([this](CCollider* pOther)
+		{
+			On_SkillColliderHit(pOther);
+		});
+
+	m_pSkillCollider->Set_OnHitStay([this](CCollider* pOther)
+		{
+			On_SkillColliderHit(pOther);
+		});
+}
+
+void CPlayer::Update_SkillCollider()
+{
+	if (nullptr == m_pSkillCollider || nullptr == m_pTransformCom)
+		return;
+
+	if (false == m_bSkillColliderActive)
+		return;
+
+	// Player Transform 위치 + LOOK 방향 forward offset 으로 sphere 월드 위치 계산
+	_vector vLook = XMVector3Normalize(
+		XMVectorSetY(m_pTransformCom->Get_State(STATE::LOOK), 0.f));
+	_vector vPos = m_pTransformCom->Get_State(STATE::POSITION);
+	_vector vSpherePos = XMVectorAdd(vPos, XMVectorScale(vLook, m_fSkillColliderForwardOffset));
+
+	_matrix mWorld = XMMatrixIdentity();
+	mWorld.r[3] = XMVectorSetW(vSpherePos, 1.f);
+
+	m_pSkillCollider->Update(mWorld);
+	m_pSkillCollider->Register();
+}
+
+void CPlayer::On_SkillColliderHit(CCollider* pOther)
+{
+	if (false == m_bSkillColliderActive)
+		return;
+	if (nullptr == m_pStateMachine)
+		return;
+
+	// 현재 액션 컨텍스트로 dispatch — 미래에 다른 스킬이 sphere 콜백 필요하면 else if 분기 추가
+	if (true == Is_SkillF_KnightKiller_Start())
+	{
+		// R6-B: SKILL_F + START + KnightKiller — 즉시 Start→Loop 전이
+		m_pStateMachine->Try_Action_External(
+			CHARACTER_ACTION::SKILL_F, CHARACTER_ACTION_STEP::LOOP);
+
+		// Loop 진입 후 더 이상 detect 필요 없음 → 즉시 OFF
+		Enable_SkillCollider(false);
+		return;
+	}
+
+	// 향후 다른 스킬:
+	// if (true == Is_SkillX_Phase()) { ... }
+}
+
+_bool CPlayer::Is_SkillF_KnightKiller_Start() const
+{
+	if (nullptr == m_pStateMachine)
+		return false;
+
+	return (CHARACTER_ACTION::SKILL_F == m_pStateMachine->Get_CurrentCharacterAction()
+		&& CHARACTER_ACTION_STEP::START == m_pStateMachine->Get_CurrentCharacterStep()
+		&& EQUIPPED_WEAPON_ID::KNIGHT_KILLER == m_eEquippedWeapon);
+}
+
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	CPlayer* pInstance = new CPlayer(pDevice, pContext);
@@ -1306,8 +1411,12 @@ void CPlayer::Free()
 
 	if (nullptr != m_pCollider)
 		m_pCollider->Clear_Callbacks();
-
 	Safe_Release(m_pCollider);
+
+	if (nullptr != m_pSkillCollider)
+		m_pSkillCollider->Clear_Callbacks();
+	Safe_Release(m_pSkillCollider);
+
 	Safe_Release(m_pNavigationAgent);
 	Safe_Release(m_pStateMachine);
 	Safe_Release(m_pIntentResolver);

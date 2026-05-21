@@ -135,6 +135,11 @@ void CMonster::Set_WeaponHitboxActive(_bool bActive)
         m_AttackHitTargets.clear();
 }
 
+void CMonster::On_AttackHitboxNotify(_bool bActive)
+{
+    Set_WeaponHitboxActive(bActive);
+}
+
 #ifdef _DEBUG
 void CMonster::Debug_TryAction(MONSTER_ACTION eAction, MONSTER_ACTION_STEP eStep)
 {

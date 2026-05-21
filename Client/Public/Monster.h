@@ -70,6 +70,7 @@ public:
 														_bool bInitial);
 
 	void						Set_WeaponHitboxActive(_bool bActive);
+	virtual void				On_AttackHitboxNotify(_bool bActive);
 
 #ifdef _DEBUG
 public:

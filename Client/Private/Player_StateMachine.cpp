@@ -369,6 +369,8 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
             // KnightKiller START 종료 → END (R6-A: Loop 진입 로직은 R6-B 에서 추가)
             if (CHARACTER_ACTION_STEP::START == eFinishedStep)
             {
+                if (nullptr != m_pOwner)
+                    m_pOwner->Enable_SkillCollider(false);
                 Try_Action(CHARACTER_ACTION::SKILL_F, CHARACTER_ACTION_STEP::END);
                 break;
             }
@@ -420,6 +422,39 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
         case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_OFF:
             m_bAttackHitboxActive = false;
             break;
+        case ANIM_NOTIFY_TYPE::DETECT_ON:
+            {
+                if (nullptr == m_pOwner) break;
+
+                const CHARACTER_ACTION      eCur = Get_CurrentCharacterAction();
+                const CHARACTER_ACTION_STEP eCurStep = Get_CurrentCharacterStep();
+
+                // SKILL_F + START + KnightKiller → skill collider ON
+                if (CHARACTER_ACTION::SKILL_F == eCur
+                    && CHARACTER_ACTION_STEP::START == eCurStep
+                    && EQUIPPED_WEAPON_ID::KNIGHT_KILLER == m_pOwner->Get_EquippedWeapon())
+                {
+                    m_pOwner->Enable_SkillCollider(true);
+                }
+                // 향후 다른 스킬은 여기에 분기 추가
+                break;
+            }
+        case ANIM_NOTIFY_TYPE::DETECT_OFF:
+        {
+            if (nullptr == m_pOwner) break;
+
+            const CHARACTER_ACTION      eCur = Get_CurrentCharacterAction();
+            const CHARACTER_ACTION_STEP eCurStep = Get_CurrentCharacterStep();
+
+            if (CHARACTER_ACTION::SKILL_F == eCur
+                && CHARACTER_ACTION_STEP::START == eCurStep
+                && EQUIPPED_WEAPON_ID::KNIGHT_KILLER == m_pOwner->Get_EquippedWeapon())
+            {
+                m_pOwner->Enable_SkillCollider(false);
+            }
+            break;
+        }
+
         case ANIM_NOTIFY_TYPE::NONE:
         case ANIM_NOTIFY_TYPE::END:
         default:

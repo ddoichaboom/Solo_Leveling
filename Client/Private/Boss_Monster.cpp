@@ -4,6 +4,7 @@
 #include "NavigationAgent.h"
 #include "NavMesh.h"
 #include "Transform_3D.h"
+#include "Player.h"
 
 CBoss_Monster::CBoss_Monster(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     : CMonster{ pDevice, pContext }
@@ -281,6 +282,40 @@ void CBoss_Monster::Apply_RootMotion(const _float3& vLocalDelta)
     __super::Apply_RootMotion(vAdjustedDelta);
 }
 
+void CBoss_Monster::On_AttackHitboxNotify(_bool bActive)
+{
+    if (false == bActive)
+    {
+        __super::On_AttackHitboxNotify(false);
+        return;
+    }
+
+    if (nullptr == m_pStateMachine)
+    {
+        __super::On_AttackHitboxNotify(true);
+        return;
+    }
+
+    const MONSTER_ACTION eAction = m_pStateMachine->Get_CurrentMonsterAction();
+
+    switch (eAction)
+    {
+    case MONSTER_ACTION::SKILL_04:
+        m_AttackHitTargets.clear();
+        Apply_RadiusDamage(6.5f, 10.f);
+        break;
+
+    case MONSTER_ACTION::SKILL_11:
+        m_AttackHitTargets.clear();
+        Apply_RadiusDamage(12.0f, 15.f);
+        break;
+
+    default:
+        __super::On_AttackHitboxNotify(true);
+        break;
+    }
+}
+
 MONSTER_ACTION CBoss_Monster::Select_PostCrashPattern(CGameObject* pTarget, _float fDistance)
 {
     struct POST_CRASH_PATTERN
@@ -329,6 +364,35 @@ MONSTER_ACTION CBoss_Monster::Select_PostCrashPattern(CGameObject* pTarget, _flo
     }
 
     return MONSTER_ACTION::END;
+}
+
+void CBoss_Monster::Apply_RadiusDamage(_float fRadius, _float fDamage)
+{
+    CGameObject* pTarget = Resolve_Target();
+    if (nullptr == pTarget || nullptr == pTarget->Get_Transform() || nullptr == m_pTransformCom)
+        return;
+
+    if (m_AttackHitTargets.end() != m_AttackHitTargets.find(pTarget))
+        return;
+
+    _float3 vSelf{};
+    _float3 vTarget{};
+
+    XMStoreFloat3(&vSelf, m_pTransformCom->Get_State(STATE::POSITION));
+    XMStoreFloat3(&vTarget, pTarget->Get_Transform()->Get_State(STATE::POSITION));
+
+    const _float fDeltaX = vTarget.x - vSelf.x;
+    const _float fDeltaZ = vTarget.z - vSelf.z;
+    const _float fDistanceSq = fDeltaX * fDeltaX + fDeltaZ * fDeltaZ;
+
+    if (fDistanceSq > fRadius * fRadius)
+        return;
+
+    m_AttackHitTargets.insert(pTarget);
+
+    CPlayer* pPlayer = dynamic_cast<CPlayer*>(pTarget);
+    if (nullptr != pPlayer)
+        pPlayer->Take_Damage(fDamage);
 }
 
 void CBoss_Monster::Begin_Skill01Dash(CGameObject* pTarget)

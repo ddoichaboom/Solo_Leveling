@@ -46,8 +46,12 @@ protected:
     virtual MONSTER_ACTION_STEP     Select_AIActionStep(MONSTER_ACTION eAction) const override;
     virtual void                    Apply_RootMotion(const _float3& vLocalDelta) override;
 
+    virtual void                    On_AttackHitboxNotify(_bool bActive) override;
+
 private:
     MONSTER_ACTION                  Select_PostCrashPattern(CGameObject* pTarget, _float fDistance);
+
+    void                            Apply_RadiusDamage(_float fRadius, _float fDamage);
 
     void                            Begin_Skill01Dash(CGameObject* pTarget);
     void                            End_Skill01Dash();

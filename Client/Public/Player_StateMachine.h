@@ -32,6 +32,11 @@ public:
 		return Try_Transition(Make_PlayerStateKey(eAction, eStep));
 	}
 
+	_bool							Try_Action_External(CHARACTER_ACTION eAction, CHARACTER_ACTION_STEP eStep = CHARACTER_ACTION_STEP::NONE)
+	{
+		return Try_Action(eAction, eStep);
+	}
+
 	_bool							Is_AttackHitboxActive() const { return m_bAttackHitboxActive; }
 	_uint							Get_AttackHitboxWindowSerial() const { return m_iAttackHitboxWindowSerial; }
 

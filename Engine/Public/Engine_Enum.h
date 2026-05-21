@@ -67,6 +67,8 @@ namespace Engine
         COMBO_WINDOW_CLOSE,
         ATTACK_HITBOX_ON,
         ATTACK_HITBOX_OFF,
+        DETECT_ON,
+        DETECT_OFF,
         END
     };
 

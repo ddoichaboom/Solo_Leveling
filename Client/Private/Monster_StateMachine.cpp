@@ -81,12 +81,12 @@ void CMonster_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
         {
         case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_ON:
             if (nullptr != m_pOwner)
-                m_pOwner->Set_WeaponHitboxActive(true);
+                m_pOwner->On_AttackHitboxNotify(true);
             break;
 
         case ANIM_NOTIFY_TYPE::ATTACK_HITBOX_OFF:
             if (nullptr != m_pOwner)
-                m_pOwner->Set_WeaponHitboxActive(false);
+                m_pOwner->On_AttackHitboxNotify(false);
             break;
         }
     }
