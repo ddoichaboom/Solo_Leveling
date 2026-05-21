@@ -14,6 +14,8 @@ void CIntentResolver::Resolve(const PLAYER_RAW_INPUT_FRAME& Raw, _float fCameraY
     pOutIntent->bAttackRequested = Raw.bLButtonPressed;
     pOutIntent->bGuardHeld = Raw.bRButtonHeld;
     pOutIntent->vMoveDirWorld = { 0.f, 0.f, 0.f };
+    pOutIntent->bWeaponSwapRequested = Raw.bWeaponSwapPressed;
+    pOutIntent->bSkillFRequested = Raw.bSkillFPressed;
 
     if (true == bHasMoveIntent)
     {

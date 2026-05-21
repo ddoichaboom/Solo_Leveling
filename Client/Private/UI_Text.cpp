@@ -82,6 +82,8 @@ HRESULT CUI_Text::Render()
         fFinalScale = m_fScale * fFit;
     }
 
+    fFinalScale *= m_fEffectScale;
+
     const _float fDrawW = vTextSize.x * fFinalScale;
     const _float fDrawH = vTextSize.y * fFinalScale;
 

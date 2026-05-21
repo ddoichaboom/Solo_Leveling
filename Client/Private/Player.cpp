@@ -1,4 +1,4 @@
-#include "Player.h"
+ï»¿#include "Player.h"
 #include "GameInstance.h"
 #include "Body_Player.h"
 #include "Weapon.h"
@@ -15,10 +15,10 @@
 
 namespace
 {
-	static constexpr _float PLAYER_BODY_BLOCK_RADIUS = { 0.35f };
+	static constexpr _float PLAYER_BODY_BLOCK_RADIUS = { 0.40f };
 	static constexpr _float MONSTER_NORMAL_BODY_BLOCK_RADIUS = { 0.45f };
 	static constexpr _float MONSTER_ELITE_BODY_BLOCK_RADIUS = { 0.55f };
-	static constexpr _float MONSTER_BOSS_BODY_BLOCK_RADIUS = { 0.75f };
+	static constexpr _float MONSTER_BOSS_BODY_BLOCK_RADIUS = { 0.80f };
 	static constexpr _float BODY_BLOCK_SKIN = { 0.05f };
 	static constexpr _float BODY_BLOCK_MIN_MOVE_SQ = { 0.000001f };
 
@@ -28,7 +28,7 @@ namespace
 		{EQUIPPED_WEAPON_ID::KASAKA_VENOM_FANG, WEAPON_TYPE::DAGGER, TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang") },
 	};
 
-	// ¾ç¼Õ ´Ü°Ë µðÆúÆ® Ç® - DEFAULT/DAGGER ÀåÂø ½Ã º¸Á¶ ¼Õ¿¡ »ç¿ë
+	// ì–‘ì† ë‹¨ê²€ ë””í´íŠ¸ í’€ - DEFAULT/DAGGER ìž¥ì°© ì‹œ ë³´ì¡° ì†ì— ì‚¬ìš©
 	static const _tchar* DAGGER_POOL[] = {
 		TEXT("Prototype_Component_Model_Weapon_KnightKiller"),
 		TEXT("Prototype_Component_Model_Weapon_KasakaVenomFang"),
@@ -110,7 +110,7 @@ HRESULT CPlayer::Initialize(void* pArg)
 	if (FAILED(Ready_StateMachine()))
 		return E_FAIL;
 
-	//Set_EquippedWeapon(EQUIPPED_WEAPON_ID::KASAKA_VENOM_FANG);
+	Set_EquippedWeapon(EQUIPPED_WEAPON_ID::KASAKA_VENOM_FANG);
 
 	return S_OK;
 }
@@ -130,6 +130,7 @@ void CPlayer::Update(_float fTimeDelta)
 	{
 		Tick_DashRegen(fTimeDelta);
 		Tick_WeaponHideTimer(fTimeDelta);
+		Tick_SkillCooldowns(fTimeDelta);
 
 		PLAYER_RAW_INPUT_FRAME Raw{};
 		Gather_RawInput(&Raw);
@@ -163,6 +164,7 @@ void CPlayer::Update(_float fTimeDelta)
 			}
 			else
 			{
+				m_pStateMachine->Update_Skills(Intent);
 				m_pStateMachine->Update_Guard(Intent);
 				m_pStateMachine->Update_Combat(Intent);
 
@@ -225,21 +227,21 @@ HRESULT CPlayer::Render()
 
 void CPlayer::Apply_RootMotion(const _float3& vLocalDelta)
 {
-	// delta 0ÀÌ¸é Skip
+	// delta 0ì´ë©´ Skip
 	if (0.f == vLocalDelta.x && 0.f == vLocalDelta.y && 0.f == vLocalDelta.z)
 		return;
 
-	// CTransformÀÇ ÃàÀ» Á¤±ÔÈ­ÇØ È¸Àü ±âÀú¸¸ ÃßÃâ
+	// CTransformì˜ ì¶•ì„ ì •ê·œí™”í•´ íšŒì „ ê¸°ì €ë§Œ ì¶”ì¶œ
 	_vector vRight = XMVector3Normalize(m_pTransformCom->Get_State(STATE::RIGHT));
 	_vector vUp = XMVector3Normalize(m_pTransformCom->Get_State(STATE::UP));
 	_vector vLook = XMVector3Normalize(m_pTransformCom->Get_State(STATE::LOOK));
 
-	// ·ÎÄÃ µ¨Å¸ -> ¿ùµå µ¨Å¸ (È¸Àü¸¸ Àû¿ë)
+	// ë¡œì»¬ ë¸íƒ€ -> ì›”ë“œ ë¸íƒ€ (íšŒì „ë§Œ ì ìš©)
 	_vector vWorldDelta = XMVectorScale(vRight, vLocalDelta.x);
 	vWorldDelta = XMVectorAdd(vWorldDelta, XMVectorScale(vUp, vLocalDelta.y));
 	vWorldDelta = XMVectorAdd(vWorldDelta, XMVectorScale(vLook, vLocalDelta.z));
 
-	// ÇöÀç Position¿¡ ´©Àû
+	// í˜„ìž¬ Positionì— ëˆ„ì 
 	_vector vPos = m_pTransformCom->Get_State(STATE::POSITION);
 	vPos = XMVectorAdd(vPos, vWorldDelta);
 
@@ -249,16 +251,16 @@ void CPlayer::Apply_RootMotion(const _float3& vLocalDelta)
 	Try_ApplyMovementPosition(vCandidatePosition);
 }
 
-void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial)
+void CPlayer::Handle_ActionTransition(CHARACTER_ACTION eFromAction, CHARACTER_ACTION_STEP eFromStep,CHARACTER_ACTION eToAction, CHARACTER_ACTION_STEP eToStep, _bool bInitial)
 {
 	if (nullptr == m_pBody)
 		return;
 
-	m_pBody->Play_Action(eTo);
+	m_pBody->Play_Action(eToAction, eToStep);
 
 	const _bool bLeavingDash =
-		(CHARACTER_ACTION::DASH == eFrom || CHARACTER_ACTION::BACK_DASH == eFrom) &&
-		(CHARACTER_ACTION::DASH != eTo && CHARACTER_ACTION::BACK_DASH != eTo);
+		(CHARACTER_ACTION::DASH == eFromAction || CHARACTER_ACTION::BACK_DASH == eFromAction) &&
+		(CHARACTER_ACTION::DASH != eToAction && CHARACTER_ACTION::BACK_DASH != eToAction);
 
 	if (true == bLeavingDash)
 	{
@@ -296,9 +298,9 @@ CHARACTER_ACTION CPlayer::Pick_RunFastVariant(const _float3& vMoveDirWorld, CHAR
 	_float fDot = XMVectorGetX(XMVector3Dot(vLook, vDir));
 	_float fCrossY = XMVectorGetY(XMVector3Cross(vLook, vDir));
 
-	// Hysteresis: ÁøÀÔ ÀÓ°è´Â ´À½¼, ÀÌÅ» ÀÓ°è´Â ºýºý ¡æ °æ°è Åä±Û¸µ ¹æÁö
-	constexpr _float fEnterCos = 0.866f;  // 30¡Æ  (FAST ¡æ LEFT/RIGHT)
-	constexpr _float fExitCos = 0.966f;  // 15¡Æ  (LEFT/RIGHT ¡æ FAST)
+	// Hysteresis: ì§„ìž… ìž„ê³„ëŠ” ëŠìŠ¨, ì´íƒˆ ìž„ê³„ëŠ” ë¹¡ë¹¡ â†’ ê²½ê³„ í† ê¸€ë§ ë°©ì§€
+	constexpr _float fEnterCos = 0.866f;  // 30Â°  (FAST â†’ LEFT/RIGHT)
+	constexpr _float fExitCos = 0.966f;  // 15Â°  (LEFT/RIGHT â†’ FAST)
 
 	const _bool bInLean =
 		(CHARACTER_ACTION::RUN_FAST_LEFT == eCurrent) ||
@@ -321,6 +323,15 @@ void CPlayer::Set_EquippedWeapon(EQUIPPED_WEAPON_ID eId)
 
 	m_eEquippedWeapon = eId;
 	Apply_Loadout();
+
+	if (nullptr != m_pBody)
+	{
+		m_pBody->Set_EquippedWeaponId(eId);
+
+		const WEAPON_INFO* pInfo = Find_WeaponInfo(eId);
+		const WEAPON_TYPE eType = (nullptr != pInfo) ? pInfo->eCategory : WEAPON_TYPE::DEFAULT;
+		m_pBody->Set_WeaponType(eType);
+	}
 }
 
 _bool CPlayer::Consume_DashCharge()
@@ -348,7 +359,7 @@ void CPlayer::Set_WeaponsVisible(_bool bVisible)
 
 void CPlayer::Tick_DashRegen(_float fTimeDelta)
 {
-	// Ç×»ó ÀÏÁ¤ ÁÖ±â - Ç® Â÷Áö ¿©µµ Å¸ÀÌ¸Ó´Â ¸®¼Â
+	// í•­ìƒ ì¼ì • ì£¼ê¸° - í’€ ì°¨ì§€ ì—¬ë„ íƒ€ì´ë¨¸ëŠ” ë¦¬ì…‹
 	m_fDashRegenTimer += fTimeDelta;
 
 	while (m_fDashRegenTimer >= m_fDashRegenInterval)
@@ -379,8 +390,36 @@ void CPlayer::Tick_WeaponHideTimer(_float fTimeDelta)
 	if (m_fIdleTimer >= m_fIdleThreshold)
 	{
 		m_fIdleTimer = 0.f;
-		m_pStateMachine->Try_Transition(ETOUI(CHARACTER_ACTION::UNDRAW));
+		m_pStateMachine->Try_Action(CHARACTER_ACTION::UNDRAW);
 	}
+}
+
+void CPlayer::Trigger_WeaponSwap()
+{
+	const EQUIPPED_WEAPON_ID eNext =
+		(EQUIPPED_WEAPON_ID::KNIGHT_KILLER == m_eEquippedWeapon)
+		? EQUIPPED_WEAPON_ID::KASAKA_VENOM_FANG
+		: EQUIPPED_WEAPON_ID::KNIGHT_KILLER;
+
+	Set_EquippedWeapon(eNext);
+	Set_WeaponsVisible(true);
+
+	m_fWeaponSwapCooldownTimer = WEAPON_SWAP_COOLDOWN;
+}
+
+void CPlayer::Trigger_SkillF()
+{
+	Set_WeaponsVisible(true);
+	m_fSkillFCooldownTimer = SKILL_F_COOLDOWN;
+}
+
+void CPlayer::Tick_SkillCooldowns(_float fTimeDelta)
+{
+	if (m_fWeaponSwapCooldownTimer > 0.f)
+		m_fWeaponSwapCooldownTimer = max(0.f, m_fWeaponSwapCooldownTimer - fTimeDelta);
+
+	if (m_fSkillFCooldownTimer > 0.f)
+		m_fSkillFCooldownTimer = max(0.f, m_fSkillFCooldownTimer - fTimeDelta);
 }
 
 HRESULT CPlayer::Ready_PartObjects()
@@ -506,8 +545,8 @@ HRESULT CPlayer::Ready_Components(const PLAYER_DESC& Desc)
 	CCollider::COLLIDER_DESC ColliderDesc{};
 	ColliderDesc.eBoundingType = COLLIDER::OBB;
 	ColliderDesc.eGroup = COLLISION_GROUP::PLAYER_BODY;
-	ColliderDesc.vCenter = _float3(0.f, 0.9f, 0.f);
-	ColliderDesc.vSize = _float3(0.6f, 1.8f, 0.6f);
+	ColliderDesc.vCenter = _float3(0.f, 1.035f, 0.f);
+	ColliderDesc.vSize = _float3(0.69f, 2.07f, 0.69f);
 	ColliderDesc.vRadians = _float3(0.f, 0.f, 0.f);
 	ColliderDesc.pOwner = this;
 
@@ -607,7 +646,7 @@ _bool CPlayer::Resolve_BodyBlockingPosition(const _float3& vCurrentPosition, con
 		if (pMonster->Get_CurrentHP() <= 0.f)
 			continue;
 
-		// ÀÓ½Ã·Î ²¨µÒ - ¸ó½ºÅÍ ¼ö ¸¹¾ÆÁö¸é ÁÖ¼® ÇØÁ¦
+		// ìž„ì‹œë¡œ êº¼ë‘  - ëª¬ìŠ¤í„° ìˆ˜ ë§Žì•„ì§€ë©´ ì£¼ì„ í•´ì œ
 		//if (true == bUseCellFilter)
 		//{
 		//	const _int iMonsterCellIndex = pMonster->Get_CurrentNavCellIndex();
@@ -798,6 +837,10 @@ _bool CPlayer::Try_ApplyMovementPosition(const _float3& vCandidatePosition)
 	if (false == Resolve_NavigationPosition(vCandidatePosition, &vResolvedPosition))
 		return false;
 
+	// ì• ë‹ˆë©”ì´ì…˜ì— Yì¢Œí‘œ ë³€ë™ì´ ìžˆì„ê²½ìš° ìž¬ìƒ í›„ ë‹¤ì‹œ ë³µì›
+	if (true == Is_AerialAction())
+		vResolvedPosition.y = vCandidatePosition.y;
+
 	if (BODY_BLOCK_POLICY::BLOCK == Get_BodyBlockPolicy())
 	{
 		_float3 vBodyBlockedPosition = {};
@@ -983,6 +1026,8 @@ void CPlayer::Gather_RawInput(PLAYER_RAW_INPUT_FRAME* pOutRaw)
 		pOutRaw->bMoveRightHeld = (m_pGameInstance->Get_KeyState('D') & 0x80) != 0;
 	}
 	pOutRaw->bDashPressed = m_pGameInstance->Get_KeyDown(VK_SPACE);
+	pOutRaw->bWeaponSwapPressed = m_pGameInstance->Get_KeyDown('C');
+	pOutRaw->bSkillFPressed = m_pGameInstance->Get_KeyDown('F');
 
 	const _bool bMouseLBtnDown = m_pGameInstance->Get_MouseBtnDown(MOUSEBTN::LBUTTON);
 	const _bool bMouseLBtnHeld = m_pGameInstance->Get_MouseBtnState(MOUSEBTN::LBUTTON);
@@ -1019,18 +1064,18 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 
 	_vector vDirWorld = XMLoadFloat3(&Intent.vMoveDirWorld);
 
-	// ÇöÀç Look (XZ) ¿Í ¸ñÇ¥ ¹æÇâ »çÀÌ °¢µµ Â÷ÀÌ °è»ê
+	// í˜„ìž¬ Look (XZ) ì™€ ëª©í‘œ ë°©í–¥ ì‚¬ì´ ê°ë„ ì°¨ì´ ê³„ì‚°
 	_vector vLookXZ = XMVector3Normalize(XMVectorSetY(pTransform->Get_State(STATE::LOOK), 0.f));
 	_vector vTargetXZ = XMVector3Normalize(XMVectorSetY(vDirWorld, 0.f));
 	_float fDot = XMVectorGetX(XMVector3Dot(vLookXZ, vTargetXZ));
 	fDot = max(-1.f, min(1.f, fDot));
 	const _float fAngleDeg = XMConvertToDegrees(acosf(fDot));
 
-	// °¢µµ ÀÇÁ¸ È¸Àü ¼Óµµ: ÀÛÀº °¢=´À¸²(lean °¡½Ã), Å« °¢=ºü¸§(½º³À)
-	constexpr _float fSlowDeg = 30.f;        // ÀÌÇÏ: ´À¸° È¸Àü
-	constexpr _float fSnapDeg = 135.f;       // ÀÌ»ó: ÃÖ´ë È¸Àü (½º³À)
-	constexpr _float fSlowRotDeg = 540.f;    // ´À¸° È¸Àü ¼Óµµ
-	const _float fMaxRotDeg = XMConvertToDegrees(pTransform->Get_RotationPerSec()); // Desc °ª (1440 ±ÇÀå)
+	// ê°ë„ ì˜ì¡´ íšŒì „ ì†ë„: ìž‘ì€ ê°=ëŠë¦¼(lean ê°€ì‹œ), í° ê°=ë¹ ë¦„(ìŠ¤ëƒ…)
+	constexpr _float fSlowDeg = 30.f;        // ì´í•˜: ëŠë¦° íšŒì „
+	constexpr _float fSnapDeg = 135.f;       // ì´ìƒ: ìµœëŒ€ íšŒì „ (ìŠ¤ëƒ…)
+	constexpr _float fSlowRotDeg = 540.f;    // ëŠë¦° íšŒì „ ì†ë„
+	const _float fMaxRotDeg = XMConvertToDegrees(pTransform->Get_RotationPerSec()); // Desc ê°’ (1440 ê¶Œìž¥)
 
 	_float fRotDeg = fSlowRotDeg;
 	if (fAngleDeg >= fSnapDeg)
@@ -1046,7 +1091,7 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 	const _float fStepRad = XMConvertToRadians(fRotDeg) * fTimeDelta;
 	pTransform->Rotate_Toward_XZ(vDirWorld, fStepRad);
 
-	// È¸Àü ÈÄ °»½ÅµÈ Look À¸·Î ÀÌµ¿
+	// íšŒì „ í›„ ê°±ì‹ ëœ Look ìœ¼ë¡œ ì´ë™
 	vLookXZ = XMVector3Normalize(XMVectorSetY(pTransform->Get_State(STATE::LOOK), 0.f));
 	const _float fSpeed = pTransform->Get_SpeedPerSec() * m_fSpeedCoeff;
 	_vector vPos = pTransform->Get_State(STATE::POSITION);
@@ -1060,8 +1105,8 @@ void CPlayer::Apply_MoveIntent(const PLAYER_INTENT_FRAME& Intent, _float fTimeDe
 
 _float CPlayer::Query_CameraYaw() const
 {
-	// VIEW È¸ÀüºÎ = Ä«¸Þ¶ó World È¸ÀüºÎÀÇ Transpose
-	// Ä«¸Þ¶ó Look (¿ùµå) = (View._13, View._23, View._33)
+	// VIEW íšŒì „ë¶€ = ì¹´ë©”ë¼ World íšŒì „ë¶€ì˜ Transpose
+	// ì¹´ë©”ë¼ Look (ì›”ë“œ) = (View._13, View._23, View._33)
 	const _float4x4* pView = m_pGameInstance->Get_Transform(D3DTS::VIEW);
 	if (nullptr == pView)
 		return 0.f;
@@ -1084,13 +1129,13 @@ void CPlayer::Apply_Loadout()
 
 	if (EQUIPPED_WEAPON_ID::NONE == m_eEquippedWeapon)
 	{
-		// DEFAULT - ¾ç¼Õ µðÆúÆ® ´Ü°Ë Ç®
+		// DEFAULT - ì–‘ì† ë””í´íŠ¸ ë‹¨ê²€ í’€
 		pRightModel = DAGGER_POOL[0];		// KnightKiller
 		pLeftModel = DAGGER_POOL[1];		// KasakaVenomFang
 	}
 	else if (WEAPON_TYPE::DAGGER == pInfo->eCategory)
 	{
-		// ´Ü°Ë ÀåÂø
+		// ë‹¨ê²€ ìž¥ì°©
 		pRightModel = pInfo->pModelTag;
 		for (const _tchar* pCandidate : DAGGER_POOL)
 		{
@@ -1103,7 +1148,7 @@ void CPlayer::Apply_Loadout()
 	}
 	else
 	{
-		// DAGGER ¹«±â ¾Æ´Ñ ´ÜÀÏ ¹«±â °æ¿ì
+		// DAGGER ë¬´ê¸° ì•„ë‹Œ ë‹¨ì¼ ë¬´ê¸° ê²½ìš°
 		pRightModel = pInfo->pModelTag;
 		bLeftVisible = false;
 	}
@@ -1205,6 +1250,21 @@ const WEAPON_INFO* CPlayer::Find_WeaponInfo(EQUIPPED_WEAPON_ID eId)
 			return &Info;
 	}
 	return nullptr;
+}
+
+_bool CPlayer::Is_AerialAction() const
+{
+	if (nullptr == m_pStateMachine)
+		return false;
+
+	const CHARACTER_ACTION eCur = m_pStateMachine->Get_CurrentCharacterAction();
+
+	if (CHARACTER_ACTION::SKILL_F == eCur &&
+		CHARACTER_ACTION_STEP::NONE == m_pStateMachine->Get_CurrentCharacterStep() &&
+		EQUIPPED_WEAPON_ID::KASAKA_VENOM_FANG == m_eEquippedWeapon)
+		return true;
+
+	return false;
 }
 
 CPlayer* CPlayer::Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)

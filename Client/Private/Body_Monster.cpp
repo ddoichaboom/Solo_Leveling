@@ -252,6 +252,16 @@ HRESULT CBody_Monster::Register_AnimationClips()
 	{
 		const MONSTER_ANIM_BIND_DESC& Bind = m_pAnimTable->pClips[i];
 
+		_int iAnimationIndex = m_pModelCom->Get_AnimationIndex(Bind.pAnimationName);
+		if (-1 == iAnimationIndex)
+			return E_FAIL;
+
+		if (true == Bind.bOverrideLoop)
+			m_pModelCom->Set_AnimationLoop(static_cast<_uint>(iAnimationIndex), Bind.bLoop);
+
+		if (true == Bind.bOverrideRootMotion)
+			m_pModelCom->Set_AnimationUseRootMotion(static_cast<_uint>(iAnimationIndex), Bind.bUseRootMotion);
+
 		CAnimController::ANIM_CLIP_DESC Desc{};
 		Desc.pAnimationName = Bind.pAnimationName;
 		Desc.bRestartOnEnter = Bind.bRestartOnEnter;

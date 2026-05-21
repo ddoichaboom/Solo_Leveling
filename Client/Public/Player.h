@@ -55,7 +55,9 @@ public:
 
 public:
     void                    Apply_RootMotion(const _float3& vLocalDelta);
-    void                    Handle_ActionTransition(CHARACTER_ACTION eFrom, CHARACTER_ACTION eTo, _bool bInitial);
+    void                    Handle_ActionTransition(CHARACTER_ACTION eFromAction, CHARACTER_ACTION_STEP eFromStep,
+                                                    CHARACTER_ACTION eToAction, CHARACTER_ACTION_STEP eToStep,
+                                                    _bool bInitial);
     void                    Face_DirectionImmediately(const _float3& vDirWorld);
     CHARACTER_ACTION        Pick_RunEndByFoot() const;
     CHARACTER_ACTION        Pick_RunFastVariant(const _float3& vMoveDirWorld, CHARACTER_ACTION eCurrent) const;
@@ -75,6 +77,18 @@ public:
 
     void                    Tick_DashRegen(_float fTimeDelta);
     void                    Tick_WeaponHideTimer(_float fTimeDelta);
+
+    _bool                   Can_WeaponSwap() const { return m_fWeaponSwapCooldownTimer <= 0.f; }
+    void                    Trigger_WeaponSwap();
+
+    _bool                   Can_UseSkillF() const { return m_fSkillFCooldownTimer <= 0.f; }
+    void                    Trigger_SkillF();
+
+    void                    Tick_SkillCooldowns(_float fTimeDelta);
+    _float                  Get_WeaponSwapCooldownTimer() const { return m_fWeaponSwapCooldownTimer; }
+    _float                  Get_WeaponSwapCooldownMax()   const { return WEAPON_SWAP_COOLDOWN; }
+    _float                  Get_SkillFCooldownTimer() const { return m_fSkillFCooldownTimer; }
+    _float                  Get_SkillFCooldownMax()   const { return SKILL_F_COOLDOWN; }
 
     void                    Enter_FloatReaction(CHARACTER_ACTION eFloatAction);
 
@@ -133,6 +147,8 @@ private:
 
     const WEAPON_INFO*      Find_WeaponInfo(EQUIPPED_WEAPON_ID eId);
 
+    _bool                   Is_AerialAction() const;
+
 
 
 private:
@@ -169,6 +185,11 @@ private:
     _float                  m_fCurrentMP = { 100.f };
 
     static constexpr _uint  BODY_BLOCK_MAX_CANDIDATE_CELLS = { 16 };
+    static constexpr _float WEAPON_SWAP_COOLDOWN = { 5.0f };
+    static constexpr _float SKILL_F_COOLDOWN = { 5.0f };
+
+    _float                  m_fWeaponSwapCooldownTimer = { 0.f };
+    _float                  m_fSkillFCooldownTimer = { 0.f };
 
 public:
     static CPlayer*         Create(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

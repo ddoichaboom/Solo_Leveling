@@ -1,4 +1,4 @@
-#include "Player_StateMachine.h"
+ï»¿#include "Player_StateMachine.h"
 #include "Player.h"
 #include "HUD_GamePlay.h"
 
@@ -6,7 +6,7 @@ CPlayer_StateMachine::CPlayer_StateMachine()
 {
 }
 
-HRESULT	CPlayer_StateMachine::Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimTable)
+HRESULT CPlayer_StateMachine::Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimTable)
 {
     if (nullptr == pAnimTable)
         return E_FAIL;
@@ -16,20 +16,23 @@ HRESULT	CPlayer_StateMachine::Initialize(const CHARACTER_ANIM_TABLE_DESC* pAnimT
         const CHARACTER_ACTION_POLICY& SrcPolicy = pAnimTable->pPolicies[i];
 
         ACTION_POLICY_BASE DstPolicy{};
-        DstPolicy.iAction = ETOUI(SrcPolicy.eAction);
+        DstPolicy.iAction = Make_PlayerStateKey(SrcPolicy.eAction, SrcPolicy.eStep);
         DstPolicy.iPriority = SrcPolicy.iPriority;
         DstPolicy.bAutoReturn = SrcPolicy.bAutoReturn;
-        DstPolicy.iReturnAction = ETOUI(SrcPolicy.eReturnAction);
+        DstPolicy.iReturnAction = Make_PlayerStateKey(SrcPolicy.eReturnAction, SrcPolicy.eReturnStep);
         DstPolicy.fCooldown = 0.f;
-        DstPolicy.fEnterBlendTime = SrcPolicy.fEnterBlendTime;;
+        DstPolicy.fEnterBlendTime = SrcPolicy.fEnterBlendTime;
 
         if (FAILED(Register_Policy(DstPolicy)))
             return E_FAIL;
     }
 
-    if (FAILED(Register_Reject(ETOUI(CHARACTER_ACTION::DASH), ETOUI(CHARACTER_ACTION::GUARD_START))))
+    // DASH/BACK_DASH ì¤‘ GUARD ì§„ìž… ê¸ˆì§€
+    if (FAILED(Register_Reject(Make_PlayerStateKey(CHARACTER_ACTION::DASH),
+        Make_PlayerStateKey(CHARACTER_ACTION::GUARD, CHARACTER_ACTION_STEP::START))))
         return E_FAIL;
-    if (FAILED(Register_Reject(ETOUI(CHARACTER_ACTION::BACK_DASH), ETOUI(CHARACTER_ACTION::GUARD_START))))
+    if (FAILED(Register_Reject(Make_PlayerStateKey(CHARACTER_ACTION::BACK_DASH),
+        Make_PlayerStateKey(CHARACTER_ACTION::GUARD, CHARACTER_ACTION_STEP::START))))
         return E_FAIL;
 
     return S_OK;
@@ -54,7 +57,7 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
             if (CHARACTER_ACTION::DASH == eDashAction)
                 m_pOwner->Face_DirectionImmediately(Intent.vMoveDirWorld);
 
-            if (true == Try_Transition(ETOUI(eDashAction)))
+            if (true == Try_Action(eDashAction))
                 m_pOwner->Consume_DashCharge();
             return;
         }
@@ -83,7 +86,7 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
         if (false == bHasMoveIntent && nullptr != m_pOwner)
         {
             const CHARACTER_ACTION eEndAction = m_pOwner->Pick_RunEndByFoot();
-            Try_Transition(ETOUI(eEndAction));
+            Try_Action(eEndAction);
             return;
         }
 
@@ -91,7 +94,7 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
         {
             const CHARACTER_ACTION eVariant = m_pOwner->Pick_RunFastVariant(Intent.vMoveDirWorld, eCurrent);
             if (eVariant != eCurrent)
-                Try_Transition(ETOUI(eVariant));
+                Try_Action(eVariant);
         }
         return;
     }
@@ -101,14 +104,14 @@ void CPlayer_StateMachine::Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent)
         CHARACTER_ACTION::RUN_END_RIGHT == eCurrent)
     {
         if (true == bHasMoveIntent)
-            Try_Transition(ETOUI(CHARACTER_ACTION::RUN));
+            Try_Action(CHARACTER_ACTION::RUN);
         return;
     }
 
     if (true == bHasMoveIntent)
-        Try_Transition(ETOUI(CHARACTER_ACTION::RUN));
+        Try_Action(CHARACTER_ACTION::RUN);
     else
-        Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+        Try_Action(CHARACTER_ACTION::IDLE);
 }
 
 void CPlayer_StateMachine::Update_Combat(const PLAYER_INTENT_FRAME& Intent)
@@ -119,30 +122,27 @@ void CPlayer_StateMachine::Update_Combat(const PLAYER_INTENT_FRAME& Intent)
         (CHARACTER_ACTION::BASIC_ATTACK_01 == eCur) ||
         (CHARACTER_ACTION::BASIC_ATTACK_02 == eCur) ||
         (CHARACTER_ACTION::BASIC_ATTACK_03 == eCur);
-    
+
     const _bool bHasMoveIntent = Has_MoveIntent(Intent);
 
-    // 1) °ø°Ý ÁøÇà Áß
     if (true == bIsAttacking
         && true == m_bComboWindowOpen
         && true == bHasMoveIntent
         && false == Intent.bAttackRequested)
     {
         __super::On_ActionFinished();
-        Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+        Try_Action(CHARACTER_ACTION::IDLE);
         m_iComboStep = 0;
         m_bComboWindowOpen = false;
         return;
     }
 
-    // 2) LMB ¹Ì ÀÔ·Â ½Ã Á¾·á
     if (false == Intent.bAttackRequested)
         return;
 
     if (auto* pHUD = CHUD_GamePlay::Get_Instance())
         pHUD->Notify_CombatInput();
 
-    // 3) ÄÞº¸ ÁøÇà Áß
     if (true == bIsAttacking)
     {
         if (false == m_bComboWindowOpen) return;
@@ -150,10 +150,10 @@ void CPlayer_StateMachine::Update_Combat(const PLAYER_INTENT_FRAME& Intent)
         const CHARACTER_ACTION eNext =
             (CHARACTER_ACTION::BASIC_ATTACK_01 == eCur) ? CHARACTER_ACTION::BASIC_ATTACK_02 :
             (CHARACTER_ACTION::BASIC_ATTACK_02 == eCur) ? CHARACTER_ACTION::BASIC_ATTACK_03 :
-            CHARACTER_ACTION::BASIC_ATTACK_01; 
+            CHARACTER_ACTION::BASIC_ATTACK_01;
 
         __super::On_ActionFinished();
-        if (true == Try_Transition(ETOUI(eNext)))
+        if (true == Try_Action(eNext))
         {
             m_iComboStep =
                 (CHARACTER_ACTION::BASIC_ATTACK_02 == eNext) ? 2 :
@@ -163,8 +163,7 @@ void CPlayer_StateMachine::Update_Combat(const PLAYER_INTENT_FRAME& Intent)
         return;
     }
 
-    // 4) ºñ°ø°Ý »óÅÂ
-    if (true == Try_Transition(ETOUI(CHARACTER_ACTION::BASIC_ATTACK_01)))
+    if (true == Try_Action(CHARACTER_ACTION::BASIC_ATTACK_01))
     {
         m_iComboStep = 1;
         m_bComboWindowOpen = false;
@@ -175,19 +174,22 @@ void CPlayer_StateMachine::Update_Guard(const PLAYER_INTENT_FRAME& Intent)
 {
     m_bLastGuardHeld = Intent.bGuardHeld;
 
-    const CHARACTER_ACTION eCur = Get_CurrentCharacterAction();
+    const CHARACTER_ACTION       eCurAction = Get_CurrentCharacterAction();
+    const CHARACTER_ACTION_STEP  eCurStep = Get_CurrentCharacterStep();
 
     const _bool bIsGuarding =
-        (CHARACTER_ACTION::GUARD_START == eCur) ||
-        (CHARACTER_ACTION::GUARD_LOOP == eCur);
+        (CHARACTER_ACTION::GUARD == eCurAction) &&
+        (CHARACTER_ACTION_STEP::START == eCurStep ||
+            CHARACTER_ACTION_STEP::LOOP == eCurStep);
 
-    // °¡µå ÁøÀÔ
+    // ê°€ë“œ ì‹œìž‘
     if (false == bIsGuarding && true == Intent.bGuardHeld)
     {
-        if (CHARACTER_ACTION::GUARD_END == eCur)
+        if (CHARACTER_ACTION::GUARD == eCurAction
+            && CHARACTER_ACTION_STEP::END == eCurStep)
             return;
 
-        if (true == Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_START)))
+        if (true == Try_Action(CHARACTER_ACTION::GUARD, CHARACTER_ACTION_STEP::START))
         {
             if (auto* pHUD = CHUD_GamePlay::Get_Instance())
                 pHUD->Notify_CombatInput();
@@ -195,28 +197,66 @@ void CPlayer_StateMachine::Update_Guard(const PLAYER_INTENT_FRAME& Intent)
         return;
     }
 
-    // °¡µå ÇØÁ¦
+    // ê°€ë“œ ì¢…ë£Œ
     if (true == bIsGuarding && false == Intent.bGuardHeld)
     {
         __super::On_ActionFinished();
-        Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_END));
+        Try_Action(CHARACTER_ACTION::GUARD, CHARACTER_ACTION_STEP::END);
+        return;
+    }
+}
+
+void CPlayer_StateMachine::Update_Skills(const PLAYER_INTENT_FRAME& Intent)
+{
+    if (nullptr == m_pOwner)
+        return;
+
+    // C í‚¤ â€” ë¬´ê¸° ìŠ¤ì™‘
+    if (true == Intent.bWeaponSwapRequested && true == m_pOwner->Can_WeaponSwap())
+    {
+        m_pOwner->Trigger_WeaponSwap();
+        if (true == Try_Action(CHARACTER_ACTION::WEAPON_SWAP))
+        {
+            if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+                pHUD->Notify_CombatInput();
+        }
+        return;
+    }
+
+    // F í‚¤ â€” ë¬´ê¸° ê³ ìœ  ìŠ¤í‚¬
+    if (true == Intent.bSkillFRequested && true == m_pOwner->Can_UseSkillF())
+    {
+        const EQUIPPED_WEAPON_ID eEquipped = m_pOwner->Get_EquippedWeapon();
+
+        // NONE ìž¥ì°© ì‹œëŠ” ìŠ¤í‚¬ ë°œë™ ì•ˆ í•¨
+        if (EQUIPPED_WEAPON_ID::NONE == eEquipped)
+            return;
+
+        const CHARACTER_ACTION_STEP eStep =
+            (EQUIPPED_WEAPON_ID::KNIGHT_KILLER == eEquipped)
+            ? CHARACTER_ACTION_STEP::START
+            : CHARACTER_ACTION_STEP::NONE;
+
+        if (true == Try_Action(CHARACTER_ACTION::SKILL_F, eStep))
+        {
+            m_pOwner->Trigger_SkillF();
+            if (auto* pHUD = CHUD_GamePlay::Get_Instance())
+                pHUD->Notify_CombatInput();
+        }
         return;
     }
 }
 
 _bool CPlayer_StateMachine::Is_GuardLocked() const
 {
-    const CHARACTER_ACTION eCur = Get_CurrentCharacterAction();
-    return (CHARACTER_ACTION::GUARD_START == eCur) ||
-        (CHARACTER_ACTION::GUARD_LOOP == eCur) ||
-        (CHARACTER_ACTION::GUARD_END == eCur);
+    return (CHARACTER_ACTION::GUARD == Get_CurrentCharacterAction());
 }
 
 _bool CPlayer_StateMachine::Is_AttackLocked() const
 {
     const CHARACTER_ACTION eCur = Get_CurrentCharacterAction();
 
-    const _bool bIsAttacking = 
+    const _bool bIsAttacking =
         (CHARACTER_ACTION::BASIC_ATTACK_01 == eCur) ||
         (CHARACTER_ACTION::BASIC_ATTACK_02 == eCur) ||
         (CHARACTER_ACTION::BASIC_ATTACK_03 == eCur);
@@ -234,7 +274,7 @@ void CPlayer_StateMachine::Bind_Owner(CPlayer* pOwner)
 
 _bool CPlayer_StateMachine::Enter_InitialState(CHARACTER_ACTION eInitialAction)
 {
-    return Try_Transition(ETOUI(eInitialAction));
+    return Try_Action(eInitialAction);
 }
 
 void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
@@ -243,7 +283,8 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
     {
     case NOTIFY_TYPE::ACTION_FINISHED:
     {
-        const CHARACTER_ACTION eFinished = static_cast<CHARACTER_ACTION>(Event.iPayload);
+        const CHARACTER_ACTION       eFinished = Get_PlayerActionFromStateKey(Event.iPayload);
+        const CHARACTER_ACTION_STEP  eFinishedStep = Get_PlayerStepFromStateKey(Event.iPayload);
 
         if (CHARACTER_ACTION::FLOAT_END == eFinished)
         {
@@ -252,7 +293,7 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
 
         __super::On_ActionFinished();
 
-        // DASH/BACK_DASH Á¾·á -> ÀÔ·Â ÀÖÀ¸¸é RUN_FAST, ¾øÀ¸¸é ¹ß À§Ä¡ ºÐ±â
+        // DASH/BACK_DASH ì¢…ë£Œ
         const _bool bDashFinished =
             (CHARACTER_ACTION::DASH == eFinished) ||
             (CHARACTER_ACTION::BACK_DASH == eFinished);
@@ -260,18 +301,13 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
         if (bDashFinished)
         {
             if (true == m_bLastHasMoveIntent)
-            {
-                Try_Transition(ETOUI(CHARACTER_ACTION::RUN_FAST));
-            }
+                Try_Action(CHARACTER_ACTION::RUN_FAST);
             else
-            {
-                Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
-            }
-
+                Try_Action(CHARACTER_ACTION::IDLE);
             break;
         }
 
-        // RUN_END_LEFT / RIGHT Á¾·á -> IDLE
+        // RUN_END_* ì¢…ë£Œ
         const _bool bRunEndFinished =
             (CHARACTER_ACTION::RUN_END == eFinished) ||
             (CHARACTER_ACTION::RUN_END_LEFT == eFinished) ||
@@ -279,7 +315,7 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
 
         if (bRunEndFinished)
         {
-            Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+            Try_Action(CHARACTER_ACTION::IDLE);
             break;
         }
 
@@ -287,31 +323,70 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
             (CHARACTER_ACTION::BASIC_ATTACK_01 == eFinished) ||
             (CHARACTER_ACTION::BASIC_ATTACK_02 == eFinished) ||
             (CHARACTER_ACTION::BASIC_ATTACK_03 == eFinished);
-        
+
         if (bAttackFinished)
         {
             m_iComboStep = 0;
             m_bComboWindowOpen = false;
-
-            Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+            Try_Action(CHARACTER_ACTION::IDLE);
             break;
         }
 
-        if (CHARACTER_ACTION::GUARD_START == eFinished)
+        // GUARD + START ì¢…ë£Œ â†’ LOOP ë˜ëŠ” END
+        if (CHARACTER_ACTION::GUARD == eFinished
+            && CHARACTER_ACTION_STEP::START == eFinishedStep)
         {
             if (true == m_bLastGuardHeld)
-                Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_LOOP));
+                Try_Action(CHARACTER_ACTION::GUARD, CHARACTER_ACTION_STEP::LOOP);
             else
-                Try_Transition(ETOUI(CHARACTER_ACTION::GUARD_END));
+                Try_Action(CHARACTER_ACTION::GUARD, CHARACTER_ACTION_STEP::END);
             break;
         }
-        else if (CHARACTER_ACTION::GUARD_END == eFinished)
+        // GUARD + END ì¢…ë£Œ â†’ IDLE
+        else if (CHARACTER_ACTION::GUARD == eFinished
+            && CHARACTER_ACTION_STEP::END == eFinishedStep)
         {
-            Try_Transition(ETOUI(CHARACTER_ACTION::IDLE));
+            Try_Action(CHARACTER_ACTION::IDLE);
             break;
         }
 
-        // UNDRAW ¿Ï·á -> HIDDEN
+        // WEAPON_SWAP ì¢…ë£Œ â†’ IDLE 
+        if (CHARACTER_ACTION::WEAPON_SWAP == eFinished)
+        {
+            Try_Action(CHARACTER_ACTION::IDLE);
+            break;
+        }
+
+        // SKILL_F ì¢…ë£Œ ë¶„ê¸° (R6-A: ë‹¨ìˆœ ìžë™ ì „ì´)
+        if (CHARACTER_ACTION::SKILL_F == eFinished)
+        {
+            // Kasaka ë‹¨ì¼ NONE ì¢…ë£Œ â†’ IDLE
+            if (CHARACTER_ACTION_STEP::NONE == eFinishedStep)
+            {
+                Try_Action(CHARACTER_ACTION::IDLE);
+                break;
+            }
+            // KnightKiller START ì¢…ë£Œ â†’ END (R6-A: Loop ì§„ìž… ë¡œì§ì€ R6-B ì—ì„œ ì¶”ê°€)
+            if (CHARACTER_ACTION_STEP::START == eFinishedStep)
+            {
+                Try_Action(CHARACTER_ACTION::SKILL_F, CHARACTER_ACTION_STEP::END);
+                break;
+            }
+            // KnightKiller LOOP ì¢…ë£Œ â†’ END
+            if (CHARACTER_ACTION_STEP::LOOP == eFinishedStep)
+            {
+                Try_Action(CHARACTER_ACTION::SKILL_F, CHARACTER_ACTION_STEP::END);
+                break;
+            }
+            // KnightKiller END ì¢…ë£Œ â†’ IDLE
+            if (CHARACTER_ACTION_STEP::END == eFinishedStep)
+            {
+                Try_Action(CHARACTER_ACTION::IDLE);
+                break;
+            }
+        }
+
+        // UNDRAW ì¢…ë£Œ â†’ ë¬´ê¸° ìˆ¨ê¹€
         if (CHARACTER_ACTION::UNDRAW == eFinished)
         {
             if (nullptr != m_pOwner)
@@ -329,17 +404,12 @@ void CPlayer_StateMachine::OnNotify(const NOTIFY_EVENT& Event)
         {
         case ANIM_NOTIFY_TYPE::FOOTSTEP_L:
         case ANIM_NOTIFY_TYPE::FOOTSTEP_R:
-            // Step E (Audio): ¹ß¼Ò¸® Àç»ý À§Ä¡. ÇöÀç´Â ¹«½Ã.
             break;
-
         case ANIM_NOTIFY_TYPE::ATTACK_HIT:
-            // Step C-6 (BASIC_ATTACK ÄÞº¸): Àû ÇÇ°Ý ¹Ú½º È°¼ºÈ­ Æ®¸®°Å À§Ä¡. ÇöÀç´Â ¹«½Ã.
             break;
-
         case ANIM_NOTIFY_TYPE::COMBO_WINDOW_OPEN:
             m_bComboWindowOpen = true;
             break;
-
         case ANIM_NOTIFY_TYPE::COMBO_WINDOW_CLOSE:
             m_bComboWindowOpen = false;
             break;
@@ -388,8 +458,7 @@ void CPlayer_StateMachine::Enter_FloatReaction(CHARACTER_ACTION eFloatAction)
     m_fDownRecoverTimer = 0.f;
 
     __super::On_ActionFinished();
-
-    Try_Transition(ETOUI(eFloatAction));
+    Try_Action(eFloatAction);
 }
 
 void CPlayer_StateMachine::Update(_float fTimeDelta)
@@ -406,7 +475,7 @@ void CPlayer_StateMachine::Update(_float fTimeDelta)
     }
 
     __super::On_ActionFinished();
-    Try_Transition(ETOUI(CHARACTER_ACTION::DOWN_RECOVERY));
+    Try_Action(CHARACTER_ACTION::DOWN_RECOVERY);
 }
 
 void CPlayer_StateMachine::Update_Reaction(const PLAYER_INTENT_FRAME& Intent)
@@ -428,7 +497,7 @@ void CPlayer_StateMachine::Update_Reaction(const PLAYER_INTENT_FRAME& Intent)
     if (auto* pHUD = CHUD_GamePlay::Get_Instance())
         pHUD->Notify_DashInput();
 
-    if (true == Try_Transition(ETOUI(CHARACTER_ACTION::BREAKFALL)))
+    if (true == Try_Action(CHARACTER_ACTION::BREAKFALL))
     {
         m_pOwner->Consume_DashCharge();
         m_fDownRecoverTimer = 0.f;
@@ -443,11 +512,13 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     m_bAttackHitboxActive = false;
 
     m_pOwner->Handle_ActionTransition(
-        static_cast<CHARACTER_ACTION>(iFrom),
-        static_cast<CHARACTER_ACTION>(iTo),
+        Get_PlayerActionFromStateKey(iFrom),
+        Get_PlayerStepFromStateKey(iFrom),
+        Get_PlayerActionFromStateKey(iTo),
+        Get_PlayerStepFromStateKey(iTo),
         bInitial);
 
-    const CHARACTER_ACTION eTo = static_cast<CHARACTER_ACTION>(iTo);
+    const CHARACTER_ACTION eTo = Get_PlayerActionFromStateKey(iTo);
 
     switch (eTo)
     {
@@ -466,25 +537,13 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     case CHARACTER_ACTION::RUN_END:
     case CHARACTER_ACTION::RUN_END_LEFT:
     case CHARACTER_ACTION::RUN_END_RIGHT:
-        m_pOwner->Set_SpeedCoeff(0.f);
-        break;
     case CHARACTER_ACTION::DASH:
     case CHARACTER_ACTION::BACK_DASH:
-        m_pOwner->Set_SpeedCoeff(0.f);
-        break;
     case CHARACTER_ACTION::BASIC_ATTACK_01:
     case CHARACTER_ACTION::BASIC_ATTACK_02:
     case CHARACTER_ACTION::BASIC_ATTACK_03:
-        m_pOwner->Set_SpeedCoeff(0.f);
-        break;
-    case CHARACTER_ACTION::GUARD_START:
-    case CHARACTER_ACTION::GUARD_LOOP:
-    case CHARACTER_ACTION::GUARD_END:
-        m_pOwner->Set_SpeedCoeff(0.f);
-        break;
+    case CHARACTER_ACTION::GUARD:           // R2 í†µí•©
     case CHARACTER_ACTION::UNDRAW:
-        m_pOwner->Set_SpeedCoeff(0.f);
-        break;
     case CHARACTER_ACTION::FLOAT_A:
     case CHARACTER_ACTION::FLOAT_B:
     case CHARACTER_ACTION::FLOAT_END:
@@ -511,20 +570,18 @@ void CPlayer_StateMachine::On_Transition(_uint iFrom, _uint iTo, _bool bInitial)
     case CHARACTER_ACTION::BACK_DASH:
         m_pOwner->Set_WeaponsVisible(false);
         break;
-    
+
     case CHARACTER_ACTION::BASIC_ATTACK_01:
     case CHARACTER_ACTION::BASIC_ATTACK_02:
     case CHARACTER_ACTION::BASIC_ATTACK_03:
+    case CHARACTER_ACTION::GUARD:           // R2 í†µí•©
         m_pOwner->Set_WeaponsVisible(true);
         break;
-    case CHARACTER_ACTION::GUARD_START:
-    case CHARACTER_ACTION::GUARD_LOOP:
-    case CHARACTER_ACTION::GUARD_END:
-        m_pOwner->Set_WeaponsVisible(true);
-        break;
+
     case CHARACTER_ACTION::IDLE:
     case CHARACTER_ACTION::UNDRAW:
         break;
+
     case CHARACTER_ACTION::FLOAT_A:
     case CHARACTER_ACTION::FLOAT_B:
     case CHARACTER_ACTION::FLOAT_END:

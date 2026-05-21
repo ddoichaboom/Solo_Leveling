@@ -16,8 +16,22 @@ private:
 public:
 	CHARACTER_ACTION				Get_CurrentCharacterAction() const
 	{
-		return static_cast<CHARACTER_ACTION>(Get_CurrentAction());
+		if (false == Has_CurrentAction())
+			return CHARACTER_ACTION::END;
+		return Get_PlayerActionFromStateKey(Get_CurrentAction());
 	}
+	CHARACTER_ACTION_STEP			Get_CurrentCharacterStep() const 
+	{
+		if (false == Has_CurrentAction())
+			return CHARACTER_ACTION_STEP::NONE;
+
+		return Get_PlayerStepFromStateKey(Get_CurrentAction());
+	}
+	_bool                           Try_Action(CHARACTER_ACTION eAction, CHARACTER_ACTION_STEP eStep = CHARACTER_ACTION_STEP::NONE)
+	{
+		return Try_Transition(Make_PlayerStateKey(eAction, eStep));
+	}
+
 	_bool							Is_AttackHitboxActive() const { return m_bAttackHitboxActive; }
 	_uint							Get_AttackHitboxWindowSerial() const { return m_iAttackHitboxWindowSerial; }
 
@@ -28,6 +42,7 @@ public:
 	void							Update_LocoMotion(const PLAYER_INTENT_FRAME& Intent);
 	void							Update_Combat(const PLAYER_INTENT_FRAME& Intent);
 	void							Update_Guard(const PLAYER_INTENT_FRAME& Intent);
+	void							Update_Skills(const PLAYER_INTENT_FRAME& Intent);
 
 	_bool							Is_GuardLocked() const;
 	_bool							Is_AttackLocked() const;

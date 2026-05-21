@@ -9,7 +9,9 @@ namespace Client
 	{
 		CHARACTER_STATE				eState			= { CHARACTER_STATE::END };
 		CHARACTER_ACTION			eAction			= { CHARACTER_ACTION::END };
+		CHARACTER_ACTION_STEP		eStep			= { CHARACTER_ACTION_STEP::NONE };
 		WEAPON_TYPE					eWeapon			= { WEAPON_TYPE::END };
+		EQUIPPED_WEAPON_ID			eEquippedId		= { EQUIPPED_WEAPON_ID::NONE };
 		const _char*				pAnimationName	= { nullptr };
 		_bool						bRestartOnEnter = { true };
 	}CHARACTER_ANIM_BIND_DESC;
@@ -17,9 +19,11 @@ namespace Client
 	typedef struct tagCharacterActionPolicy
 	{
 		CHARACTER_ACTION			eAction = { CHARACTER_ACTION::END };
+		CHARACTER_ACTION_STEP		eStep = { CHARACTER_ACTION_STEP::NONE };
 		_uint						iPriority = {};
 		_bool						bAutoReturn = { false };
 		CHARACTER_ACTION			eReturnAction = { CHARACTER_ACTION::IDLE };
+		CHARACTER_ACTION_STEP		eReturnStep = { CHARACTER_ACTION_STEP::NONE };
 		_float						fEnterBlendTime = { 0.f };
 	} CHARACTER_ACTION_POLICY;
 
@@ -43,6 +47,10 @@ namespace Client
 		MONSTER_ACTION_STEP             eStep = { MONSTER_ACTION_STEP::NONE };
 		const _char*					pAnimationName = { nullptr };
 		_bool                           bRestartOnEnter = { true };
+		_bool                           bOverrideLoop = { false };
+		_bool                           bLoop = { false };
+		_bool                           bOverrideRootMotion = { false };
+		_bool                           bUseRootMotion = { false };
 	} MONSTER_ANIM_BIND_DESC;
 
 	typedef struct tagMonsterActionPolicy
@@ -84,6 +92,8 @@ namespace Client
 		_bool bLButtonPressed = { false };
 		_bool bDashPressed = { false };
 
+		_bool bWeaponSwapPressed = { false };
+		_bool bSkillFPressed = { false };
 
 		_long lMouseDeltaX = {};
 		_long lMouseDeltaY = {};
@@ -95,10 +105,13 @@ namespace Client
 		_float3 vMoveDirWorld = {};
 		_long	lLookDeltaX = {};
 
-		_bool bDashRequested = { false };		// ÀÌ¹ø ÇÁ·¹ÀÓ¿¡ Dash ¿äÃ»
+		_bool bDashRequested = { false };		// ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½ Dash ï¿½ï¿½Ã»
 		_bool bAttackRequested = { false };
+		_bool bSkillFRequested = { false };
 
 		_bool bGuardHeld = { false };
+
+		_bool bWeaponSwapRequested = { false };
 
 	}PLAYER_INTENT_FRAME;
 

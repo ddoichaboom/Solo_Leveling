@@ -65,7 +65,7 @@ public:
 
 	void						Take_Damage(_float fAmount);
 
-	void						Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep,
+	virtual void				Handle_ActionTransition(MONSTER_ACTION eFromAction, MONSTER_ACTION_STEP eFromStep,
 														MONSTER_ACTION eToAction, MONSTER_ACTION_STEP eToStep,
 														_bool bInitial);
 
@@ -114,7 +114,7 @@ protected:
 
 	_bool                       Resolve_NavigationPosition(const _float3& vCandidatePosition, _float3* pOutPosition);
 	_bool                       Try_ApplyMovementPosition(const _float3& vCandidatePosition);
-	void                        Apply_RootMotion(const _float3& vLocalDelta);
+	virtual void                Apply_RootMotion(const _float3& vLocalDelta);
 	
 	void						On_WeaponHitEnter(CCollider* pOther);
 
